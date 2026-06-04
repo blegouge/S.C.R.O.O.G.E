@@ -1,0 +1,6 @@
+# Optional: native wrapper for dashboard_app.py (WebKit via pywebview)
+pywebview>=5.0,<6
+llmlingua>=0.2.2
+transformers<5
+numpy<2
+claw-compactor[accurate]>=7.1.0

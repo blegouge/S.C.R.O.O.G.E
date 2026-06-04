@@ -1,0 +1,346 @@
+#!/usr/bin/env python3
+"""Tiny HTTP dashboard for Telemetry Token (localhost only)."""
+
+from __future__ import annotations
+
+import json
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+
+from telemetry_metrics import summarize_report
+from telemetry_paths import resolve_data_dir
+
+
+def package_root() -> pathlib.Path:
+    """Bundle HTML/icon: PyInstaller extract dir when frozen; else script directory."""
+    if getattr(sys, "frozen", False):
+        return pathlib.Path(sys._MEIPASS)
+    return pathlib.Path(__file__).resolve().parent
+
+
+def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
+    """Return (log_path, layout_path) for source ('cursor' or 'antigravity')."""
+    if source == "antigravity":
+        home = os.getenv("ANTIGRAVITY_HOME")
+        if home:
+            d = pathlib.Path(home) / "token-telemetry"
+        else:
+            d = pathlib.Path.home() / ".gemini" / "antigravity" / "token-telemetry"
+    else:
+        d = resolve_data_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    return d / "events.jsonl", d / "dashboard-layout.json"
+
+
+DASH = package_root() / "dashboard.html"
+ICON = package_root() / "icon.jpg"  # app logo / favicon (JPEG)
+HOST = "127.0.0.1"
+PORT = 8765
+
+
+def _rtk_cmd_candidates() -> list[list[str]]:
+    candidates: list[list[str]] = []
+    seen: set[str] = set()
+    which_rtk = shutil.which("rtk")
+    common_paths = [
+        which_rtk,
+        "/opt/homebrew/bin/rtk",
+        "/usr/local/bin/rtk",
+        "/usr/bin/rtk",
+    ]
+    for path in common_paths:
+        if not path or path in seen:
+            continue
+        seen.add(path)
+        candidates.append([path])
+    if not candidates:
+        candidates.append(["rtk"])
+    return candidates
+
+
+def _patched_env() -> dict[str, str]:
+    env = dict(os.environ)
+    path = env.get("PATH", "")
+    extras = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
+    merged = path.split(":") if path else []
+    for entry in extras:
+        if entry not in merged:
+            merged.append(entry)
+    env["PATH"] = ":".join(merged)
+    return env
+
+
+def _extract_json_object(text: str) -> dict[str, object] | None:
+    stripped = text.strip()
+    if not stripped:
+        return None
+    try:
+        parsed = json.loads(stripped)
+        if isinstance(parsed, dict):
+            return parsed
+        return {"data": parsed}
+    except json.JSONDecodeError:
+        pass
+
+    match = re.search(r"\{[\s\S]*\}", stripped)
+    if not match:
+        return None
+    try:
+        parsed = json.loads(match.group(0))
+        if isinstance(parsed, dict):
+            return parsed
+        return {"data": parsed}
+    except json.JSONDecodeError:
+        return None
+
+
+def load_rtk_gain(project: bool = False, source: str = "cursor") -> dict[str, object]:
+    # -d: per-day saved_tokens for counterfactual charts in the dashboard
+    args = ["gain", "-d", "--format", "json"]
+    if project:
+        args.append("--project")
+
+    env = _patched_env()
+    cwd = None
+    if source == "antigravity":
+        antigravity_dir = pathlib.Path.home() / ".gemini" / "antigravity"
+        if antigravity_dir.is_dir():
+            cwd = str(antigravity_dir)
+
+    errors: list[str] = []
+    for base in _rtk_cmd_candidates():
+        cmd = [*base, *args]
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=8,
+                check=False,
+                env=env,
+                cwd=cwd,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            errors.append(f"{' '.join(cmd)}: {exc}")
+            continue
+
+        if proc.returncode != 0:
+            err = (proc.stderr or proc.stdout or "unknown error").strip()[:400]
+            errors.append(f"{' '.join(cmd)}: {err}")
+            continue
+
+        payload = _extract_json_object(proc.stdout or "")
+        if payload is None:
+            raw_preview = (proc.stdout or "").strip()[:400]
+            errors.append(f"{' '.join(cmd)}: invalid json output ({raw_preview})")
+            continue
+
+        payload["ok"] = True
+        payload["scope"] = "project" if project else "global"
+        payload["rtk_command"] = " ".join(cmd)
+        return payload
+
+    return {
+        "ok": False,
+        "scope": "project" if project else "global",
+        "error": "; ".join(errors)[:800] if errors else "rtk not found",
+    }
+
+
+def _load_dashboard_layout(layout_path: pathlib.Path) -> dict[str, object]:
+    default: dict[str, object] = {"version": 1, "order": None, "collapsed": []}
+    if not layout_path.is_file():
+        return default
+    try:
+        raw = json.loads(layout_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return default
+    if not isinstance(raw, dict):
+        return default
+    order = raw.get("order")
+    collapsed = raw.get("collapsed")
+    return {
+        "version": 1,
+        "order": order if isinstance(order, list) else None,
+        "collapsed": collapsed if isinstance(collapsed, list) else [],
+    }
+
+
+def _save_dashboard_layout(layout_path: pathlib.Path, payload: dict[str, object]) -> dict[str, object]:
+    order = payload.get("order")
+    collapsed = payload.get("collapsed")
+    clean: dict[str, object] = {
+        "version": 1,
+        "order": [str(x) for x in order] if isinstance(order, list) else [],
+        "collapsed": [str(x) for x in collapsed] if isinstance(collapsed, list) else [],
+    }
+    layout_path.write_text(json.dumps(clean, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return clean
+
+
+class DashboardHandler(SimpleHTTPRequestHandler):
+    def log_message(self, format: str, *args: object) -> None:
+        return
+
+    def do_GET(self) -> None:  # noqa: N802
+        import urllib.parse
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        query = urllib.parse.parse_qs(parsed.query)
+        source = query.get("source", ["cursor"])[0]
+
+        log_path, layout_path = get_paths(source)
+
+        if path == "/api/events":
+            rows = []
+            if log_path.is_file():
+                for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rows.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+            payload = json.dumps(rows, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if path == "/api/report-summary":
+            rows = []
+            if log_path.is_file():
+                for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rows.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+            payload_obj = summarize_report(rows)
+            payload_obj["ok"] = True
+            payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if path == "/api/rtk-gain":
+            payload_obj = {
+                "global": load_rtk_gain(project=False, source=source),
+                "project": load_rtk_gain(project=True, source=source),
+            }
+            payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if path == "/api/dashboard-layout":
+            payload_obj = _load_dashboard_layout(layout_path)
+            payload_obj["ok"] = True
+            payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if path in ("/", "/index.html"):
+            body = (
+                DASH.read_text(encoding="utf-8")
+                if DASH.is_file()
+                else "<pre>dashboard.html missing</pre>"
+            ).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if path in ("/icon.jpg", "/favicon.ico") and ICON.is_file():
+            data = ICON.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        self.send_error(404, "Not found")
+
+    def do_POST(self) -> None:  # noqa: N802
+        import urllib.parse
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        query = urllib.parse.parse_qs(parsed.query)
+        source = query.get("source", ["cursor"])[0]
+
+        log_path, layout_path = get_paths(source)
+
+        if path != "/api/dashboard-layout":
+            self.send_error(404, "Not found")
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        if length < 0 or length > 65536:
+            self.send_error(400, "Invalid body")
+            return
+        raw = self.rfile.read(length) if length else b""
+        try:
+            payload_in = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self.send_error(400, "Invalid JSON")
+            return
+        if not isinstance(payload_in, dict):
+            self.send_error(400, "Expected JSON object")
+            return
+        saved = _save_dashboard_layout(layout_path, payload_in)
+        payload_obj = {"ok": True, **saved}
+        payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+
+def make_httpd(preferred_port: int = PORT) -> tuple[HTTPServer, int]:
+    """Bind to preferred_port if free; otherwise let the OS assign a free port."""
+    try:
+        httpd = HTTPServer((HOST, preferred_port), DashboardHandler)
+        return httpd, preferred_port
+    except OSError:
+        httpd = HTTPServer((HOST, 0), DashboardHandler)
+        actual = int(httpd.server_address[1])
+        return httpd, actual
+
+
+def main() -> None:
+    c_log, _ = get_paths("cursor")
+    a_log, _ = get_paths("antigravity")
+    print(f"Telemetry Token: Cursor = {c_log} | Antigravity = {a_log}")
+    httpd, port = make_httpd()
+    print(f"Ouvre http://{HOST}:{port}/ (CTRL+C pour arrêter)")
+    httpd.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

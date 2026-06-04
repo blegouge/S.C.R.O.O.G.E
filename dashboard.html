@@ -1,0 +1,3463 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telemetry Token</title>
+  <link rel="icon" type="image/jpeg" href="icon.jpg" sizes="512x512" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="icon.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@450;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --font-ui: "Plus Jakarta Sans", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --bg-0: #0a0612;
+      --bg-1: #120a1e;
+      --bg-2: #1a0f2e;
+      --orb-pink: rgba(255, 80, 180, 0.12);
+      --orb-blue: rgba(80, 140, 255, 0.14);
+      --glass: rgba(255, 255, 255, 0.055);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-highlight: rgba(255, 255, 255, 0.08);
+      --text: #f4f0ff;
+      --text-muted: rgba(244, 240, 255, 0.55);
+      --neon-blue: #6b9fff;
+      --neon-pink: #ff4fd8;
+      --neon-cyan: #4ef0e0;
+      --neon-lime: #b5ff6b;
+      --warn-line: #ffb020;
+      --warn-bg: rgba(255, 176, 32, 0.08);
+      --btn-primary: linear-gradient(135deg, #5b8dff 0%, #a855f7 100%);
+      --shadow-glow: 0 0 40px rgba(107, 159, 255, 0.12);
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --orange-accent: #ff9f43;
+      --event-lime: #7fff59;
+    }
+
+    html.theme-light {
+      --bg-0: #e8eaf4;
+      --bg-1: #dfe4f7;
+      --bg-2: #f2f4fc;
+      --orb-pink: rgba(168, 85, 247, 0.08);
+      --orb-blue: rgba(91, 141, 255, 0.1);
+      --glass: rgba(255, 255, 255, 0.72);
+      --glass-border: rgba(91, 141, 255, 0.18);
+      --glass-highlight: rgba(255, 255, 255, 0.9);
+      --text: #1a1430;
+      --text-muted: rgba(26, 20, 48, 0.55);
+      --shadow-glow: 0 8px 40px rgba(91, 141, 255, 0.12);
+      --warn-bg: rgba(255, 176, 32, 0.14);
+      --neon-blue: #3d6fdf;
+      --neon-pink: #d63db8;
+      --neon-cyan: #0db8b0;
+      --neon-lime: #5cb831;
+    }
+
+    * { box-sizing: border-box; }
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg-0);
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 55% at 15% -10%, var(--orb-pink), transparent 55%),
+        radial-gradient(ellipse 65% 50% at 95% 5%, var(--orb-blue), transparent 50%),
+        radial-gradient(ellipse 55% 40% at 50% 100%, rgba(78, 240, 224, 0.06), transparent 55%),
+        linear-gradient(168deg, var(--bg-0) 0%, var(--bg-1) 38%, var(--bg-2) 65%, var(--bg-0) 100%);
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 1.25rem 1.35rem 2.75rem;
+    }
+
+    .nav-glass {
+      position: relative;
+      z-index: 80;
+      overflow: visible;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 0.75rem 1.1rem;
+      border-radius: var(--radius-lg);
+      background: var(--glass);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--glass-border);
+      box-shadow:
+        var(--shadow-glow),
+        inset 0 1px 0 var(--glass-highlight);
+      margin-bottom: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .brand-icon {
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow:
+        0 0 0 2px rgba(78, 240, 224, 0.12),
+        0 4px 20px rgba(255, 79, 216, 0.28);
+      object-fit: cover;
+      background: rgba(14, 8, 24, 0.6);
+    }
+    html.theme-light .brand-icon {
+      border-color: rgba(91, 141, 255, 0.25);
+      box-shadow: 0 4px 18px rgba(91, 141, 255, 0.2);
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand span {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+    .nav-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      flex: 1;
+      min-width: 0;
+      padding: 0 0.5rem;
+    }
+    .nav-period {
+      margin: 0;
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: min(42vw, 22rem);
+    }
+    .nav-info-btn {
+      position: relative;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.35rem;
+      height: 1.35rem;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 176, 32, 0.45);
+      background: var(--warn-bg);
+      color: var(--warn-line);
+      font-family: var(--font-ui);
+      font-size: 0.72rem;
+      font-weight: 800;
+      line-height: 1;
+      cursor: help;
+    }
+    .nav-info-btn:hover,
+    .nav-info-btn:focus-visible {
+      border-color: rgba(255, 176, 32, 0.75);
+      box-shadow: 0 0 0 2px rgba(255, 176, 32, 0.2);
+      outline: none;
+    }
+    .nav-info-tip {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 300;
+      width: min(22rem, 88vw);
+      padding: 0.55rem 0.7rem;
+      border-radius: var(--radius-md);
+      background: rgba(18, 12, 32, 0.97);
+      border: 1px solid rgba(255, 176, 32, 0.4);
+      color: rgba(244, 240, 255, 0.92);
+      font-size: 0.68rem;
+      font-weight: 500;
+      line-height: 1.45;
+      text-align: left;
+      box-shadow: 0 10px 36px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px);
+      transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+      pointer-events: none;
+    }
+    html.theme-light .nav-info-tip {
+      background: rgba(255, 255, 255, 0.98);
+      color: rgba(26, 20, 48, 0.92);
+      border-color: rgba(255, 176, 32, 0.5);
+      box-shadow: 0 10px 32px rgba(91, 141, 255, 0.12);
+    }
+    .nav-info-btn:hover .nav-info-tip,
+    .nav-info-btn:focus-visible .nav-info-tip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+      overflow: visible;
+    }
+    @media (max-width: 720px) {
+      .nav-meta {
+        order: 3;
+        flex-basis: 100%;
+        justify-content: flex-start;
+        padding: 0.15rem 0 0;
+      }
+      .nav-period {
+        max-width: none;
+        flex: 1;
+      }
+    }
+
+    /* Grafana-style refresh split control */
+    .refresh-split {
+      position: relative;
+      z-index: 2;
+      display: inline-flex;
+      align-items: stretch;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(22, 16, 38, 0.75);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      font-family: var(--font-ui);
+    }
+    html.theme-light .refresh-split {
+      background: rgba(255, 255, 255, 0.65);
+      border-color: rgba(91, 141, 255, 0.2);
+    }
+    .refresh-split-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0;
+      padding: 0.45rem 0.65rem;
+      font-family: inherit;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+    }
+    .refresh-split-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    html.theme-light .refresh-split-btn:hover {
+      background: rgba(91, 141, 255, 0.1);
+    }
+    .refresh-split-btn:focus-visible {
+      outline: 2px solid rgba(107, 159, 255, 0.65);
+      outline-offset: 1px;
+      z-index: 2;
+    }
+    .refresh-split-main {
+      border-radius: 7px 0 0 7px;
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .refresh-split-caret {
+      border-radius: 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      min-width: 4.5rem;
+      justify-content: center;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+    html.theme-light .refresh-split-caret {
+      border-right-color: rgba(91, 141, 255, 0.2);
+    }
+    .refresh-split-select {
+      border-radius: 0 7px 7px 0;
+      border-left: none;
+      min-width: 7.5rem;
+      padding-left: 0.75rem;
+      padding-right: 1.85rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f4f0ff' fill-opacity='0.92' d='M3 4.2L6 7.9l3.1-3.7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+      background-size: 10px auto;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      cursor: pointer;
+    }
+    html.theme-light .refresh-split-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231a1430' fill-opacity='0.78' d='M3 4.2L6 7.9l3.1-3.7'/%3E%3C/svg%3E");
+    }
+    .refresh-split-select:focus-visible {
+      outline: 2px solid rgba(107, 159, 255, 0.65);
+      outline-offset: -2px;
+    }
+    .refresh-split-select option {
+      background-color: rgb(22, 16, 38);
+      color: var(--text);
+    }
+    html.theme-light .refresh-split-select option {
+      background-color: #ffffff;
+      color: #000000;
+    }
+    .refresh-split-caret .caret-ico {
+      width: 10px;
+      height: 10px;
+      opacity: 0.75;
+    }
+    .refresh-split-caret[aria-expanded="true"] {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .refresh-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      min-width: 10.5rem;
+      margin: 0;
+      padding: 0.25rem 0;
+      list-style: none;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(18, 12, 32, 0.96);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+      z-index: 200;
+      isolation: isolate;
+    }
+    html.theme-light .refresh-dropdown {
+      background: rgba(255, 255, 255, 0.98);
+      border-color: rgba(91, 141, 255, 0.18);
+      box-shadow: 0 10px 32px rgba(91, 141, 255, 0.15);
+    }
+    .refresh-dropdown[hidden] {
+      display: none !important;
+    }
+    .refresh-dropdown li {
+      margin: 0;
+    }
+    .refresh-dropdown button {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.42rem 0.85rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(244, 240, 255, 0.92);
+      text-align: left;
+    }
+    html.theme-light .refresh-dropdown button {
+      color: rgba(26, 20, 48, 0.9);
+    }
+    .refresh-dropdown button:hover,
+    .refresh-dropdown button:focus-visible {
+      background: rgba(107, 159, 255, 0.2);
+      outline: none;
+    }
+    html.theme-light .refresh-dropdown button:hover {
+      background: rgba(91, 141, 255, 0.12);
+    }
+    .refresh-dropdown button[data-active="true"] {
+      background: rgba(255, 255, 255, 0.08);
+      font-weight: 700;
+    }
+    html.theme-light .refresh-dropdown button[data-active="true"] {
+      background: rgba(91, 141, 255, 0.14);
+    }
+    .refresh-ico-spin {
+      animation: rf-spin 0.65s linear infinite;
+    }
+    @keyframes rf-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .btn {
+      font-family: var(--font-ui);
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass);
+      color: var(--text);
+      backdrop-filter: blur(8px);
+      transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(107, 159, 255, 0.45);
+      box-shadow: 0 4px 20px rgba(107, 159, 255, 0.15);
+    }
+    .btn-primary {
+      border: none;
+      color: #fff;
+      background: var(--btn-primary);
+      box-shadow: 0 4px 24px rgba(107, 159, 255, 0.35);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 28px rgba(168, 85, 247, 0.35);
+    }
+
+    .glass-strip {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 0.65rem;
+      margin-bottom: 0.65rem;
+    }
+    @media (max-width: 920px) {
+      .glass-strip { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .glass-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .glass-strip.editing-strip {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .glass-strip.subagent-strip {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .glass-strip.compliance-strip {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    @media (max-width: 1080px) {
+      .glass-strip.editing-strip,
+      .glass-strip.subagent-strip,
+      .glass-strip.compliance-strip { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .glass-strip.editing-strip,
+      .glass-strip.subagent-strip,
+      .glass-strip.compliance-strip { grid-template-columns: 1fr; }
+    }
+
+    .metric-chip.compliance-ok .big {
+      background: linear-gradient(90deg, #34d399, var(--neon-cyan));
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    .metric-chip.compliance-warn .big {
+      background: linear-gradient(90deg, #fbbf24, #f87171);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    .metric-chip {
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-md);
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      box-shadow: inset 0 1px 0 var(--glass-highlight);
+    }
+    .metric-chip label {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    .metric-chip .big {
+      font-family: var(--font-mono);
+      font-size: 1.35rem;
+      font-weight: 600;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    html.theme-light .metric-chip .big {
+      color: var(--neon-blue);
+      background: none;
+      -webkit-background-clip: unset;
+      background-clip: unset;
+    }
+    .metric-chip .sub {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      font-weight: 500;
+    }
+
+    .chart-footnote {
+      margin: 0.65rem 0 0;
+      padding: 0 0.25rem;
+    }
+
+    .edit-footnote {
+      margin: 0 0 0.75rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 10px;
+      font-size: 0.68rem;
+      line-height: 1.45;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      border-left: 3px solid var(--neon-pink);
+    }
+    html.theme-light .edit-footnote {
+      background: rgba(91, 141, 255, 0.06);
+    }
+
+    .charts-row {
+      display: grid;
+      grid-template-columns: 0.95fr 1.15fr;
+      gap: 1rem;
+      margin-top: 0.25rem;
+    }
+    .charts-row-secondary {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .charts-row-secondary .donut-panel {
+      max-width: 420px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    @media (max-width: 1020px) {
+      .charts-row { grid-template-columns: 1fr; }
+    }
+
+    .glass-panel {
+      border-radius: var(--radius-lg);
+      padding: 1.1rem 1.15rem;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      box-shadow:
+        var(--shadow-glow),
+        inset 0 1px 0 var(--glass-highlight);
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin-bottom: 0.65rem;
+    }
+    .panel-title {
+      margin: 0;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .panel-select-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    .panel select.select-glass,
+    select.select-glass {
+      font-family: var(--font-ui);
+      font-size: 0.72rem;
+      font-weight: 600;
+      line-height: 1.35;
+      padding: 0.45rem 2.15rem 0.45rem 0.95rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background-color: rgba(22, 14, 40, 0.92);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f4f0ff' fill-opacity='0.92' d='M3 4.2L6 7.9l3.1-3.7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+      background-size: 11px auto;
+      color: var(--text);
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      min-height: 2rem;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+    html.theme-light .panel select.select-glass,
+    html.theme-light select.select-glass {
+      background-color: rgba(255, 255, 255, 0.94);
+      border-color: rgba(91, 141, 255, 0.22);
+      color: var(--text);
+      box-shadow: 0 1px 8px rgba(91, 141, 255, 0.08);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231a1430' fill-opacity='0.78' d='M3 4.2L6 7.9l3.1-3.7'/%3E%3C/svg%3E");
+    }
+    select.select-glass:focus {
+      outline: none;
+      border-color: rgba(107, 159, 255, 0.65);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 0 2px rgba(107, 159, 255, 0.28);
+    }
+    select.select-glass::-ms-expand {
+      display: none;
+    }
+
+    canvas.chart-canvas {
+      max-height: 300px !important;
+    }
+
+    .tables-row {
+      display: grid;
+      grid-template-columns: 0.92fr 1.3fr;
+      gap: 1rem;
+      margin-top: 1.1rem;
+      align-items: start;
+      min-width: 0;
+    }
+    .tables-row > .glass-panel {
+      min-width: 0;
+    }
+    @media (max-width: 980px) {
+      .tables-row { grid-template-columns: 1fr; }
+    }
+
+    .glass-panel.section-title {
+      margin-bottom: 0.5rem;
+    }
+    .glass-panel h2 {
+      margin: 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .feed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      max-height: 520px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+      min-width: 0;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+      -webkit-overflow-scrolling: touch;
+    }
+    .feed-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .feed-list::-webkit-scrollbar-thumb {
+      background: rgba(107, 159, 255, 0.35);
+      border-radius: 99px;
+    }
+
+    .feed-row {
+      display: grid;
+      grid-template-columns: 5px minmax(0, 1fr);
+      grid-template-rows: auto;
+      border-radius: var(--radius-md);
+      overflow: visible;
+      min-width: 0;
+      width: 100%;
+      isolation: isolate;
+      background: linear-gradient(
+        105deg,
+        rgba(255, 255, 255, 0.065) 0%,
+        rgba(255, 255, 255, 0.025) 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+      color: var(--text);
+    }
+    html.theme-light .feed-row {
+      background: linear-gradient(105deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 255, 0.88));
+      border-color: rgba(91, 141, 255, 0.12);
+    }
+    .feed-row-accent {
+      grid-row: 1 / -1;
+      grid-column: 1;
+      align-self: stretch;
+      background: var(--accent, var(--neon-blue));
+      box-shadow: 0 0 14px rgba(107, 159, 255, 0.35);
+      border-radius: var(--radius-md) 0 0 var(--radius-md);
+      min-height: 2.75rem;
+    }
+    .feed-cols {
+      grid-column: 2;
+      min-width: 0;
+      word-break: break-word;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.65fr) minmax(0, 0.45fr) minmax(0, 0.55fr) minmax(0, 0.42fr) minmax(0, 0.52fr);
+      gap: 0.4rem 0.65rem;
+      padding: 0.75rem 0.95rem;
+      align-items: center;
+      font-size: 0.72rem;
+      line-height: 1.45;
+      color: var(--text);
+      background: transparent;
+    }
+    .feed-cols.subagent-row-cols {
+      grid-template-columns:
+        minmax(0, 1.05fr)
+        minmax(0, 0.55fr)
+        minmax(0, 0.5fr)
+        minmax(0, 0.95fr)
+        minmax(0, 0.72fr)
+        minmax(0, 0.65fr)
+        minmax(0, 0.42fr)
+        minmax(0, 0.42fr)
+        minmax(0, 0.42fr);
+    }
+    .feed-cols.subagent-head-cols {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      padding: 0.35rem 0.95rem 0.15rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .feed-cols.compliance-row-cols {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 0.55fr) minmax(0, 1.4fr) minmax(0, 0.45fr);
+    }
+    .feed-cols.compliance-head-cols {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      padding: 0.35rem 0.95rem 0.15rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .compress-pill.claw { color: #7ee787; border-color: rgba(126, 231, 135, 0.35); }
+    .compress-pill.llm { color: #79c0ff; border-color: rgba(121, 192, 255, 0.35); }
+    .compress-pill.none { color: var(--muted); }
+    .opt-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      padding: 0.12rem 0.42rem;
+      border-radius: 999px;
+      border: 1px solid var(--glass-border);
+      font-size: 0.58rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .opt-badge.git-cache {
+      color: var(--neon-cyan);
+      border-color: rgba(78, 240, 224, 0.35);
+      background: rgba(78, 240, 224, 0.08);
+    }
+    .opt-badge.guardrail {
+      color: var(--warn-line);
+      border-color: rgba(255, 176, 32, 0.4);
+      background: var(--warn-bg);
+    }
+    .opt-badge.idempotent {
+      color: var(--neon-lime);
+      border-color: rgba(181, 255, 107, 0.35);
+      background: rgba(181, 255, 107, 0.08);
+    }
+    .opt-badge.muted {
+      color: var(--text-muted);
+      border-color: rgba(255, 255, 255, 0.08);
+      background: transparent;
+      text-transform: none;
+      font-weight: 500;
+    }
+    @media (max-width: 900px) {
+      .feed-cols {
+        grid-template-columns: 1fr 1fr;
+      }
+      .feed-cols .cell-wide { grid-column: 1 / -1; }
+      .feed-cols.subagent-row-cols { grid-template-columns: 1fr 1fr; }
+    }
+    .feed-cols .mono {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: rgba(244, 240, 255, 0.88);
+    }
+    html.theme-light .feed-cols .mono {
+      color: rgba(26, 20, 48, 0.82);
+    }
+    .feed-cols .strong {
+      font-weight: 600;
+    }
+    .tool-row-cols {
+      grid-column: 2;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 0.65rem;
+      padding: 0.7rem 0.95rem;
+      align-items: center;
+      font-size: 0.74rem;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .tool-pill {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      background: rgba(107, 159, 255, 0.12);
+      border: 1px solid rgba(107, 159, 255, 0.25);
+      color: var(--neon-blue);
+    }
+    html.theme-light .tool-pill {
+      background: rgba(91, 141, 255, 0.1);
+      color: var(--neon-blue);
+    }
+    .evt-pill {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .num {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 2.2rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .dashboard-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      margin-top: 0.15rem;
+    }
+    .dash-section {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: inset 0 1px 0 var(--glass-highlight);
+      transition: box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+    html.theme-light .dash-section {
+      background: rgba(255, 255, 255, 0.45);
+    }
+    .dash-section.is-dragging {
+      opacity: 0.45;
+    }
+    .dash-section.is-drag-over {
+      box-shadow:
+        0 0 0 2px rgba(78, 240, 224, 0.35),
+        var(--shadow-glow);
+    }
+    .dash-section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid transparent;
+    }
+    .dash-section:not(.is-collapsed) .dash-section-header {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+    html.theme-light .dash-section:not(.is-collapsed) .dash-section-header {
+      border-bottom-color: rgba(91, 141, 255, 0.12);
+    }
+    .dash-section-toggle {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.65rem;
+      height: 1.65rem;
+      padding: 0;
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .dash-section-toggle:hover {
+      border-color: rgba(107, 159, 255, 0.45);
+      background: rgba(107, 159, 255, 0.1);
+    }
+    .dash-section-toggle:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(107, 159, 255, 0.35);
+    }
+    .dash-section-toggle svg {
+      width: 0.85rem;
+      height: 0.85rem;
+      transition: transform 0.2s ease;
+    }
+    .dash-section.is-collapsed .dash-section-toggle svg {
+      transform: rotate(-90deg);
+    }
+    .dash-section-drag-handle {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.35rem;
+      height: 1.65rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      -webkit-user-drag: none;
+      letter-spacing: -0.12em;
+    }
+    .dash-section-drag-handle:active {
+      cursor: grabbing;
+    }
+    .dash-section.is-pointer-dragging {
+      opacity: 0.55;
+      cursor: grabbing;
+    }
+    .dash-section-drop-marker {
+      height: 3px;
+      margin: 0.15rem 0;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue));
+      box-shadow: 0 0 12px rgba(78, 240, 224, 0.45);
+      pointer-events: none;
+    }
+    .dash-section-title {
+      margin: 0;
+      flex: 1;
+      min-width: 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .dash-section-body {
+      padding: 0.65rem 0.75rem 0.75rem;
+    }
+    .dash-section.is-collapsed .dash-section-body {
+      display: none;
+    }
+    .dash-section-body > .glass-strip {
+      margin-bottom: 0;
+    }
+    .dash-section-body > .glass-strip + .glass-strip,
+    .dash-section-body > .tables-row + .tables-row,
+    .dash-section-body > .charts-row + .charts-row-secondary {
+      margin-top: 0.65rem;
+    }
+    .dash-section-body > .charts-row,
+    .dash-section-body > .charts-row-secondary,
+    .dash-section-body > .tables-row {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="nav-glass">
+      <div class="brand">
+        <img class="brand-icon" src="icon.jpg" alt="" width="42" height="42" decoding="async" fetchpriority="high" />
+        <div>
+          <h1>Telemetry Token</h1>
+          <span>Proxy consommation &amp; éditions appliquées</span>
+        </div>
+      </div>
+      <div class="nav-meta">
+        <time id="navPeriod" class="nav-period" datetime="">—</time>
+        <button type="button" class="nav-info-btn" id="btnNavInfo" aria-describedby="navInfoTip">
+          i
+          <span class="nav-info-tip" id="navInfoTip" role="tooltip">
+            Télémétrie locale — le graphique compare le consommé observé (facturé Cursor quand disponible)
+            à une estimation sans optimisations (réel + économies RTK, compression Task, Diff-Only).
+          </span>
+        </button>
+      </div>
+      <div class="nav-actions">
+        <input type="file" id="fileIn" accept=".jsonl,.json,text/plain" hidden />
+        <div class="refresh-split" id="refreshSplit">
+          <button type="button" class="refresh-split-btn refresh-split-main" id="btnRefreshNow" title="Rafraîchir depuis le serveur maintenant">
+            <svg class="refresh-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+              <path d="M21 21v-5h-5" />
+            </svg>
+            Rafraîchir
+          </button>
+          <button type="button" class="refresh-split-btn refresh-split-caret" id="btnRefreshMenu" aria-expanded="false" aria-controls="refreshDropdown" aria-haspopup="true" title="Intervalle de rafraîchissement automatique">
+            <span id="refreshIntervalLabel">Désactivé</span>
+            <svg class="caret-ico" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M3 4.5L6 8l3-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <select id="sourceSelect" class="refresh-split-btn refresh-split-select" title="Source des données de télémétrie">
+            <option value="antigravity">Antigravity</option>
+            <option value="cursor">Cursor</option>
+          </select>
+          <ul class="refresh-dropdown" id="refreshDropdown" role="menu" hidden>
+            <li role="none"><button type="button" role="menuitemradio" data-interval-ms="0" data-short="Désactivé">Désactivé</button></li>
+            <li role="none"><button type="button" role="menuitemradio" data-interval-ms="300000" data-short="5 min">5 minutes</button></li>
+            <li role="none"><button type="button" role="menuitemradio" data-interval-ms="1800000" data-short="30 min">30 minutes</button></li>
+            <li role="none"><button type="button" role="menuitemradio" data-interval-ms="3600000" data-short="1 h">1 heure</button></li>
+          </ul>
+        </div>
+        <button type="button" class="btn" id="btnTheme">Basculer le thème</button>
+        <button type="button" class="btn btn-primary" id="btnReload">Charger un fichier</button>
+      </div>
+    </header>
+
+    <div id="dashboardSections" class="dashboard-sections">
+
+    <div class="dash-section" data-section-id="kpi-summary">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-summary" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Synthèse</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-kpi-summary">
+    <section class="glass-strip" aria-label="Synthèse">
+      <article class="metric-chip">
+        <label>Événements</label>
+        <div class="big" id="kpiEvents">—</div>
+        <div class="sub">Lignes valides dans le journal</div>
+      </article>
+      <article class="metric-chip">
+        <label>Tokens (proxy)</label>
+        <div class="big" id="kpiTokens">—</div>
+      </article>
+      <article class="metric-chip">
+        <label>Caractères texte</label>
+        <div class="big" id="kpiChars">—</div>
+      </article>
+      <article class="metric-chip">
+        <label>Rapports conso</label>
+        <div class="big" id="kpiConso">—</div>
+        <div class="sub" id="kpiConsoSub">complet · 5 champs</div>
+      </article>
+      <article class="metric-chip">
+        <label>RTK gain (saved)</label>
+        <div class="big" id="kpiRtkSaved">—</div>
+        <div class="sub" id="kpiRtkSub">global / project</div>
+      </article>
+      <article class="metric-chip">
+        <label>Hook gain (saved)</label>
+        <div class="big" id="kpiHookSaved">—</div>
+        <div class="sub" id="kpiHookSub">Claw / LLMLingua · Task</div>
+      </article>
+      <article class="metric-chip">
+        <label>Gains globaux</label>
+        <div class="big" id="kpiTotalSaved">—</div>
+        <div class="sub" id="kpiTotalSub">RTK + hook</div>
+      </article>
+    </section>
+      </div>
+    </div>
+
+    <div class="dash-section" data-section-id="kpi-savings">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-savings" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Comparatif optimisations</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-kpi-savings">
+    <section class="glass-strip savings-strip" aria-label="Comparatif optimisations">
+      <article class="metric-chip">
+        <label>Consommé (observé)</label>
+        <div class="big" id="kpiObserved">—</div>
+        <div class="sub" id="kpiObservedSub">période du journal</div>
+      </article>
+      <article class="metric-chip">
+        <label>Sans optimisations (estimé)</label>
+        <div class="big" id="kpiCounterfactual">—</div>
+        <div class="sub" id="kpiCounterfactualSub">observé + économies</div>
+      </article>
+      <article class="metric-chip">
+        <label>Économies (estimées)</label>
+        <div class="big" id="kpiOptSaved">—</div>
+        <div class="sub" id="kpiOptSavedSub">RTK + compression + diff-only</div>
+      </article>
+      <article class="metric-chip">
+        <label>Gain global</label>
+        <div class="big" id="kpiOptPct">—</div>
+        <div class="sub" id="kpiOptPctSub">% sur le contrefactuel</div>
+      </article>
+    </section>
+      </div>
+    </div>
+
+    <div class="dash-section" data-section-id="kpi-editing">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-editing" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Édition</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-kpi-editing">
+    <section class="glass-strip editing-strip" aria-label="Édition">
+      <article class="metric-chip">
+        <label>Agent ΔL+</label>
+        <div class="big" id="kpiAgentAdd">—</div>
+        <div class="sub">afterFileEdit</div>
+      </article>
+      <article class="metric-chip">
+        <label>Agent ΔL−</label>
+        <div class="big" id="kpiAgentRem">—</div>
+      </article>
+      <article class="metric-chip">
+        <label>Passes agent</label>
+        <div class="big" id="kpiAgentPass">—</div>
+      </article>
+      <article class="metric-chip">
+        <label>Tabs acceptés</label>
+        <div class="big" id="kpiTabN">—</div>
+        <div class="sub">afterTabFileEdit</div>
+      </article>
+      <article class="metric-chip">
+        <label>ΔL+ Tab</label>
+        <div class="big" id="kpiTabLines">—</div>
+      </article>
+    </section>
+      </div>
+    </div>
+
+    <div class="dash-section" data-section-id="kpi-subagents">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-subagents" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Subagents (KPI)</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-kpi-subagents">
+    <section class="glass-strip subagent-strip" aria-label="Subagents">
+      <article class="metric-chip">
+        <label>Lancements (total)</label>
+        <div class="big" id="kpiSubLaunch">—</div>
+        <div class="sub" id="kpiSubLaunchSub">aligné report.py</div>
+      </article>
+      <article class="metric-chip">
+        <label>Terminés (total)</label>
+        <div class="big" id="kpiSubStop">—</div>
+        <div class="sub" id="kpiSubStopSub">subagentStop</div>
+      </article>
+      <article class="metric-chip">
+        <label>Parent billed</label>
+        <div class="big" id="kpiParentBilled">—</div>
+        <div class="sub" id="kpiParentBilledSub">moyenne · somme</div>
+      </article>
+      <article class="metric-chip">
+        <label>Prompt sub (proxy)</label>
+        <div class="big" id="kpiSubPromptTok">—</div>
+        <div class="sub" id="kpiSubPromptSub">après compression</div>
+      </article>
+      <article class="metric-chip">
+        <label>Sortie sub (proxy)</label>
+        <div class="big" id="kpiSubOutTok">—</div>
+        <div class="sub" id="kpiSubOutSub">summary + transcript</div>
+      </article>
+    </section>
+      </div>
+    </div>
+
+    <div class="dash-section" data-section-id="kpi-stack">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-stack" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Stack optimisations</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-kpi-stack">
+    <section class="glass-strip stack-strip" aria-label="Stack optimisations">
+      <article class="metric-chip">
+        <label>Git Cache Hit</label>
+        <div class="big" id="kpiGitCacheHits">—</div>
+        <div class="sub" id="kpiGitCacheSub">BLOCK_2 réutilisé</div>
+      </article>
+      <article class="metric-chip">
+        <label>Disjoncteur guardrail</label>
+        <div class="big" id="kpiGuardrailIntercepts">—</div>
+        <div class="sub" id="kpiGuardrailSub">interceptions · halts</div>
+      </article>
+      <article class="metric-chip">
+        <label>Coût évité</label>
+        <div class="big" id="kpiGuardrailAvoided">—</div>
+        <div class="sub" id="kpiGuardrailAvoidedSub">boucles / explore bloqués</div>
+      </article>
+      <article class="metric-chip">
+        <label>Idempotence</label>
+        <div class="big" id="kpiIdempotent">—</div>
+        <div class="sub" id="kpiIdempotentSub">[IDEMPOTENT_CONTEXT_INJECTED]</div>
+      </article>
+    </section>
+      </div>
+    </div>
+
+    <div class="dash-section" data-section-id="kpi-compliance">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-compliance" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Compliance hooks (KPI)</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-kpi-compliance">
+    <section class="glass-strip compliance-strip" aria-label="Compliance hooks">
+      <article class="metric-chip" id="chipConsoComplete">
+        <label>Conso — complet (5 champs)</label>
+        <div class="big" id="kpiConsoComplete">—</div>
+        <div class="sub" id="kpiConsoCompleteSub">afterAgentResponse · hook stop</div>
+      </article>
+      <article class="metric-chip" id="chipConsoPresent">
+        <label>Conso — présent</label>
+        <div class="big" id="kpiConsoPresent">—</div>
+        <div class="sub" id="kpiConsoPresentSub">bloc détecté (partiel OK)</div>
+      </article>
+      <article class="metric-chip" id="chipConsoHook">
+        <label>Hook stop — relances</label>
+        <div class="big" id="kpiConsoHookFollowups">—</div>
+        <div class="sub" id="kpiConsoHookSub">followup_message · abandon</div>
+      </article>
+      <article class="metric-chip" id="chipBriefPass">
+        <label>Task brief — pass</label>
+        <div class="big" id="kpiBriefPass">—</div>
+        <div class="sub" id="kpiBriefPassSub">lancements / tentatives</div>
+      </article>
+      <article class="metric-chip" id="chipBriefDenied">
+        <label>Task brief — bloqués</label>
+        <div class="big" id="kpiBriefDenied">—</div>
+        <div class="sub" id="kpiBriefDeniedSub">permission deny · hook Task</div>
+      </article>
+    </section>
+      </div>
+    </div>
+
+    <div class="dash-section" data-section-id="table-subagents">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-table-subagents" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Subagents récents</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-table-subagents">
+    <section class="tables-row">
+      <div class="glass-panel" style="grid-column: 1 / -1;">
+        <div class="panel-head section-title">
+          <h2>Subagents récents (tour courant)</h2>
+        </div>
+        <div id="subagentHead" class="feed-cols subagent-row-cols subagent-head-cols" hidden>
+          <div>Date</div>
+          <div>Type</div>
+          <div>Skill</div>
+          <div>Description</div>
+          <div>Badges</div>
+          <div>Compression</div>
+          <div>Prompt</div>
+          <div>Sortie</div>
+          <div>Statut</div>
+        </div>
+        <div id="subagentList" class="feed-list" hidden></div>
+        <div class="empty-state" id="emptySubagents">Pas de subagent sur le tour courant</div>
+      </div>
+    </section>
+      </div>
+    </div>
+
+    <div class="dash-section" data-section-id="table-compliance">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-table-compliance" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Compliance hooks (récent)</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-table-compliance">
+    <section class="tables-row">
+      <div class="glass-panel" style="grid-column: 1 / -1;">
+        <div class="panel-head section-title">
+          <h2>Compliance hooks (récent)</h2>
+        </div>
+        <div id="complianceHead" class="feed-cols compliance-row-cols compliance-head-cols" hidden>
+          <div>Date</div>
+          <div>Événement</div>
+          <div>Détail</div>
+          <div>Statut</div>
+        </div>
+        <div id="complianceList" class="feed-list" hidden></div>
+        <div class="empty-state" id="emptyCompliance">Aucun événement compliance (brief / consumption)</div>
+      </div>
+    </section>
+      </div>
+    </div>
+
+    <div class="dash-section" data-section-id="charts">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-charts" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Graphiques</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-charts">
+    <section class="charts-row">
+      <div class="glass-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Gain estimé par jour</h2>
+        </div>
+        <canvas id="gainPctChart" class="chart-canvas" height="280"></canvas>
+        <p class="edit-footnote chart-footnote" role="note">
+          % = économies ÷ (observé + économies), agrégé par jour (RTK + compression Task + Diff-Only).
+          Lisible même quand la facturation Cursor atteint plusieurs millions de tokens.
+        </p>
+      </div>
+      <div class="glass-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Observé vs sans optimisations</h2>
+          <div class="panel-select-wrap">
+            <select id="bucketSelect" class="select-glass" aria-label="Agrégation temporelle">
+              <option value="hour">Par heure</option>
+              <option value="day">Par jour</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="trendChart" class="chart-canvas" height="280"></canvas>
+        <p class="edit-footnote chart-footnote" role="note">
+          Observé : <code>billed_total_tokens</code> (réponses agent), proxies outils/subagents, prompt compressé.
+          Économies : <code>rtk gain -d</code> (par jour), compression Task, chars Diff-Only ÷ 4.
+          En mode heure, le gain RTK du jour est réparti sur les créneaux avec activité.
+        </p>
+      </div>
+    </section>
+
+    <section class="charts-row-secondary" aria-label="Répartition des événements">
+      <div class="glass-panel donut-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Répartition (proxy)</h2>
+        </div>
+        <canvas id="donutChart" class="chart-canvas" height="240"></canvas>
+      </div>
+    </section>
+      </div>
+    </div>
+
+    <div class="dash-section" data-section-id="tables-lists">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-tables-lists" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Listes &amp; activité</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-tables-lists">
+    <section class="tables-row">
+      <div class="glass-panel">
+        <div class="panel-head section-title">
+          <h2>Top outils (postToolUse)</h2>
+        </div>
+        <div id="toolList" class="feed-list" hidden></div>
+        <div class="empty-state" id="emptyTools">Aucune donnée outil</div>
+      </div>
+      <div class="glass-panel">
+        <div class="panel-head section-title">
+          <h2>Activité récente (50)</h2>
+        </div>
+        <div id="recentList" class="feed-list" hidden></div>
+        <div class="empty-state" id="emptyLines">Pas encore d’événements</div>
+      </div>
+    </section>
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+  <script>
+    const EVENT_COLORS = {
+      systemEvent: "#4ef0e0",
+      postToolUse: "#ff4fd8",
+      afterAgentResponse: "#6b9fff",
+      userMessage: "#b5ff6b",
+      afterFileEdit: "#ffb347",
+      afterTabFileEdit: "#c77dff",
+      preToolUseCompression: "#ffd166",
+      subagentLaunch: "#ffd166",
+      subagentStop: "#ff9f6b",
+      subagentPostToolUse: "#f472b6",
+      taskBriefValidation: "#f87171",
+      consumptionReportCompliance: "#a78bfa",
+    };
+
+    let trendChart = null;
+    let gainPctChart = null;
+    let donutChart = null;
+    let rtkGainData = null;
+
+    function fmtNum(n) {
+      return Number(n || 0).toLocaleString("fr-FR");
+    }
+
+    function fmtCompact(n) {
+      const v = Number(n || 0);
+      if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+      if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+      return fmtNum(v);
+    }
+
+    function parseTs(ts) {
+      if (!ts) return null;
+      const d = new Date(ts.endsWith("Z") ? ts : ts + "Z");
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function fmtDateUtcCell(iso) {
+      const d = parseTs(iso);
+      if (!d) return "—";
+      const y = d.getUTCFullYear();
+      const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const dy = String(d.getUTCDate()).padStart(2, "0");
+      const h = String(d.getUTCHours()).padStart(2, "0");
+      const mi = String(d.getUTCMinutes()).padStart(2, "0");
+      const s = String(d.getUTCSeconds()).padStart(2, "0");
+      const ms = String(d.getUTCMilliseconds()).padStart(3, "0");
+      return `${y}-${mo}-${dy} ${h}:${mi}:${s}.${ms}`;
+    }
+
+    function eventColor(ev) {
+      return EVENT_COLORS[ev] || "#9aa3c4";
+    }
+
+    function destroyCharts() {
+      if (trendChart) { trendChart.destroy(); trendChart = null; }
+      if (gainPctChart) { gainPctChart.destroy(); gainPctChart = null; }
+      if (donutChart) { donutChart.destroy(); donutChart = null; }
+    }
+
+    function bucketKey(d, mode) {
+      const y = d.getUTCFullYear();
+      const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const dy = String(d.getUTCDate()).padStart(2, "0");
+      if (mode === "day") return `${y}-${mo}-${dy}`;
+      const h = String(d.getUTCHours()).padStart(2, "0");
+      return `${y}-${mo}-${dy} ${h}:00`;
+    }
+
+    function buildTimeBuckets(events, mode) {
+      const acc = {};
+      events.forEach((e) => {
+        const d = parseTs(e.ts);
+        if (!d) return;
+        const k = bucketKey(d, mode);
+        acc[k] = (acc[k] || 0) + (e.approx_tokens || 0);
+      });
+      const labels = Object.keys(acc).sort();
+      return { labels, values: labels.map((l) => acc[l]) };
+    }
+
+    function num(v) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function isDiffOnlyEvent(e) {
+      return String(e.event || "").startsWith("diffOnlyApply");
+    }
+
+    function diffOnlySavings(e) {
+      const d = e.diff_only;
+      if (!d || typeof d !== "object") return 0;
+      return Math.ceil(num(d.estimated_chars_saved) / 4);
+    }
+
+    function eventOptimizationSavings(e) {
+      if (isSubagentLaunch(e) || e.event === "preToolUseCompression") {
+        return hookSavedTokens(e);
+      }
+      if (isDiffOnlyEvent(e)) return diffOnlySavings(e);
+      return 0;
+    }
+
+    function observedTokens(e) {
+      if (e.event === "afterFileEdit" || e.event === "afterTabFileEdit") return 0;
+      if (isDiffOnlyEvent(e)) return 0;
+      if (e.event === "afterAgentResponse") {
+        const billed = num(e.billed_total_tokens);
+        if (billed > 0) return billed;
+        const inp = num(e.input_tokens);
+        const out = num(e.output_tokens);
+        if (inp > 0 || out > 0) return inp + out;
+      }
+      if (isSubagentLaunch(e)) {
+        return num(e.compression_after_tokens) || num(e.approx_tokens);
+      }
+      if (e.event === "subagentStop") return num(e.approx_tokens);
+      if (e.event === "postToolUse") return num(e.approx_tokens);
+      return num(e.approx_tokens);
+    }
+
+    function rtkDailyMap(rtkGain) {
+      const map = {};
+      const g = rtkGain?.global;
+      if (g?.ok !== true || !Array.isArray(g.daily)) return map;
+      g.daily.forEach((row) => {
+        const date = String(row.date || "").trim();
+        if (!date) return;
+        map[date] = num(row.saved_tokens);
+      });
+      return map;
+    }
+
+    function buildConsumptionComparison(events, mode, rtkGain) {
+      const observed = {};
+      const hookAndDiff = {};
+      const hoursByDay = {};
+      const daysInLog = new Set();
+
+      events.forEach((e) => {
+        const d = parseTs(e.ts);
+        if (!d) return;
+        const k = bucketKey(d, mode);
+        const day = bucketKey(d, "day");
+        daysInLog.add(day);
+        const obs = observedTokens(e);
+        if (obs > 0) {
+          observed[k] = (observed[k] || 0) + obs;
+          if (mode === "hour") {
+            if (!hoursByDay[day]) hoursByDay[day] = new Set();
+            hoursByDay[day].add(k);
+          }
+        }
+        const save = eventOptimizationSavings(e);
+        if (save > 0) hookAndDiff[k] = (hookAndDiff[k] || 0) + save;
+      });
+
+      const rtkMap = rtkDailyMap(rtkGain);
+      const rtkInBuckets = {};
+
+      if (mode === "day") {
+        daysInLog.forEach((day) => {
+          const rtk = rtkMap[day] || 0;
+          if (rtk > 0) rtkInBuckets[day] = rtk;
+        });
+      } else {
+        Object.entries(hoursByDay).forEach(([day, hours]) => {
+          const rtk = rtkMap[day] || 0;
+          if (!rtk || !hours.size) return;
+          const perHour = rtk / hours.size;
+          hours.forEach((h) => {
+            rtkInBuckets[h] = (rtkInBuckets[h] || 0) + perHour;
+          });
+        });
+      }
+
+      const keys = new Set([
+        ...Object.keys(observed),
+        ...Object.keys(hookAndDiff),
+        ...Object.keys(rtkInBuckets),
+      ]);
+      const labels = [...keys].sort();
+      const actualData = labels.map((l) => Math.round(observed[l] || 0));
+      const savingsData = labels.map(
+        (l) => Math.round((hookAndDiff[l] || 0) + (rtkInBuckets[l] || 0)),
+      );
+      const counterfactualData = labels.map((l, i) => actualData[i] + savingsData[i]);
+      return { labels, actualData, savingsData, counterfactualData };
+    }
+
+    function buildDailyGainPct(events, rtkGain) {
+      const comp = buildConsumptionComparison(events, "day", rtkGain);
+      const rtkMap = rtkDailyMap(rtkGain);
+      const hookDiffByDay = {};
+
+      events.forEach((e) => {
+        const d = parseTs(e.ts);
+        if (!d) return;
+        const day = bucketKey(d, "day");
+        const save = eventOptimizationSavings(e);
+        if (save > 0) hookDiffByDay[day] = (hookDiffByDay[day] || 0) + save;
+      });
+
+      const indices = comp.labels
+        .map((_, i) => i)
+        .filter((i) => (comp.actualData[i] || 0) > 0 || (comp.savingsData[i] || 0) > 0);
+
+      const labels = indices.map((i) => comp.labels[i]);
+      const actualData = indices.map((i) => comp.actualData[i] || 0);
+      const savingsData = indices.map((i) => comp.savingsData[i] || 0);
+      const rtkData = indices.map((i) => rtkMap[comp.labels[i]] || 0);
+      const hookDiffData = indices.map((i) => hookDiffByDay[comp.labels[i]] || 0);
+      const pctData = indices.map((i) => {
+        const sav = comp.savingsData[i] || 0;
+        const cf = (comp.actualData[i] || 0) + sav;
+        if (cf <= 0) return 0;
+        return Math.round((1000 * sav) / cf) / 10;
+      });
+
+      return { labels, pctData, actualData, savingsData, rtkData, hookDiffData };
+    }
+
+    function summarizeOptimizationTotals(events, rtkGain) {
+      let observed = 0;
+      let hookDiff = 0;
+      events.forEach((e) => {
+        observed += observedTokens(e);
+        hookDiff += eventOptimizationSavings(e);
+      });
+      const rtkMap = rtkDailyMap(rtkGain);
+      const days = new Set();
+      events.forEach((e) => {
+        const d = parseTs(e.ts);
+        if (d) days.add(bucketKey(d, "day"));
+      });
+      let rtk = 0;
+      days.forEach((day) => {
+        rtk += rtkMap[day] || 0;
+      });
+      const savings = hookDiff + rtk;
+      const counterfactual = observed + savings;
+      const pct = counterfactual > 0 ? (100 * savings) / counterfactual : 0;
+      return { observed, savings, counterfactual, pct, hookDiff, rtk };
+    }
+
+    function renderOptimizationKpis(events, rtkGain) {
+      const t = summarizeOptimizationTotals(events, rtkGain);
+      document.getElementById("kpiObserved").textContent = fmtCompact(t.observed);
+      document.getElementById("kpiCounterfactual").textContent = fmtCompact(t.counterfactual);
+      document.getElementById("kpiOptSaved").textContent = fmtCompact(t.savings);
+      document.getElementById("kpiOptPct").textContent =
+        t.counterfactual > 0 ? `${t.pct.toFixed(1)} %` : "—";
+      document.getElementById("kpiObservedSub").textContent =
+        "billed + proxies outils/subagents";
+      document.getElementById("kpiOptSavedSub").textContent =
+        `RTK ${fmtCompact(t.rtk)} · hook ${fmtCompact(t.hookDiff)} · diff`;
+      document.getElementById("kpiOptPctSub").textContent =
+        t.counterfactual > 0
+          ? `économie ${fmtCompact(t.savings)} sur ${fmtCompact(t.counterfactual)}`
+          : "pas assez de données";
+    }
+
+    function buildEventTotals(events) {
+      const acc = {};
+      events.forEach((e) => {
+        if (e.event === "afterFileEdit" || e.event === "afterTabFileEdit") return;
+        const k = e.event || "(unknown)";
+        acc[k] = (acc[k] || 0) + (e.approx_tokens || 0);
+      });
+      const labels = Object.keys(acc);
+      const data = labels.map((l) => acc[l]);
+      const colors = labels.map((l) => eventColor(l));
+      return { labels, data, colors };
+    }
+
+    function buildToolRankings(events, limit = 24) {
+      const map = {};
+      events
+        .filter((e) => e.event === "postToolUse")
+        .forEach((e) => {
+          const t = (e.tool && String(e.tool).trim()) || "(unknown)";
+          if (!map[t]) map[t] = { count: 0, tokens: 0 };
+          map[t].count++;
+          map[t].tokens += e.approx_tokens || 0;
+        });
+      return Object.entries(map)
+        .map(([tool, v]) => ({ tool, ...v }))
+        .sort((a, b) => b.tokens - a.tokens)
+        .slice(0, limit);
+    }
+
+    function renderTables(events) {
+      const toolList = document.getElementById("toolList");
+      const recentList = document.getElementById("recentList");
+      const emptyTools = document.getElementById("emptyTools");
+      const emptyLines = document.getElementById("emptyLines");
+      toolList.replaceChildren();
+      recentList.replaceChildren();
+
+      const ranked = buildToolRankings(events);
+      emptyTools.hidden = ranked.length > 0;
+      toolList.hidden = ranked.length === 0;
+      ranked.forEach((r, idx) => {
+        const row = document.createElement("div");
+        row.className = "feed-row";
+        row.style.setProperty("--accent", EVENT_COLORS.postToolUse);
+        const bar = document.createElement("div");
+        bar.className = "feed-row-accent";
+        const cols = document.createElement("div");
+        cols.className = "tool-row-cols";
+
+        const left = document.createElement("div");
+        const rank = document.createElement("span");
+        rank.className = "strong";
+        rank.textContent = `#${idx + 1}`;
+        left.appendChild(rank);
+        left.appendChild(document.createTextNode(" · "));
+        const pill = document.createElement("span");
+        pill.className = "tool-pill";
+        pill.textContent = r.tool;
+        left.appendChild(pill);
+
+        const mid = document.createElement("div");
+        mid.className = "mono";
+        mid.textContent = `${r.count}×`;
+
+        const right = document.createElement("div");
+        right.className = "mono num";
+        right.textContent = fmtNum(r.tokens);
+
+        cols.appendChild(left);
+        cols.appendChild(mid);
+        cols.appendChild(right);
+        row.appendChild(bar);
+        row.appendChild(cols);
+        toolList.appendChild(row);
+      });
+
+      const sorted = [...events].sort((a, b) => {
+        const da = parseTs(a.ts)?.getTime() || 0;
+        const db = parseTs(b.ts)?.getTime() || 0;
+        return db - da;
+      });
+      const recent = sorted.slice(0, 50);
+      emptyLines.hidden = recent.length > 0;
+      recentList.hidden = recent.length === 0;
+
+      recent.forEach((e) => {
+        const row = document.createElement("div");
+        row.className = "feed-row";
+        row.style.setProperty("--accent", eventColor(e.event || ""));
+        const bar = document.createElement("div");
+        bar.className = "feed-row-accent";
+        const cols = document.createElement("div");
+        cols.className = "feed-cols";
+
+        const cDate = document.createElement("div");
+        cDate.className = "mono cell-wide";
+        cDate.textContent = fmtDateUtcCell(e.ts);
+
+        const cEvt = document.createElement("div");
+        const pill = document.createElement("span");
+        pill.className = "evt-pill";
+        pill.textContent = e.event || "—";
+        cEvt.appendChild(pill);
+
+        const cTok = document.createElement("div");
+        cTok.className = "num strong";
+        cTok.textContent = fmtNum(e.approx_tokens);
+
+        const cTool = document.createElement("div");
+        cTool.className = "mono";
+        if (e.event === "afterAgentResponse") {
+          const status = document.createElement("span");
+          status.className = "tool-pill";
+          let label;
+          if (typeof e.billed_total_tokens === "number") {
+            label = `billed ${fmtCompact(e.billed_total_tokens)}`;
+          } else if (e.consumption_complete === true) {
+            label = "conso ok";
+          } else if (e.consumption_present === true) {
+            label = "conso partiel";
+          } else {
+            label = "conso missing";
+          }
+          status.textContent = label;
+          cTool.appendChild(status);
+        } else if (isSubagentLaunch(e) || e.event === "subagentStop") {
+          const tag = document.createElement("span");
+          tag.className = "tool-pill";
+          tag.textContent = e.skill_hint || e.subagent_type || e.event;
+          cTool.appendChild(tag);
+        } else {
+          const t = e.tool && String(e.tool).trim();
+          if (t) {
+            const tp = document.createElement("span");
+            tp.className = "tool-pill";
+            tp.textContent = t;
+            cTool.appendChild(tp);
+          } else {
+            cTool.textContent = "—";
+          }
+        }
+
+        const cDelta = document.createElement("div");
+        cDelta.className = "num";
+        const la = Number(e.lines_added || 0);
+        const lr = Number(e.lines_removed || 0);
+        if (la + lr === 0) {
+          const em = document.createElement("span");
+          em.className = "mono";
+          em.textContent = "—";
+          cDelta.appendChild(em);
+        } else {
+          const sp1 = document.createElement("span");
+          sp1.style.color = "var(--neon-lime)";
+          sp1.textContent = `+${fmtNum(la)}`;
+          cDelta.appendChild(sp1);
+          const mid = document.createElement("span");
+          mid.className = "mono";
+          mid.textContent = " / ";
+          cDelta.appendChild(mid);
+          const sp2 = document.createElement("span");
+          sp2.style.color = "var(--orange-accent)";
+          sp2.textContent = `−${fmtNum(lr)}`;
+          cDelta.appendChild(sp2);
+        }
+
+        const cChars = document.createElement("div");
+        cChars.className = "mono num";
+        cChars.textContent = `${fmtNum(e.text_chars)} / ${fmtNum(e.raw_chars)}`;
+
+        cols.appendChild(cDate);
+        cols.appendChild(cEvt);
+        cols.appendChild(cTok);
+        cols.appendChild(cTool);
+        cols.appendChild(cDelta);
+        cols.appendChild(cChars);
+        row.appendChild(bar);
+        row.appendChild(cols);
+        recentList.appendChild(row);
+      });
+    }
+
+    function areaGradient(ctx, chartArea, isDark) {
+      const g = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+      if (isDark) {
+        g.addColorStop(0, "rgba(107, 159, 255, 0)");
+        g.addColorStop(0.45, "rgba(255, 79, 216, 0.14)");
+        g.addColorStop(1, "rgba(78, 240, 224, 0.18)");
+      } else {
+        g.addColorStop(0, "rgba(91, 141, 255, 0)");
+        g.addColorStop(0.5, "rgba(91, 141, 255, 0.14)");
+        g.addColorStop(1, "rgba(214, 61, 184, 0.12)");
+      }
+      return g;
+    }
+
+    function renderCharts(events, bucketMode, isDark, rtkGain) {
+      destroyCharts();
+
+      let comp = buildConsumptionComparison(events, bucketMode, rtkGain);
+      if (!comp.labels.length) {
+        comp = { labels: ["∅"], actualData: [0], counterfactualData: [0], savingsData: [0] };
+      }
+
+      let { labels: dl, data, colors } = buildEventTotals(events);
+      if (!dl.length) {
+        dl = ["(aucun)"];
+        data = [1];
+        colors = ["#4a5870"];
+      }
+
+      const tick = isDark ? "rgba(220,220,235,0.55)" : "rgba(30,28,52,0.55)";
+      const grid = isDark ? "rgba(255,255,255,0.06)" : "rgba(91,141,255,0.08)";
+
+      let gain = buildDailyGainPct(events, rtkGain);
+      if (!gain.labels.length) {
+        gain = {
+          labels: ["∅"],
+          pctData: [0],
+          actualData: [0],
+          savingsData: [0],
+          rtkData: [0],
+          hookDiffData: [0],
+        };
+      }
+      const positivePct = gain.pctData.filter((p) => p > 0);
+      const minGainPct = positivePct.length ? Math.min(...positivePct) : 0;
+      const maxGainPct = Math.max(...gain.pctData, 0);
+      const useLogGainAxis =
+        maxGainPct > 5 && minGainPct > 0 && maxGainPct / minGainPct >= 15;
+      const linearGainMax =
+        maxGainPct <= 0
+          ? 10
+          : maxGainPct < 20
+            ? Math.ceil(maxGainPct * 1.3 * 10) / 10
+            : 100;
+      const gainBarFill = gain.pctData.map((p) => {
+        const t = Math.min(Math.max(p, 0), 100) / 100;
+        const a = 0.28 + t * 0.55;
+        return isDark ? `rgba(78, 240, 224, ${a})` : `rgba(26, 158, 140, ${a})`;
+      });
+      const gainBarBorder = isDark ? "#4ef0e0" : "#1a9e8c";
+      const ctxGain = document.getElementById("gainPctChart").getContext("2d");
+      gainPctChart = new Chart(ctxGain, {
+        type: "bar",
+        data: {
+          labels: gain.labels,
+          datasets: [{
+            label: "Gain estimé (%)",
+            data: gain.pctData,
+            backgroundColor: gainBarFill,
+            borderColor: gainBarBorder,
+            borderWidth: 1,
+            borderRadius: 4,
+            maxBarThickness: 36,
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark ? "rgba(14,10,26,0.92)" : "rgba(255,255,255,0.96)",
+              titleColor: isDark ? "#fff" : "#1a1430",
+              bodyColor: isDark ? "#ccc" : "#333",
+              borderColor: "rgba(107,159,255,0.35)",
+              borderWidth: 1,
+              callbacks: {
+                label(ctx) {
+                  const i = ctx.dataIndex;
+                  return `Gain : ${gain.pctData[i]} %`;
+                },
+                afterBody(items) {
+                  if (!items.length) return [];
+                  const i = items[0].dataIndex;
+                  return [
+                    `Observé : ${fmtNum(gain.actualData[i])}`,
+                    `Économies : ${fmtNum(gain.savingsData[i])}`,
+                    `RTK : ${fmtNum(gain.rtkData[i])}`,
+                    `Hook + Diff-Only : ${fmtNum(gain.hookDiffData[i])}`,
+                  ];
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: tick,
+                maxRotation: 45,
+                minRotation: 0,
+                font: { size: 9, family: "'Plus Jakarta Sans'" },
+              },
+              grid: { display: false },
+              border: { display: false },
+            },
+            y: {
+              type: useLogGainAxis ? "logarithmic" : "linear",
+              min: useLogGainAxis ? Math.max(0.05, minGainPct * 0.4) : 0,
+              max: useLogGainAxis ? 100 : linearGainMax,
+              ticks: {
+                color: tick,
+                font: { size: 9, family: "'Plus Jakarta Sans'" },
+                callback: (v) => {
+                  if (v < 0.1) return "";
+                  return v >= 10 || Number.isInteger(v) ? `${v} %` : `${v.toFixed(1)} %`;
+                },
+              },
+              grid: { color: grid },
+              border: { display: false },
+            },
+          },
+        },
+        plugins: [{
+          id: "gainPctBarLabels",
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            const meta = chart.getDatasetMeta(0);
+            ctx.save();
+            ctx.fillStyle = tick;
+            ctx.font = "600 9px 'Plus Jakarta Sans', sans-serif";
+            ctx.textAlign = "center";
+            meta.data.forEach((bar, i) => {
+              const v = gain.pctData[i];
+              if (!v || v <= 0 || !bar) return;
+              const label = v >= 10 || Number.isInteger(v) ? `${v} %` : `${v.toFixed(1)} %`;
+              const y = bar.y - 5;
+              if (Number.isFinite(y)) ctx.fillText(label, bar.x, y);
+            });
+            ctx.restore();
+          },
+        }],
+      });
+
+      const ctxTrend = document.getElementById("trendChart").getContext("2d");
+      const observedColor = isDark ? "#4ef0e0" : "#1a9e8c";
+      const counterColor = isDark ? "#ff9fd4" : "#c43d9a";
+      trendChart = new Chart(ctxTrend, {
+        type: "line",
+        data: {
+          labels: comp.labels,
+          datasets: [
+            {
+              label: "Consommé (observé)",
+              data: comp.actualData,
+              fill: true,
+              tension: 0.38,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              pointHoverBackgroundColor: "#fff",
+              pointHoverBorderColor: observedColor,
+              borderWidth: 2,
+              borderColor: observedColor,
+              backgroundColor(context) {
+                const ch = context.chart;
+                const { chartArea } = ch;
+                if (!chartArea) return null;
+                return areaGradient(ch.ctx, chartArea, isDark);
+              },
+            },
+            {
+              label: "Sans optimisations (estimé)",
+              data: comp.counterfactualData,
+              fill: false,
+              tension: 0.38,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              borderWidth: 2,
+              borderDash: [7, 4],
+              borderColor: counterColor,
+              pointHoverBorderColor: counterColor,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: true,
+              position: "top",
+              align: "end",
+              labels: {
+                color: tick,
+                boxWidth: 14,
+                font: { size: 10, family: "'Plus Jakarta Sans'" },
+              },
+            },
+            tooltip: {
+              backgroundColor: isDark ? "rgba(14,10,26,0.92)" : "rgba(255,255,255,0.96)",
+              titleColor: isDark ? "#fff" : "#1a1430",
+              bodyColor: isDark ? "#ccc" : "#333",
+              borderColor: "rgba(107,159,255,0.35)",
+              borderWidth: 1,
+              callbacks: {
+                afterBody(items) {
+                  if (!items.length) return [];
+                  const i = items[0].dataIndex;
+                  const saved = comp.savingsData[i] || 0;
+                  if (!saved) return [];
+                  return [`Économies: ${fmtNum(saved)}`];
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: tick, maxRotation: 45, minRotation: 42, font: { size: 9, family: "'Plus Jakarta Sans'" } },
+              grid: { color: grid },
+              border: { display: false },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: tick, font: { size: 9, family: "'Plus Jakarta Sans'" } },
+              grid: { color: grid },
+              border: { display: false },
+            },
+          },
+          interaction: { intersect: false, mode: "index" },
+        },
+      });
+
+      const donutBg = isDark ? "rgba(10,6,18,0.92)" : "rgba(255,255,255,0.85)";
+      const ctxDon = document.getElementById("donutChart").getContext("2d");
+      donutChart = new Chart(ctxDon, {
+        type: "doughnut",
+        data: {
+          labels: dl,
+          datasets: [{
+            data,
+            backgroundColor: colors.map((c) => c),
+            borderColor: donutBg,
+            borderWidth: 3,
+            hoverBorderColor: "#fff",
+            hoverOffset: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          cutout: "62%",
+          plugins: {
+            legend: {
+              position: "right",
+              labels: {
+                color: tick,
+                boxWidth: 12,
+                boxHeight: 12,
+                padding: 14,
+                font: { size: 10, family: "'Plus Jakarta Sans', sans-serif", weight: "500" },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function renderEditStats(events) {
+      let agentAdd = 0;
+      let agentRem = 0;
+      let agentPass = 0;
+      let tabN = 0;
+      let tabAdd = 0;
+      events.forEach((e) => {
+        if (e.event === "afterFileEdit") {
+          agentAdd += Number(e.lines_added || 0);
+          agentRem += Number(e.lines_removed || 0);
+          agentPass++;
+        }
+        if (e.event === "afterTabFileEdit") {
+          tabN++;
+          tabAdd += Number(e.lines_added || 0);
+        }
+      });
+      document.getElementById("kpiAgentAdd").textContent = fmtNum(agentAdd);
+      document.getElementById("kpiAgentRem").textContent = fmtNum(agentRem);
+      document.getElementById("kpiAgentPass").textContent = fmtNum(agentPass);
+      document.getElementById("kpiTabN").textContent = fmtNum(tabN);
+      document.getElementById("kpiTabLines").textContent = fmtNum(tabAdd);
+    }
+
+    function renderConsumptionStats(events) {
+      const c = summarizeComplianceKpis(events).consumption;
+      const total = c.responses;
+      const withReport = c.present;
+      const complete = c.complete;
+
+      document.getElementById("kpiConso").textContent =
+        total > 0 ? `${fmtNum(complete)} / ${fmtNum(total)}` : "—";
+      if (!total) {
+        document.getElementById("kpiConsoSub").textContent = "aucune réponse agent";
+      } else {
+        document.getElementById("kpiConsoSub").textContent = `${c.complete_pct}% complet (5 champs)`;
+      }
+    }
+
+    function summarizeComplianceKpis(events) {
+      const responses = events.filter((e) => e.event === "afterAgentResponse");
+      const respN = responses.length;
+      const withReport = responses.filter((e) => e.consumption_present === true).length;
+      const complete = responses.filter((e) => e.consumption_complete === true).length;
+
+      const briefEvents = events.filter((e) => e.event === "taskBriefValidation");
+      const briefDenied = briefEvents.filter((e) => e.brief_valid === false).length;
+
+      const launches = events.filter(isSubagentLaunch).length;
+      const briefAttempts = launches + briefDenied;
+      const briefPassRate = briefAttempts > 0 ? Math.round((100 * launches) / briefAttempts) : 0;
+
+      const consoHookEvents = events.filter((e) => e.event === "consumptionReportCompliance");
+      const consoFollowups = consoHookEvents.filter((e) => e.consumption_enforced === true).length;
+      const consoGiveups = consoHookEvents.filter(
+        (e) => e.consumption_complete === false && Number(e.loop_count || 0) >= 2,
+      ).length;
+      const consoOkHook = consoHookEvents.filter((e) => e.consumption_complete === true).length;
+
+      const stack = summarizeStackKpis(events);
+
+      return {
+        consumption: {
+          responses: respN,
+          present: withReport,
+          complete,
+          present_pct: respN > 0 ? Math.round((100 * withReport) / respN) : 0,
+          complete_pct: respN > 0 ? Math.round((100 * complete) / respN) : 0,
+          hook_checks: consoHookEvents.length,
+          hook_followups: consoFollowups,
+          hook_ok: consoOkHook,
+          hook_giveups: consoGiveups,
+        },
+        task_brief: {
+          launches,
+          denied: briefDenied,
+          attempts: briefAttempts,
+          pass_rate_pct: briefPassRate,
+        },
+        idempotency: {
+          injected: stack.idem,
+          launches: stack.launches,
+          pct: stack.launches > 0 ? Math.round((100 * stack.idem) / stack.launches) : 0,
+        },
+      };
+    }
+
+    function setComplianceChipState(chipId, pct, warnBelow = 70) {
+      const chip = document.getElementById(chipId);
+      if (!chip) return;
+      chip.classList.remove("compliance-ok", "compliance-warn");
+      if (pct >= warnBelow) chip.classList.add("compliance-ok");
+      else if (pct > 0) chip.classList.add("compliance-warn");
+    }
+
+    function renderComplianceStats(events) {
+      const comp = summarizeComplianceKpis(events);
+      const c = comp.consumption;
+      const b = comp.task_brief;
+
+      document.getElementById("kpiConsoComplete").textContent =
+        c.responses > 0 ? `${fmtNum(c.complete)} / ${fmtNum(c.responses)}` : "—";
+      document.getElementById("kpiConsoCompleteSub").textContent =
+        c.responses > 0 ? `${c.complete_pct}% · hook checks ${fmtNum(c.hook_checks)}` : "afterAgentResponse";
+
+      document.getElementById("kpiConsoPresent").textContent =
+        c.responses > 0 ? `${fmtNum(c.present)} / ${fmtNum(c.responses)}` : "—";
+      document.getElementById("kpiConsoPresentSub").textContent =
+        c.responses > 0 ? `${c.present_pct}% bloc détecté` : "partiel = incomplet";
+
+      document.getElementById("kpiConsoHookFollowups").textContent = fmtNum(c.hook_followups);
+      document.getElementById("kpiConsoHookSub").textContent =
+        `ok ${fmtNum(c.hook_ok)} · abandon ${fmtNum(c.hook_giveups)}`;
+
+      document.getElementById("kpiBriefPass").textContent =
+        b.attempts > 0 ? `${fmtNum(b.launches)} / ${fmtNum(b.attempts)}` : fmtNum(b.launches);
+      document.getElementById("kpiBriefPassSub").textContent =
+        b.attempts > 0 ? `${b.pass_rate_pct}% pass rate` : "aucune tentative Task";
+
+      document.getElementById("kpiBriefDenied").textContent = fmtNum(b.denied);
+      document.getElementById("kpiBriefDeniedSub").textContent =
+        b.denied > 0 ? "brief rejeté (deny)" : "aucun blocage";
+
+      setComplianceChipState("chipConsoComplete", c.complete_pct, 80);
+      setComplianceChipState("chipBriefPass", b.pass_rate_pct, 85);
+    }
+
+    function renderComplianceTable(events) {
+      const list = document.getElementById("complianceList");
+      const head = document.getElementById("complianceHead");
+      const empty = document.getElementById("emptyCompliance");
+      list.replaceChildren();
+
+      const rows = events
+        .filter(
+          (e) =>
+            e.event === "taskBriefValidation" || e.event === "consumptionReportCompliance",
+        )
+        .sort((a, b) => (parseTs(b.ts)?.getTime() || 0) - (parseTs(a.ts)?.getTime() || 0))
+        .slice(0, 40);
+
+      empty.hidden = rows.length > 0;
+      list.hidden = rows.length === 0;
+      head.hidden = rows.length === 0;
+
+      rows.forEach((e) => {
+        const row = document.createElement("div");
+        row.className = "feed-row";
+        row.style.setProperty("--accent", eventColor(e.event || ""));
+        const bar = document.createElement("div");
+        bar.className = "feed-row-accent";
+        const cols = document.createElement("div");
+        cols.className = "feed-cols compliance-row-cols";
+
+        const cDate = document.createElement("div");
+        cDate.className = "mono cell-wide";
+        cDate.textContent = fmtDateUtcCell(e.ts);
+
+        const cEvt = document.createElement("div");
+        const pill = document.createElement("span");
+        pill.className = "evt-pill";
+        pill.textContent = e.event === "taskBriefValidation" ? "brief" : "conso";
+        cEvt.appendChild(pill);
+
+        const cDetail = document.createElement("div");
+        cDetail.className = "mono cell-wide";
+        if (e.event === "taskBriefValidation") {
+          cDetail.textContent = (e.brief_violations || e.subagent_type || "—").slice(0, 140);
+          cDetail.title = String(e.brief_violations || "");
+        } else {
+          cDetail.textContent = `loop ${e.loop_count ?? "?"} · enforced ${e.consumption_enforced === true}`;
+        }
+
+        const cStatus = document.createElement("div");
+        const statusPill = document.createElement("span");
+        statusPill.className = "tool-pill";
+        if (e.event === "taskBriefValidation") {
+          statusPill.textContent = e.brief_valid === false ? "denied" : "ok";
+        } else {
+          statusPill.textContent = e.consumption_complete === true ? "complete" : "incomplete";
+        }
+        cStatus.appendChild(statusPill);
+
+        cols.appendChild(cDate);
+        cols.appendChild(cEvt);
+        cols.appendChild(cDetail);
+        cols.appendChild(cStatus);
+        row.appendChild(bar);
+        row.appendChild(cols);
+        list.appendChild(row);
+      });
+    }
+
+    function isSubagentLaunch(e) {
+      return e.event === "subagentLaunch" || e.event === "preToolUseCompression";
+    }
+
+    function rowGitCacheHit(e) {
+      return e.compression_git_cache_hit === true || e.git_cache_hit === true;
+    }
+
+    function rowGitCacheTokensPreserved(e) {
+      const keys = [
+        "git_cache_block2_tokens_preserved",
+        "compression_block2_tokens_preserved",
+        "block2_tokens_preserved",
+      ];
+      for (const key of keys) {
+        const v = Number(e[key]);
+        if (Number.isFinite(v) && v > 0) return v;
+      }
+      if (rowGitCacheHit(e)) {
+        const after = Number(e.compression_after_tokens || e.approx_tokens || 0);
+        return after > 0 ? Math.max(0, Math.round(after * 0.12)) : 0;
+      }
+      return 0;
+    }
+
+    function rowGuardrailLoopHalt(e) {
+      return e.guardrail_loop_halt === true;
+    }
+
+    function rowGuardrailIntercepted(e) {
+      if (e.guardrail_intercepted === true) return true;
+      if (rowGuardrailLoopHalt(e)) return true;
+      return e.guardrail_roi_gate === true && String(e.guardrail_risk || "").toLowerCase() === "high";
+    }
+
+    function rowGuardrailAvoidedTokens(e) {
+      const v = Number(e.guardrail_avoided_tokens);
+      if (Number.isFinite(v) && v > 0) return v;
+      if (!rowGuardrailIntercepted(e)) return 0;
+      const inputTok = Number(e.compression_input_tokens || 0);
+      const afterTok = Number(e.compression_after_tokens || e.approx_tokens || 0);
+      if (rowGuardrailLoopHalt(e)) {
+        const streak = Number(e.guardrail_failure_streak || 2);
+        const cycles = Math.max(1, 4 - streak);
+        return cycles * (inputTok + Math.max(afterTok, Math.floor(inputTok / 3)));
+      }
+      return Math.floor(inputTok * 0.35 + Math.max(afterTok, Math.floor(inputTok / 4)));
+    }
+
+    function rowIdempotentInjected(e) {
+      return e.idempotent_context_injected === true;
+    }
+
+    function summarizeStackKpis(events) {
+      const launches = events.filter(isSubagentLaunch);
+      const gitHits = launches.filter(rowGitCacheHit).length;
+      const gitPreserved = launches
+        .filter(rowGitCacheHit)
+        .reduce((sum, e) => sum + rowGitCacheTokensPreserved(e), 0);
+      const intercepts = launches.filter(rowGuardrailIntercepted).length;
+      const halts = launches.filter(rowGuardrailLoopHalt).length;
+      const avoided = launches.reduce((sum, e) => sum + rowGuardrailAvoidedTokens(e), 0);
+      const idem = launches.filter(rowIdempotentInjected).length;
+      return {
+        launches: launches.length,
+        gitHits,
+        gitPreserved,
+        intercepts,
+        halts,
+        avoided,
+        idem,
+      };
+    }
+
+    function makeOptBadge(label, className, title) {
+      const pill = document.createElement("span");
+      pill.className = `opt-badge ${className}`;
+      pill.textContent = label;
+      if (title) pill.title = title;
+      return pill;
+    }
+
+    function renderLaunchOptBadges(launch, container) {
+      container.replaceChildren();
+      const parts = [];
+      if (rowGitCacheHit(launch)) {
+        const preserved = rowGitCacheTokensPreserved(launch);
+        parts.push(
+          makeOptBadge(
+            "Git Cache Hit",
+            "git-cache",
+            preserved > 0
+              ? `BLOCK_2 réutilisé · ≈${fmtCompact(preserved)} tok préservés`
+              : "BLOCK_2 chargé depuis cache Git",
+          ),
+        );
+      }
+      if (rowGuardrailIntercepted(launch)) {
+        const avoided = rowGuardrailAvoidedTokens(launch);
+        const halt = rowGuardrailLoopHalt(launch);
+        parts.push(
+          makeOptBadge(
+            halt ? "Guardrail halt" : "Guardrail",
+            "guardrail",
+            `coût évité≈${fmtCompact(avoided)} tok · streak ${launch.guardrail_failure_streak ?? "?"}`,
+          ),
+        );
+      }
+      if (rowIdempotentInjected(launch)) {
+        parts.push(
+          makeOptBadge(
+            "Idempotent",
+            "idempotent",
+            "Brief avec [IDEMPOTENT_CONTEXT_INJECTED]",
+          ),
+        );
+      }
+      if (!parts.length) {
+        parts.push(makeOptBadge("—", "muted", "aucun signal stack"));
+      }
+      parts.forEach((pill) => container.appendChild(pill));
+    }
+
+    function renderStackKpis(events) {
+      const s = summarizeStackKpis(events);
+      document.getElementById("kpiGitCacheHits").textContent = fmtNum(s.gitHits);
+      document.getElementById("kpiGitCacheSub").textContent =
+        s.launches > 0
+          ? `${s.gitHits}/${s.launches} · BLOCK_2 ≈${fmtCompact(s.gitPreserved)} tok`
+          : "aucun lancement Task";
+      document.getElementById("kpiGuardrailIntercepts").textContent = fmtNum(s.intercepts);
+      document.getElementById("kpiGuardrailSub").textContent =
+        s.launches > 0
+          ? `${s.intercepts}/${s.launches} · halts ${s.halts}`
+          : "token-budget-guardrail";
+      document.getElementById("kpiGuardrailAvoided").textContent = fmtCompact(s.avoided);
+      document.getElementById("kpiGuardrailAvoidedSub").textContent =
+        s.avoided > 0
+          ? "in+out évités (estim.)"
+          : "pas d’interception enregistrée";
+      const idemPct = s.launches > 0 ? Math.round((100 * s.idem) / s.launches) : 0;
+      document.getElementById("kpiIdempotent").textContent =
+        s.launches > 0 ? `${fmtNum(s.idem)} / ${fmtNum(s.launches)}` : "—";
+      document.getElementById("kpiIdempotentSub").textContent =
+        s.launches > 0 ? `${idemPct}% briefs tagués` : "[IDEMPOTENT_CONTEXT_INJECTED]";
+    }
+
+    function hookSavedTokens(e) {
+      const legacy = Number(e.compression_saved_tokens || 0);
+      const inputTok = Number(e.compression_input_tokens || 0);
+      const afterTok = Number(e.compression_after_tokens || e.approx_tokens || 0);
+      const endToEnd = Number(e.compression_end_to_end_saved_tokens);
+      if (Number.isFinite(endToEnd) && endToEnd > 0) {
+        return Math.max(legacy, endToEnd);
+      }
+      if (inputTok > 0) {
+        return Math.max(legacy, Math.max(0, inputTok - afterTok));
+      }
+      return legacy;
+    }
+
+    function hookSavedPct(e) {
+      const inputTok = Number(e.compression_input_tokens || 0);
+      if (inputTok > 0) {
+        return (100 * hookSavedTokens(e)) / inputTok;
+      }
+      return Number(e.compression_saved_pct || 0);
+    }
+
+    function compressionSummary(e) {
+      const claw = e.compression_used_claw_compactor === true;
+      const llm = e.compression_used_llmlingua === true;
+      const backend = String(e.compression_backend || "").trim() || "—";
+      const saved = hookSavedTokens(e);
+      const pct = hookSavedPct(e);
+      let label = "—";
+      if (claw && llm) label = "claw+llm";
+      else if (claw) label = "claw";
+      else if (llm) label = "llm";
+      else if (backend !== "—") label = backend;
+      return { label, backend, claw, llm, saved, pct };
+    }
+
+    function latestSessionKey(events) {
+      const responses = events
+        .filter((e) => e.event === "afterAgentResponse")
+        .sort((a, b) => (parseTs(b.ts)?.getTime() || 0) - (parseTs(a.ts)?.getTime() || 0));
+      const latest = responses[0];
+      if (!latest) return "";
+      return latest.session_id || latest.conversation_id || "";
+    }
+
+    function eventsForCurrentTour(events) {
+      const key = latestSessionKey(events);
+      if (!key) {
+        const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+        return events.filter((e) => {
+          const d = parseTs(e.ts);
+          return d && d.getTime() >= cutoff;
+        });
+      }
+      return events.filter(
+        (e) => e.session_id === key || e.conversation_id === key,
+      );
+    }
+
+    /** Mirrors telemetry_metrics.summarize_report (report.py parity). */
+    function computeReportSummary(events) {
+      let agentAdd = 0;
+      let agentRem = 0;
+      let agentPass = 0;
+      let tabN = 0;
+      let tabAdd = 0;
+      let hookRuns = 0;
+      let hookSaved = 0;
+      let hookClaw = 0;
+      let hookLlm = 0;
+      let subLaunch = 0;
+      let subStop = 0;
+      let subStopHook = 0;
+      let subStopFallback = 0;
+      let subPromptTok = 0;
+      let subOutTok = 0;
+      let respN = 0;
+      let respWithReport = 0;
+      let respComplete = 0;
+      let billedSum = 0;
+      let billedN = 0;
+      let latestBilled = null;
+      let latestIn = 0;
+      let latestOut = 0;
+
+      const responses = events.filter((e) => e.event === "afterAgentResponse");
+      if (responses.length) {
+        const latest = responses.reduce((a, b) =>
+          (parseTs(b.ts)?.getTime() || 0) >= (parseTs(a.ts)?.getTime() || 0) ? b : a,
+        );
+        if (typeof latest.billed_total_tokens === "number") {
+          latestBilled = latest.billed_total_tokens;
+          latestIn = Number(latest.input_tokens || 0);
+          latestOut = Number(latest.output_tokens || 0);
+        }
+      }
+
+      events.forEach((e) => {
+        if (e.event === "afterFileEdit") {
+          agentAdd += Number(e.lines_added || 0);
+          agentRem += Number(e.lines_removed || 0);
+          agentPass++;
+        }
+        if (e.event === "afterTabFileEdit") {
+          tabN++;
+          tabAdd += Number(e.lines_added || 0);
+        }
+        if (e.event === "afterAgentResponse") {
+          respN++;
+          if (e.consumption_present === true) respWithReport++;
+          if (e.consumption_complete === true) respComplete++;
+          if (typeof e.billed_total_tokens === "number") {
+            billedSum += e.billed_total_tokens;
+            billedN++;
+          }
+        }
+        if (isSubagentLaunch(e)) {
+          hookRuns++;
+          hookSaved += hookSavedTokens(e);
+          if (e.compression_used_claw_compactor === true) hookClaw++;
+          if (e.compression_used_llmlingua === true) hookLlm++;
+          subLaunch++;
+          subPromptTok += Number(e.compression_after_tokens || e.approx_tokens || 0);
+        }
+        if (e.event === "subagentStop") {
+          subStop++;
+          subOutTok += Number(e.approx_tokens || 0);
+          const src = String(e.subagent_stop_source || "");
+          if (src === "hook") subStopHook++;
+          else if (src === "postToolUse_fallback") subStopFallback++;
+        }
+      });
+
+      const tour = eventsForCurrentTour(events);
+      const tourLaunches = tour.filter(isSubagentLaunch).length;
+      const tourStops = tour.filter((e) => e.event === "subagentStop").length;
+
+      return {
+        edit: {
+          lines_added: agentAdd,
+          lines_removed: agentRem,
+          passes: agentPass,
+          tab_accepted: tabN,
+          tab_lines_added: tabAdd,
+        },
+        consumption_coverage: {
+          with_report: respWithReport,
+          complete: respComplete,
+          responses: respN,
+        },
+        hook_compression: {
+          runs: hookRuns,
+          saved_tokens: hookSaved,
+          claw: hookClaw,
+          llmlingua: hookLlm,
+        },
+        subagents: {
+          launch: subLaunch,
+          stop: subStop,
+          stop_hook: subStopHook,
+          stop_post_tool_fallback: subStopFallback,
+          prompt_proxy_tokens: subPromptTok,
+          out_proxy_tokens: subOutTok,
+          coverage_pct: subLaunch > 0 ? Math.round((100 * subStop) / subLaunch) : 0,
+        },
+        compliance: summarizeComplianceKpis(events),
+        parent_billed: {
+          sum: billedSum,
+          avg: billedN ? Math.floor(billedSum / billedN) : 0,
+          count: billedN,
+          latest: latestBilled,
+          latest_input: latestIn,
+          latest_output: latestOut,
+        },
+        tour: { launches: tourLaunches, stops: tourStops },
+      };
+    }
+
+    function applyReportSummary(summary) {
+      if (!summary) return;
+      const sub = summary.subagents || {};
+      const billed = summary.parent_billed || {};
+      const tour = summary.tour || {};
+
+      document.getElementById("kpiSubLaunch").textContent = fmtNum(sub.launch || 0);
+      document.getElementById("kpiSubStop").textContent = fmtNum(sub.stop || 0);
+      document.getElementById("kpiSubStopSub").textContent =
+        sub.stop > 0
+          ? `hook ${fmtNum(sub.stop_hook || 0)} · fallback ${fmtNum(sub.stop_post_tool_fallback || 0)}`
+          : "subagentStop · postToolUse";
+      document.getElementById("kpiSubLaunchSub").textContent =
+        tour.launches !== sub.launch
+          ? `ce tour: ${fmtNum(tour.launches)} · total fichier`
+          : "aligné report.py";
+
+      if (billed.count) {
+        document.getElementById("kpiParentBilled").textContent = fmtCompact(billed.avg || 0);
+        document.getElementById("kpiParentBilledSub").textContent =
+          `sum ${fmtCompact(billed.sum || 0)} · ${fmtNum(billed.count)} rép. · dernier ${fmtCompact(billed.latest || 0)}`;
+      } else {
+        document.getElementById("kpiParentBilled").textContent = "—";
+        document.getElementById("kpiParentBilledSub").textContent = "non exposé";
+      }
+
+      document.getElementById("kpiSubPromptTok").textContent = fmtCompact(sub.prompt_proxy_tokens || 0);
+      document.getElementById("kpiSubOutTok").textContent = fmtCompact(sub.out_proxy_tokens || 0);
+      document.getElementById("kpiSubPromptSub").textContent = `${fmtNum(sub.launch || 0)} lancement(s)`;
+      document.getElementById("kpiSubOutSub").textContent = `${fmtNum(sub.stop || 0)} fin(s)`;
+    }
+
+    function renderSubagentStats(events) {
+      applyReportSummary(computeReportSummary(events));
+    }
+
+    function renderSubagentTable(events) {
+      const list = document.getElementById("subagentList");
+      const head = document.getElementById("subagentHead");
+      const empty = document.getElementById("emptySubagents");
+      list.replaceChildren();
+
+      const launches = events
+        .filter(isSubagentLaunch)
+        .sort((a, b) => (parseTs(b.ts)?.getTime() || 0) - (parseTs(a.ts)?.getTime() || 0))
+        .slice(0, 40);
+      const stopsByTs = events
+        .filter((e) => e.event === "subagentStop")
+        .sort((a, b) => (parseTs(a.ts)?.getTime() || 0) - (parseTs(b.ts)?.getTime() || 0));
+
+      const rows = launches
+        .map((launch) => {
+          const launchTs = parseTs(launch.ts)?.getTime() || 0;
+          const stop = stopsByTs.find((s) => (parseTs(s.ts)?.getTime() || 0) >= launchTs);
+          return { launch, stop };
+        })
+        .sort((a, b) => (parseTs(b.launch.ts)?.getTime() || 0) - (parseTs(a.launch.ts)?.getTime() || 0))
+        .slice(0, 20);
+
+      empty.hidden = rows.length > 0;
+      list.hidden = rows.length === 0;
+      head.hidden = rows.length === 0;
+
+      rows.forEach(({ launch, stop }) => {
+        const row = document.createElement("div");
+        row.className = "feed-row";
+        row.style.setProperty("--accent", EVENT_COLORS.subagentLaunch);
+        const bar = document.createElement("div");
+        bar.className = "feed-row-accent";
+        const cols = document.createElement("div");
+        cols.className = "feed-cols subagent-row-cols";
+
+        const cDate = document.createElement("div");
+        cDate.className = "mono cell-wide";
+        cDate.textContent = fmtDateUtcCell(launch.ts);
+
+        const cType = document.createElement("div");
+        const typePill = document.createElement("span");
+        typePill.className = "tool-pill";
+        typePill.textContent = launch.subagent_type || "Task";
+        cType.appendChild(typePill);
+
+        const cSkill = document.createElement("div");
+        const skillPill = document.createElement("span");
+        skillPill.className = "evt-pill";
+        skillPill.textContent = launch.skill_hint || "—";
+        cSkill.appendChild(skillPill);
+
+        const cDesc = document.createElement("div");
+        cDesc.className = "mono cell-wide";
+        cDesc.textContent = (launch.subagent_description || "—").slice(0, 120);
+
+        const cBadges = document.createElement("div");
+        cBadges.className = "cell-badges";
+        cBadges.style.display = "flex";
+        cBadges.style.flexWrap = "wrap";
+        cBadges.style.gap = "0.25rem";
+        renderLaunchOptBadges(launch, cBadges);
+
+        const cCompress = document.createElement("div");
+        const comp = compressionSummary(launch);
+        const compressPill = document.createElement("span");
+        compressPill.className = "evt-pill compress-pill";
+        if (comp.claw && comp.llm) compressPill.classList.add("claw");
+        else if (comp.claw) compressPill.classList.add("claw");
+        else if (comp.llm) compressPill.classList.add("llm");
+        else compressPill.classList.add("none");
+        const pctLabel = comp.saved > 0 ? ` −${comp.pct.toFixed(0)}%` : "";
+        compressPill.textContent = `${comp.label}${pctLabel}`;
+        compressPill.title = `backend=${comp.backend} · saved≈${comp.saved} tok`;
+        cCompress.appendChild(compressPill);
+
+        const cPrompt = document.createElement("div");
+        cPrompt.className = "num strong";
+        const afterTok = launch.compression_after_tokens || launch.approx_tokens || 0;
+        const inputTok = launch.compression_input_tokens || 0;
+        cPrompt.textContent = fmtNum(afterTok);
+        if (inputTok > 0 && inputTok !== afterTok) {
+          cPrompt.title = `entrée≈${fmtNum(inputTok)} → envoyé≈${fmtNum(afterTok)}`;
+        }
+
+        const cOut = document.createElement("div");
+        cOut.className = "num";
+        cOut.textContent = stop ? fmtNum(stop.approx_tokens || 0) : "—";
+
+        const cStatus = document.createElement("div");
+        const statusPill = document.createElement("span");
+        statusPill.className = "evt-pill";
+        statusPill.textContent = stop?.subagent_status || "running?";
+        cStatus.appendChild(statusPill);
+
+        cols.appendChild(cDate);
+        cols.appendChild(cType);
+        cols.appendChild(cSkill);
+        cols.appendChild(cDesc);
+        cols.appendChild(cBadges);
+        cols.appendChild(cCompress);
+        cols.appendChild(cPrompt);
+        cols.appendChild(cOut);
+        cols.appendChild(cStatus);
+        row.appendChild(bar);
+        row.appendChild(cols);
+        list.appendChild(row);
+      });
+    }
+
+    function renderHookCompressionStats(events) {
+      const rows = events.filter(isSubagentLaunch);
+      const count = rows.length;
+      const savedTokens = rows.reduce((sum, e) => sum + hookSavedTokens(e), 0);
+      const usedClaw = rows.filter((e) => e.compression_used_claw_compactor === true).length;
+      const usedLingu = rows.filter((e) => e.compression_used_llmlingua === true).length;
+      const backends = {};
+      rows.forEach((e) => {
+        const b = String(e.compression_backend || "unknown");
+        backends[b] = (backends[b] || 0) + 1;
+      });
+      let avgPct = 0;
+      if (count) {
+        avgPct = rows.reduce((sum, e) => sum + hookSavedPct(e), 0) / count;
+      }
+
+      document.getElementById("kpiHookSaved").textContent = fmtCompact(savedTokens);
+      if (!count) {
+        document.getElementById("kpiHookSub").textContent = "aucune mesure hook";
+      } else {
+        const backendHint = Object.entries(backends)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 2)
+          .map(([k, n]) => `${k}×${n}`)
+          .join(" · ");
+        document.getElementById("kpiHookSub").textContent =
+          `${count} runs · ${avgPct.toFixed(1)}% moy · claw ${usedClaw} · llm ${usedLingu}${backendHint ? ` · ${backendHint}` : ""}`;
+      }
+      return { savedTokens };
+    }
+
+    function renderRtkGainStats(rtkGain, hookSavedTokens) {
+      const savedEl = document.getElementById("kpiRtkSaved");
+      const subEl = document.getElementById("kpiRtkSub");
+      const totalEl = document.getElementById("kpiTotalSaved");
+      const totalSubEl = document.getElementById("kpiTotalSub");
+      if (!rtkGain || typeof rtkGain !== "object") {
+        savedEl.textContent = "—";
+        subEl.textContent = "RTK indisponible";
+        totalEl.textContent = fmtCompact(hookSavedTokens || 0);
+        totalSubEl.textContent = "hook seul (RTK indisponible)";
+        return;
+      }
+
+      const g = rtkGain.global || {};
+      const p = rtkGain.project || {};
+      const gs = g.summary || {};
+      const ps = p.summary || {};
+
+      if (g.ok !== true || typeof gs.total_saved !== "number") {
+        savedEl.textContent = "—";
+        const err = String(g.error || "global indisponible").slice(0, 64);
+        subEl.textContent = `global indisponible (${err})`;
+        totalEl.textContent = fmtCompact(hookSavedTokens || 0);
+        totalSubEl.textContent = "hook seul (global indisponible)";
+        return;
+      }
+
+      const gSaved = Number(gs.total_saved || 0);
+      savedEl.textContent = fmtCompact(gSaved);
+      const totalSaved = gSaved + Number(hookSavedTokens || 0);
+      totalEl.textContent = fmtCompact(totalSaved);
+
+      const gpct = Number(gs.avg_savings_pct || 0).toFixed(1);
+      if (p.ok === true && typeof ps.total_saved === "number") {
+        const pSaved = Number(ps.total_saved || 0);
+        const ppct = Number(ps.avg_savings_pct || 0).toFixed(1);
+        subEl.textContent = `G ${gpct}% (${fmtCompact(gSaved)}) · P ${ppct}% (${fmtCompact(pSaved)})`;
+        totalSubEl.textContent = `RTK global + hook (${fmtCompact(hookSavedTokens || 0)})`;
+      } else {
+        subEl.textContent = `G ${gpct}% · P indisponible`;
+        totalSubEl.textContent = `RTK global + hook (${fmtCompact(hookSavedTokens || 0)})`;
+      }
+    }
+
+    function periodLabel(events) {
+      const dates = events
+        .map((e) => parseTs(e.ts))
+        .filter(Boolean)
+        .sort((a, b) => a - b);
+      if (!dates.length) return "—";
+      const a = dates[0];
+      const b = dates[dates.length - 1];
+      const fmt = (d) =>
+        d.toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "numeric",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      return `${fmt(a)} → ${fmt(b)}`;
+    }
+
+    function updateNavPeriod(events, overrideText) {
+      const el = document.getElementById("navPeriod");
+      if (!el) return;
+      if (overrideText !== undefined) {
+        el.textContent = overrideText;
+        el.removeAttribute("datetime");
+        el.removeAttribute("title");
+        return;
+      }
+      const label = periodLabel(events);
+      el.textContent = label;
+      const dates = events
+        .map((e) => parseTs(e.ts))
+        .filter(Boolean)
+        .sort((a, b) => a - b);
+      if (dates.length) {
+        el.setAttribute("datetime", `${dates[0].toISOString()}/${dates[dates.length - 1].toISOString()}`);
+        el.setAttribute("title", label);
+      } else {
+        el.removeAttribute("datetime");
+        el.removeAttribute("title");
+      }
+    }
+
+    function renderAll(events) {
+      const sumTok = events.reduce((s, e) => s + (e.approx_tokens || 0), 0);
+      const sumTc = events.reduce((s, e) => s + (e.text_chars || 0), 0);
+
+      document.getElementById("kpiEvents").textContent = fmtNum(events.length);
+      document.getElementById("kpiTokens").textContent = fmtNum(sumTok);
+      document.getElementById("kpiChars").textContent = fmtNum(sumTc);
+      updateNavPeriod(events);
+
+      renderEditStats(events);
+      renderConsumptionStats(events);
+      renderComplianceStats(events);
+      renderComplianceTable(events);
+      renderSubagentStats(events);
+      renderSubagentTable(events);
+      renderStackKpis(events);
+      const hookSummary = renderHookCompressionStats(events);
+      renderRtkGainStats(rtkGainData, hookSummary.savedTokens);
+      renderOptimizationKpis(events, rtkGainData);
+
+      const isDark = !document.documentElement.classList.contains("theme-light");
+      const bucket = document.getElementById("bucketSelect").value;
+      renderCharts(events, bucket, isDark, rtkGainData);
+      renderTables(events);
+      resizeVisibleCharts();
+    }
+
+    let currentEvents = [];
+
+    const LS_REFRESH = "cursor_telemetry_auto_refresh_ms";
+    const LS_SECTION_ORDER = "cursor_telemetry_dash_section_order";
+    const LS_SECTION_COLLAPSED = "cursor_telemetry_dash_section_collapsed";
+    const DEFAULT_SECTION_ORDER = [
+      "kpi-summary",
+      "kpi-savings",
+      "kpi-editing",
+      "kpi-subagents",
+      "kpi-stack",
+      "kpi-compliance",
+      "table-subagents",
+      "table-compliance",
+      "charts",
+      "tables-lists",
+    ];
+    /** @type {ReturnType<typeof setInterval> | null} */
+    let refreshTimerId = null;
+    let refreshIntervalMs = 0;
+    /** Local JSONL replaces API until user hits manual refresh */
+    let fileOverride = false;
+
+    function resizeVisibleCharts() {
+      requestAnimationFrame(() => {
+        [trendChart, gainPctChart, donutChart].forEach((ch) => {
+          try {
+            ch?.resize();
+          } catch (_) {
+            /* ignore */
+          }
+        });
+      });
+    }
+
+    function collectLayoutState(container) {
+      return {
+        order: [...container.querySelectorAll(".dash-section")].map((s) => s.dataset.sectionId),
+        collapsed: [...document.querySelectorAll(".dash-section.is-collapsed")].map(
+          (s) => s.dataset.sectionId,
+        ),
+      };
+    }
+
+    function getSource() {
+      const select = document.getElementById("sourceSelect");
+      if (select) {
+        return select.value;
+      }
+      try {
+        return localStorage.getItem("cursor_telemetry_source") || "cursor";
+      } catch (_) {
+        return "cursor";
+      }
+    }
+
+    function persistLayoutPrefs(container) {
+      const state = collectLayoutState(container);
+      try {
+        localStorage.setItem(LS_SECTION_ORDER + "_" + getSource(), JSON.stringify(state.order));
+        localStorage.setItem(LS_SECTION_COLLAPSED + "_" + getSource(), JSON.stringify(state.collapsed));
+      } catch (_) {
+        /* ignore */
+      }
+      void fetch("/api/dashboard-layout?source=" + getSource(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ version: 1, ...state }),
+      }).catch(() => {
+        /* offline or old server */
+      });
+    }
+
+    async function loadLayoutPrefs() {
+      try {
+        const res = await fetch("/api/dashboard-layout?source=" + getSource());
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (Array.isArray(data.order) || Array.isArray(data.collapsed))) {
+            return {
+              order: Array.isArray(data.order) ? data.order : null,
+              collapsed: Array.isArray(data.collapsed) ? data.collapsed : [],
+            };
+          }
+        }
+      } catch (_) {
+        /* fallback below */
+      }
+      let order = null;
+      let collapsed = [];
+      try {
+        order = JSON.parse(localStorage.getItem(LS_SECTION_ORDER + "_" + getSource()) || "null");
+      } catch (_) {
+        order = null;
+      }
+      try {
+        collapsed = JSON.parse(localStorage.getItem(LS_SECTION_COLLAPSED + "_" + getSource()) || "[]");
+      } catch (_) {
+        collapsed = [];
+      }
+      return { order, collapsed };
+    }
+
+    function applySectionOrder(container, order) {
+      if (!Array.isArray(order)) order = DEFAULT_SECTION_ORDER.slice();
+      const known = new Set(
+        [...container.querySelectorAll(".dash-section")].map((s) => s.dataset.sectionId),
+      );
+      order = order.filter((id) => known.has(id));
+      DEFAULT_SECTION_ORDER.forEach((id) => {
+        if (known.has(id) && !order.includes(id)) order.push(id);
+      });
+      order.forEach((id) => {
+        const el = container.querySelector(`[data-section-id="${id}"]`);
+        if (el) container.appendChild(el);
+      });
+    }
+
+    function applySectionCollapsed(collapsed) {
+      if (!Array.isArray(collapsed)) collapsed = [];
+      const set = new Set(collapsed);
+      document.querySelectorAll(".dash-section").forEach((section) => {
+        const id = section.dataset.sectionId;
+        const isCollapsed = set.has(id);
+        section.classList.toggle("is-collapsed", isCollapsed);
+        const btn = section.querySelector(".dash-section-toggle");
+        if (btn) btn.setAttribute("aria-expanded", String(!isCollapsed));
+      });
+    }
+
+    function toggleDashSection(section, container) {
+      const willCollapse = !section.classList.contains("is-collapsed");
+      section.classList.toggle("is-collapsed", willCollapse);
+      const btn = section.querySelector(".dash-section-toggle");
+      if (btn) btn.setAttribute("aria-expanded", String(!willCollapse));
+      persistLayoutPrefs(container);
+      if (!willCollapse) resizeVisibleCharts();
+    }
+
+    function sectionDropTarget(container, clientY, dragging) {
+      const sections = [...container.querySelectorAll(".dash-section")].filter(
+        (s) => s !== dragging,
+      );
+      let closest = { offset: Number.NEGATIVE_INFINITY, element: null, after: false };
+      for (const child of sections) {
+        const box = child.getBoundingClientRect();
+        const offset = clientY - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          closest = { offset, element: child, after: false };
+        }
+      }
+      if (!closest.element && sections.length) {
+        const last = sections[sections.length - 1];
+        const box = last.getBoundingClientRect();
+        if (clientY > box.bottom - 8) {
+          return { element: last, after: true };
+        }
+      }
+      return closest.element ? { element: closest.element, after: closest.after } : null;
+    }
+
+    function bindPointerSectionReorder(container) {
+      let dragging = null;
+      let marker = null;
+
+      function clearDragUi() {
+        dragging?.classList.remove("is-pointer-dragging");
+        dragging = null;
+        marker?.remove();
+        marker = null;
+        container.querySelectorAll(".dash-section").forEach((s) => s.classList.remove("is-drag-over"));
+      }
+
+      function placeMarker(target, after) {
+        if (!marker) {
+          marker = document.createElement("div");
+          marker.className = "dash-section-drop-marker";
+          marker.setAttribute("aria-hidden", "true");
+        }
+        if (!target) {
+          container.appendChild(marker);
+          return;
+        }
+        if (after) target.after(marker);
+        else target.before(marker);
+      }
+
+      container.querySelectorAll(".dash-section-drag-handle").forEach((handle) => {
+        handle.addEventListener("pointerdown", (ev) => {
+          if (ev.button !== 0) return;
+          dragging = handle.closest(".dash-section");
+          if (!dragging) return;
+          dragging.classList.add("is-pointer-dragging");
+          handle.setPointerCapture(ev.pointerId);
+          ev.preventDefault();
+        });
+        handle.addEventListener("pointermove", (ev) => {
+          if (!dragging || !handle.hasPointerCapture(ev.pointerId)) return;
+          const target = sectionDropTarget(container, ev.clientY, dragging);
+          if (!target) {
+            placeMarker(null, true);
+            return;
+          }
+          target.element.classList.add("is-drag-over");
+          container.querySelectorAll(".dash-section").forEach((s) => {
+            if (s !== target.element) s.classList.remove("is-drag-over");
+          });
+          placeMarker(target.element, target.after);
+        });
+        handle.addEventListener("pointerup", (ev) => {
+          if (!dragging) return;
+          try {
+            handle.releasePointerCapture(ev.pointerId);
+          } catch (_) {
+            /* ignore */
+          }
+          if (marker && marker.parentNode) {
+            marker.parentNode.insertBefore(dragging, marker);
+          } else {
+            const target = sectionDropTarget(container, ev.clientY, dragging);
+            if (target?.element) {
+              if (target.after) target.element.after(dragging);
+              else target.element.before(dragging);
+            }
+          }
+          clearDragUi();
+          persistLayoutPrefs(container);
+          resizeVisibleCharts();
+        });
+        handle.addEventListener("pointercancel", () => {
+          clearDragUi();
+        });
+      });
+    }
+
+    async function initDashboardSections() {
+      const container = document.getElementById("dashboardSections");
+      if (!container) return;
+
+      const prefs = await loadLayoutPrefs();
+      applySectionOrder(container, prefs.order);
+      applySectionCollapsed(prefs.collapsed);
+
+      container.querySelectorAll(".dash-section").forEach((section) => {
+        const toggle = section.querySelector(".dash-section-toggle");
+        toggle?.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          toggleDashSection(section, container);
+        });
+      });
+
+      bindPointerSectionReorder(container);
+    }
+
+    async function loadApi() {
+      const res = await fetch("/api/events?source=" + getSource());
+      if (!res.ok) throw new Error("API " + res.status);
+      return res.json();
+    }
+
+    async function loadRtkGain() {
+      const res = await fetch("/api/rtk-gain?source=" + getSource());
+      if (!res.ok) throw new Error("RTK API " + res.status);
+      return res.json();
+    }
+
+    function clearAutoRefreshLoop() {
+      if (refreshTimerId !== null) {
+        clearInterval(refreshTimerId);
+        refreshTimerId = null;
+      }
+    }
+
+    function scheduleAutoRefreshLoop() {
+      clearAutoRefreshLoop();
+      if (refreshIntervalMs <= 0 || fileOverride) return;
+      refreshTimerId = setInterval(() => {
+        void silentRefreshFromApi();
+      }, refreshIntervalMs);
+    }
+
+    function setRefreshMenuExpanded(open) {
+      const dd = document.getElementById("refreshDropdown");
+      const caret = document.getElementById("btnRefreshMenu");
+      dd.hidden = !open;
+      caret.setAttribute("aria-expanded", String(open));
+    }
+
+    function syncRefreshMenuRadios(activeMs) {
+      document.querySelectorAll("#refreshDropdown button[data-interval-ms]").forEach((btn) => {
+        const v = parseInt(btn.getAttribute("data-interval-ms"), 10);
+        const on = v === activeMs;
+        btn.setAttribute("data-active", on ? "true" : "false");
+        btn.setAttribute("aria-checked", on ? "true" : "false");
+      });
+      const label = document.querySelector(
+        `#refreshDropdown button[data-interval-ms="${activeMs}"]`,
+      );
+      const short = label ? label.getAttribute("data-short") || label.textContent : "—";
+      document.getElementById("refreshIntervalLabel").textContent = short;
+    }
+
+    function setRefreshInterval(ms) {
+      const allowed = new Set([0, 300000, 1800000, 3600000]);
+      refreshIntervalMs = allowed.has(ms) ? ms : 0;
+      try {
+        localStorage.setItem(LS_REFRESH, String(refreshIntervalMs));
+      } catch (_) {
+        /* ignore */
+      }
+      syncRefreshMenuRadios(refreshIntervalMs);
+      scheduleAutoRefreshLoop();
+    }
+
+    function restoreRefreshFromStorage() {
+      let saved = 0;
+      try {
+        saved = parseInt(localStorage.getItem(LS_REFRESH) || "0", 10);
+      } catch (_) {
+        saved = 0;
+      }
+      const allowed = new Set([0, 300000, 1800000, 3600000]);
+      refreshIntervalMs = allowed.has(saved) ? saved : 0;
+      syncRefreshMenuRadios(refreshIntervalMs);
+      scheduleAutoRefreshLoop();
+    }
+
+    async function silentRefreshFromApi() {
+      if (fileOverride) return;
+      try {
+        const rows = await loadApi();
+        try {
+          rtkGainData = await loadRtkGain();
+        } catch (_) {
+          rtkGainData = null;
+        }
+        currentEvents = rows;
+        renderAll(currentEvents);
+      } catch (_) {
+        /* keep last good data */
+      }
+    }
+
+    async function manualRefreshFromApi() {
+      const svg = document.querySelector("#btnRefreshNow .refresh-ico");
+      svg?.classList.add("refresh-ico-spin");
+      try {
+        const rows = await loadApi();
+        try {
+          rtkGainData = await loadRtkGain();
+        } catch (_) {
+          rtkGainData = null;
+        }
+        fileOverride = false;
+        currentEvents = rows;
+        renderAll(currentEvents);
+        scheduleAutoRefreshLoop();
+      } catch (e) {
+        document.getElementById("kpiEvents").textContent = "!";
+        updateNavPeriod(
+          [],
+          e.message === "Failed to fetch"
+            ? "Lance serve_dashboard.py (localhost)"
+            : String(e.message),
+        );
+      } finally {
+        svg?.classList.remove("refresh-ico-spin");
+      }
+    }
+
+    function readFilePromise(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result || ""));
+        r.onerror = () => reject(r.error);
+        r.readAsText(file);
+      });
+    }
+
+    function parseJsonl(text) {
+      const rows = [];
+      text.split(/\r?\n/).forEach((line) => {
+        line = line.trim();
+        if (!line) return;
+        try {
+          rows.push(JSON.parse(line));
+        } catch (_) {
+          /* skip */
+        }
+      });
+      return { rows };
+    }
+
+    document.getElementById("bucketSelect").addEventListener("change", () => {
+      if (currentEvents.length) renderAll(currentEvents);
+    });
+
+    document.getElementById("btnRefreshNow").addEventListener("click", () => {
+      void manualRefreshFromApi();
+    });
+
+    document.getElementById("btnRefreshMenu").addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const dd = document.getElementById("refreshDropdown");
+      setRefreshMenuExpanded(dd.hidden);
+    });
+
+    document.querySelectorAll("#refreshDropdown button[data-interval-ms]").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const ms = parseInt(btn.getAttribute("data-interval-ms"), 10);
+        setRefreshInterval(ms);
+        setRefreshMenuExpanded(false);
+      });
+    });
+
+    document.addEventListener("click", (ev) => {
+      const split = document.getElementById("refreshSplit");
+      if (split && !split.contains(ev.target)) setRefreshMenuExpanded(false);
+    });
+
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape") setRefreshMenuExpanded(false);
+    });
+
+    document.getElementById("btnTheme").addEventListener("click", () => {
+      document.documentElement.classList.toggle("theme-light");
+      if (currentEvents.length) renderAll(currentEvents);
+    });
+
+    document.getElementById("btnReload").addEventListener("click", () => {
+      document.getElementById("fileIn").click();
+    });
+
+    document.getElementById("fileIn").addEventListener("change", async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const text = await readFilePromise(file);
+      const { rows } = parseJsonl(text);
+      currentEvents = rows;
+      fileOverride = true;
+      setRefreshInterval(0);
+      renderAll(currentEvents);
+      ev.target.value = "";
+    });
+
+    async function switchSource() {
+      const source = getSource();
+      try {
+        localStorage.setItem("cursor_telemetry_source", source);
+      } catch (_) {}
+      
+      updateHeaderTitle();
+
+      const container = document.getElementById("dashboardSections");
+      if (container) {
+        try {
+          const prefs = await loadLayoutPrefs();
+          applySectionOrder(container, prefs.order);
+          applySectionCollapsed(prefs.collapsed);
+        } catch (e) {
+          console.error("Failed to load layout preferences:", e);
+        }
+      }
+      
+      void manualRefreshFromApi();
+    }
+
+    function updateHeaderTitle() {
+      const source = getSource();
+      const titleEl = document.querySelector(".brand h1");
+      if (titleEl) {
+        titleEl.textContent = source === "antigravity" ? "Telemetry Token (Antigravity)" : "Telemetry Token (Cursor)";
+      }
+    }
+
+    document.getElementById("sourceSelect").addEventListener("change", () => {
+      void switchSource();
+    });
+
+    (async function init() {
+      let activeSource = "cursor";
+      try {
+        activeSource = localStorage.getItem("cursor_telemetry_source") || "cursor";
+      } catch (_) {}
+      const sourceSelect = document.getElementById("sourceSelect");
+      if (sourceSelect) {
+        sourceSelect.value = activeSource;
+      }
+      updateHeaderTitle();
+
+      await initDashboardSections();
+      try {
+        currentEvents = await loadApi();
+        try {
+          rtkGainData = await loadRtkGain();
+        } catch (_) {
+          rtkGainData = null;
+        }
+        renderAll(currentEvents);
+        restoreRefreshFromStorage();
+      } catch (e) {
+        document.getElementById("kpiEvents").textContent = "!";
+        updateNavPeriod(
+          [],
+          e.message === "Failed to fetch"
+            ? "Lance serve_dashboard.py (localhost)"
+            : String(e.message),
+        );
+        syncRefreshMenuRadios(0);
+      }
+    })();
+  </script>
+</body>
+</html>
