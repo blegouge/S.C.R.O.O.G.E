@@ -1,8 +1,8 @@
-# Cursor IA — plateforme d’optimisation des agents
+# Antigravity IA — plateforme d’optimisation des agents
 
-**Document unique** · Hub `~/.cursor` · Métriques : **29 mai 2026** (actualiser via `rtk gain` + `token-telemetry/report.py` — ligne `claw=` / `llmlingua=`)
+**Document unique** · Hub `~/.gemini/antigravity` · Métriques : **29 mai 2026** (actualiser via `rtk gain` + `token-telemetry/report.py` — ligne `claw=` / `llmlingua=`)
 
-Ce hub est le **profil Cursor global** (macOS, zsh) : règles, skills, hooks et télémétrie s’appliquent à **tous les workspaces** ouverts avec ce compte. Objectif : agents **plus prévisibles**, **moins coûteux en tokens**, et **alignés** sur les workflows métier (Jira, prod, PR, observabilité).
+Ce hub est le **profil Antigravity global** (macOS, zsh) : règles, skills, hooks et télémétrie s’appliquent à **tous les workspaces** ouverts avec ce compte. Objectif : agents **plus prévisibles**, **moins coûteux en tokens**, et **alignés** sur les workflows métier (Jira, prod, PR, observabilité).
 
 ---
 
@@ -13,7 +13,7 @@ Ce hub est le **profil Cursor global** (macOS, zsh) : règles, skills, hooks et 
 3. [Scénarios types](#scénarios-types-quoi-demander)
 4. [Pipeline & hooks](#vue-densemble-pipeline)
 5. [Économies de tokens](#économies-de-tokens--chiffres-à-partager)
-6. [Règles Cursor](#règles-cursor-rulesmdc)
+6. [Règles Antigravity](#règles-antigravity-rulesmdc)
 7. [Skills métier](#skills-métier-skills)
 8. [Workflows Jira](#workflows-jira)
 9. [Subagents](#subagents--politique-et-routage) — dont [idempotence spec](#spec-driven-idempotency-parent--subagent)
@@ -23,7 +23,7 @@ Ce hub est le **profil Cursor global** (macOS, zsh) : règles, skills, hooks et 
 13. [Compression & contexte](#compression--contexte-adaptatif)
 14. [Télémétrie](#télémétrie--tableau-de-bord)
 15. [MCP](#intégrations-mcp)
-16. [Skills éditeur](#skills-cursor-éditeur)
+16. [Skills éditeur](#skills-antigravity-éditeur)
 17. [Bonnes pratiques & FAQ](#bonnes-pratiques-équipe)
 18. [Structure & limites](#structure-du-hub)
 
@@ -43,7 +43,7 @@ Sans cadre, un agent tend à : relire tout le repo, lancer plusieurs subagents, 
 | Coût invisible | **Télémétrie** + **rapport de consommation** | Pilotage |
 | Jira / prod ad hoc | **25 skills** + règles draft-first | Qualité livrable |
 | Parent + subagent relisent les mêmes fichiers | **`spec-driven-idempotency`** — `[CONTEXT]` figé, `RESCAN: forbidden` | **~1 passe repo / délégation** évitée |
-| Index hub pollué | **`.cursorignore`** | Moins de bruit @codebase |
+| Index hub pollué | **`.geminiignore`** | Moins de bruit @codebase |
 | Dépense avant réflexion | **Token budget guardrail** (ROI + two-strike) | Entrée + orchestration |
 
 **Principe directeur :** *arbitrer le budget avant la dépense, router avant d’explorer, compresser avant d’envoyer, patcher au lieu de recopier, mesurer au lieu de deviner.*
@@ -54,10 +54,10 @@ Sans cadre, un agent tend à : relire tout le repo, lancer plusieurs subagents, 
 
 | Étape | Action |
 |-------|--------|
-| 1 | Vérifier que Cursor utilise bien `~/.cursor/hooks.json` (Settings → Hooks, si exposé) |
+| 1 | Vérifier que Antigravity utilise bien `~/.gemini/antigravity/hooks.json` (Settings → Hooks, si exposé) |
 | 2 | Installer **RTK** et lancer une session agent avec des commandes Shell → `rtk gain` |
-| 3 | Ouvrir le dashboard : `python3 ~/.cursor/token-telemetry/serve_dashboard.py` → http://127.0.0.1:8765/ (KPI **claw** / hook sur `subagentLaunch`) |
-| 3b | *(optionnel)* Vérifier Claw : `~/.cursor/bin/claw-compactor --help` |
+| 3 | Ouvrir le dashboard : `python3 ~/.gemini/antigravity/token-telemetry/serve_dashboard.py` → http://127.0.0.1:8765/ (KPI **claw** / hook sur `subagentLaunch`) |
+| 3b | *(optionnel)* Vérifier Claw : `~/.gemini/antigravity/bin/claw-compactor --help` |
 | 4 | Dans un **repo métier**, ajouter un `AGENT.md` (conventions, stack) — l’agent le lit en priorité |
 | 5 | Pour un ticket : `/jira-prompting PROJ-123` ou triage via skill `jira-ticket-triage` |
 
@@ -65,9 +65,9 @@ Sans cadre, un agent tend à : relire tout le repo, lancer plusieurs subagents, 
 
 ```bash
 rtk gain
-python3 ~/.cursor/token-telemetry/report.py
+python3 ~/.gemini/antigravity/token-telemetry/report.py
 code-review-graph status          # dans un repo source
-export CURSOR_DIFF_ONLY_DISABLE=1 # désactiver temporairement Diff-Only
+export ANTIGRAVITY_DIFF_ONLY_DISABLE=1 # désactiver temporairement Diff-Only
 ```
 
 ---
@@ -97,15 +97,15 @@ export CURSOR_DIFF_ONLY_DISABLE=1 # désactiver temporairement Diff-Only
 
 ## Vue d’ensemble (pipeline)
 
-![Pipeline global — hub Cursor IA](assets/pipeline-cursor-ia.png)
+![Pipeline global — hub Antigravity IA](assets/pipeline-antigravity-ia.png)
 
 *Figure 1 — Entrée (utilisateur, AGENT.md, règles) → agent (+ guardrail ROI / two-strike) → hooks RTK/compression (`BLOCK_1B` sur Task) → sortie Diff-Only, télémétrie, rapport conso → dashboard.*
 
-### Hooks détaillés (`~/.cursor/hooks.json`)
+### Hooks détaillés (`~/.gemini/antigravity/hooks.json`)
 
 | Événement | Matcher | Script | Effet |
 |-----------|---------|--------|-------|
-| `preToolUse` | `Shell` | `rtk hook cursor` | Réécriture commande → variante compacte RTK |
+| `preToolUse` | `Shell` | `rtk hook antigravity` | Réécriture commande → variante compacte RTK |
 | `preToolUse` | `Task` | `hooks/semantic-compress-pretool.sh` | **5 segments** : `BLOCK_1` → **`BLOCK_1B` guardrail** → blocs 2–4 + **Claw** (défaut) |
 | `postToolUse` | *(tous)* | `hooks/tt-posttool.sh` | Log proxy taille sortie outil |
 | `afterAgentResponse` | — | `diff-only-after-response.sh` + `tt-after-response.sh` | Applique hunks + log réponse |
@@ -113,13 +113,13 @@ export CURSOR_DIFF_ONLY_DISABLE=1 # désactiver temporairement Diff-Only
 | `afterFileEdit` | — | `hooks/tt-after-file-edit.sh` | Δ lignes éditions agent |
 | `afterTabFileEdit` | — | `hooks/tt-after-tab-edit.sh` | Acceptations Tab inline |
 
-**Scripts clés :** `hooks/diff-only-apply.py`, `hooks/token-telemetry.py`, `hooks/semantic-compress-pretool.py`, `src/utils/adaptive_context_manager.py`, `src/utils/token_budget_guardrail.py`, `token-telemetry/claw_compactor_adapter.py`, `~/.cursor/bin/claw-compactor`
+**Scripts clés :** `hooks/diff-only-apply.py`, `hooks/token-telemetry.py`, `hooks/semantic-compress-pretool.py`, `src/utils/adaptive_context_manager.py`, `src/utils/token_budget_guardrail.py`, `token-telemetry/claw_compactor_adapter.py`, `~/.gemini/antigravity/bin/claw-compactor`
 
 ---
 
 ## Économies de tokens — chiffres à partager
 
-> **Mesuré** = votre machine. **Prévisionnel** = ordre de grandeur quand le levier est actif — **pas** la facturation officielle Cursor.
+> **Mesuré** = votre machine. **Prévisionnel** = ordre de grandeur quand le levier est actif — **pas** la facturation officielle Antigravity.
 
 ### Schéma — leviers d’optimisation
 
@@ -129,17 +129,17 @@ export CURSOR_DIFF_ONLY_DISABLE=1 # désactiver temporairement Diff-Only
 
 | Levier | Cible | Hook / règle / outil | Gain (mesuré ou fourchette) |
 |--------|-------|---------------------|----------------------------|
-| **RTK** | Entrée — sortie Shell | `preToolUse` → `rtk hook cursor` · `rules/rtk-cli-tokens.mdc` | **~4,8 M tokens** · **~98 %** CLI (mesuré) |
-| **Claw Compactor** | Entrée — prompt Task | `semantic-compress-pretool` · `claw_compactor_adapter.py` · `~/.cursor/bin/claw-compactor` | **~30–70 %** sur latest + blocs 2–4 (code/logs) ≥1200 car., sans inférence LLM |
+| **RTK** | Entrée — sortie Shell | `preToolUse` → `rtk hook antigravity` · `rules/rtk-cli-tokens.mdc` | **~4,8 M tokens** · **~98 %** CLI (mesuré) |
+| **Claw Compactor** | Entrée — prompt Task | `semantic-compress-pretool` · `claw_compactor_adapter.py` · `~/.gemini/antigravity/bin/claw-compactor` | **~30–70 %** sur latest + blocs 2–4 (code/logs) ≥1200 car., sans inférence LLM |
 | **LLMLingua** | Entrée — prompt Task (optionnel) | `token_compactor.py` · `COMPRESSION_BACKEND=llmlingua\|both` | **~25–55 %** si backend LLMLingua actif |
 | **Contexte adaptatif** | Entrée — historique | `adaptive_context_manager.py` · 5 blocs cache-friendly (`BLOCK_1`…`1B`…`4`) | **~30–60 %** après 8 msg ou ~3k tokens proxy |
-| **Cache Git pre-flight (BLOCK_2)** | Entrée — KV semi-statique | `~/.cursor/projects/cache_<git_sig>.json` · **zéro LLM** | **~100 %** latence résumé KV si même repo + même historique (2ᵉ `Task`+) |
+| **Cache Git pre-flight (BLOCK_2)** | Entrée — KV semi-statique | `~/.gemini/antigravity/projects/cache_<git_sig>.json` · **zéro LLM** | **~100 %** latence résumé KV si même repo + même historique (2ᵉ `Task`+) |
 | **code-review-graph** | Entrée — lectures repo | `rules/code-review-graph.mdc` · skill homonyme | **~40–70 %** lectures évitées vs scan large |
 | **Caps subagents** | Entrée — orchestration | `rules/subagent-usage.mdc` · brief obligatoire | **~1 contexte évité / tour** (1 au lieu de 2–3) |
 | **Spec-driven idempotency** | Entrée + sortie subagent | `skills/spec-driven-idempotency/` · § dans `subagent-usage.mdc` | **~1 lecture globale / fichier** évitée si extraits `[CONTEXT]` suffisent |
 | **Token budget guardrail** | Entrée — avant grosse lecture / `explore` | `rules/token-budget-guardrail.mdc` · `BLOCK_1B` sur Task | **~1 lecture fichier / subagent évité** si ROI gate respectée |
 | **MCP check quotidien** | Entrée + réponse | `mcp-daily-stamp.txt` | **~10–15 probes MCP / jour** évités |
-| **`.cursorignore` hub** | Index / @codebase | racine `~/.cursor/.cursorignore` | Moins de bruit indexé (`projects/`, transcripts) |
+| **`.geminiignore` hub** | Index / @codebase | racine `~/.gemini/antigravity/.geminiignore` | Moins de bruit indexé (`projects/`, transcripts) |
 | **Diff-Only** | Sortie — code chat | `diff-only-protocol` · `diff-only-apply.py` | **~70–95 %** vs dump fichier entier |
 | **Caveman default** | Sortie — prose FR | `rules/caveman-default.mdc` | **~20–40 %** (hors livrables Jira/Confluence) |
 | **Télémétrie + `rtk gain`** | Pilotage | `token-telemetry/` · dashboard · `consumption-report` | Pas d’économie directe — visibilité et arbitrage |
@@ -172,7 +172,7 @@ export CURSOR_DIFF_ONLY_DISABLE=1 # désactiver temporairement Diff-Only
 | code-review-graph | Entrée lectures | **~40–70 %** lectures en moins | PR, impact, debug transversal |
 | MCP quotidien | Entrée + réponse | **~10–15 probes/jour** évités | Multi-chat même journée |
 | Caveman (réponses FR) | Sortie prose | **~20–40 %** | Q&A technique (pas tickets Jira) |
-| `.cursorignore` hub | Index | Moins de fichiers indexés | Hub `projects/`, transcripts |
+| `.geminiignore` hub | Index | Moins de fichiers indexés | Hub `projects/`, transcripts |
 
 **Slide une ligne :** *RTK : **~4,8 M tokens** économisés (~**98 %** CLI). Stack complet = **guardrail amont** + **idempotence spec** (parent lit une fois) + RTK + **Claw** + **cache Git BLOCK_2** + Diff-Only + caps + graph — pilotage via dashboard télémétrie.*
 
@@ -180,14 +180,14 @@ export CURSOR_DIFF_ONLY_DISABLE=1 # désactiver temporairement Diff-Only
 
 ```bash
 rtk gain
-python3 ~/.cursor/token-telemetry/report.py
+python3 ~/.gemini/antigravity/token-telemetry/report.py
 ```
 
 ---
 
-## Règles Cursor (`rules/*.mdc`)
+## Règles Antigravity (`rules/*.mdc`)
 
-Les règles sont du **Markdown avec frontmatter** dans `~/.cursor/rules/`. `alwaysApply: true` = chargées à chaque tour ; `false` = quand la description matche la tâche (ou slash command).
+Les règles sont du **Markdown avec frontmatter** dans `~/.gemini/antigravity/rules/`. `alwaysApply: true` = chargées à chaque tour ; `false` = quand la description matche la tâche (ou slash command).
 
 ### Toujours actives
 
@@ -199,7 +199,7 @@ Les règles sont du **Markdown avec frontmatter** dans `~/.cursor/rules/`. `alwa
 | `rtk-cli-tokens` | RTK dans snippets copiés ; `rtk read/grep/git/...` ; `rtk gain` en fin de session CLI |
 | `consumption-report` | Section obligatoire en fin de réponse (voir ci-dessous) |
 | `caveman-default` | FR télégraphique par défaut ; prose complète pour livrables humains / *détail* / *vulgarise* |
-| `mcp-availability-check` | 1 check MCP/jour via `~/.cursor/mcp-daily-stamp.txt` ; *« vérif MCP »* force refresh |
+| `mcp-availability-check` | 1 check MCP/jour via `~/.gemini/antigravity/mcp-daily-stamp.txt` ; *« vérif MCP »* force refresh |
 | `code-review-graph` | `status` → `detect-changes` / `update` avant scan large |
 | `token-budget-guardrail` | Phase d’arbitrage **après** contexte statique ; avant Read >500 lignes, `explore`, 3ᵉ retry | ROI gate (`rtk grep` / graph) ; **two-strike** halt ; `BLOCK_1B` injecté sur Task |
 
@@ -222,7 +222,7 @@ Bloc court **obligatoire** en fin de message :
 - **Main cost drivers** : 1–3 puces  
 - **Optimization applied** : ce qui a limité le coût (ex. RTK, Diff-Only, `spec-driven-idempotency`, guardrail halt)  
 
-*Pas de chiffres inventés* si Cursor ne les expose pas — formulation « exact token count unavailable » acceptée.
+*Pas de chiffres inventés* si Antigravity ne les expose pas — formulation « exact token count unavailable » acceptée.
 
 ---
 
@@ -362,7 +362,7 @@ RESCAN: forbidden
 
 Deliverables:
 - [fichier / conclusion / risque]
-Output: checklist AC puis Diff-Only uniquement (voir ~/.cursor/src/rules/diff_protocol.md)
+Output: checklist AC puis Diff-Only uniquement (voir ~/.gemini/antigravity/src/rules/diff_protocol.md)
 Stop: [critère de fin explicite]
 guardrail_state: { "failure_streak": 0 }  # optionnel
 ```
@@ -483,7 +483,7 @@ path: src/example.py
 **CI / manuel :**
 
 ```bash
-python3 ~/.cursor/src/utils/diff_applier.py --workspace /path/to/repo - <<'EOF'
+python3 ~/.gemini/antigravity/src/utils/diff_applier.py --workspace /path/to/repo - <<'EOF'
 path: src/foo.py
 <<<<<<< SEARCH
 old
@@ -493,7 +493,7 @@ new
 EOF
 ```
 
-**Désactivation :** `export CURSOR_DIFF_ONLY_DISABLE=1`
+**Désactivation :** `export ANTIGRAVITY_DIFF_ONLY_DISABLE=1`
 
 ---
 
@@ -501,7 +501,7 @@ EOF
 
 | Contexte | Comportement |
 |----------|--------------|
-| Agent appelle `Shell` | Hook `rtk hook cursor` réécrit automatiquement |
+| Agent appelle `Shell` | Hook `rtk hook antigravity` réécrit automatiquement |
 | Vous collez une commande dans le chat | Préférer `rtk git status`, `rtk grep …` |
 | Debug byte-à-byte | `rtk proxy <cmd>` ou `rtk run <cmd>` |
 
@@ -522,7 +522,7 @@ Pipeline documenté dans `token-telemetry/ADAPTIVE_CONTEXT_ROUTING.md` et `token
 1. Segmentation prompt → historique + **latest**  
 2. **Claw Compactor** sur `latest` si ≥ `LLMLINGUA_HOOK_MIN_CHARS` et tags `code` / `logs` / `subagent`  
 3. Structuration cache-friendly (`AdaptiveContextManager`) + injection **`BLOCK_1B`**  
-   - **Pre-flight Git (BLOCK_2)** : si seuils de compaction atteints, tenter `~/.cursor/projects/cache_<git_sig>.json` **avant** `flash_kv_summarizer` / heuristique (voir § ci-dessous)  
+   - **Pre-flight Git (BLOCK_2)** : si seuils de compaction atteints, tenter `~/.gemini/antigravity/projects/cache_<git_sig>.json` **avant** `flash_kv_summarizer` / heuristique (voir § ci-dessous)  
 4. **Claw** sur blocs `[BLOCK_2]` … `[BLOCK_4]` si mêmes seuils  
 5. **LLMLingua** (optionnel) si `COMPRESSION_BACKEND=llmlingua`, `both` ou `auto` (fallback si Claw n’a pas appliqué)
 
@@ -544,8 +544,8 @@ Mécanisme **déterministe** dans `src/utils/adaptive_context_manager.py` — pa
 
 | Étape | Détail |
 |-------|--------|
-| **1. Signature** | SHA-256 tronqué (16 hex) de `branche` + `HEAD SHA` + `git status --porcelain` (fichiers `*/.cursor/projects/cache_*.json` **exclus** du porcelain pour ne pas invalider la clé à chaque écriture) |
-| **2. Stockage** | `~/.cursor/projects/cache_<signature>.json` — `global_state_kv`, `block_2_content`, `history_fingerprint`, `summarizer_mode`, métadonnées Git |
+| **1. Signature** | SHA-256 tronqué (16 hex) de `branche` + `HEAD SHA` + `git status --porcelain` (fichiers `*/.antigravity/projects/cache_*.json` **exclus** du porcelain pour ne pas invalider la clé à chaque écriture) |
+| **2. Stockage** | `~/.gemini/antigravity/projects/cache_<signature>.json` — `global_state_kv`, `block_2_content`, `history_fingerprint`, `summarizer_mode`, métadonnées Git |
 | **3. Hit** | Même signature Git **et** même `history_fingerprint` (historique, `global_state` entrant, seuils, mode résumé) → charge le KV, **skip** `summarize_fn` / flash |
 | **4. Miss** | Compaction via `flash_kv_summarizer` (`heuristic` \| `flash` \| `auto`) ou heuristique locale → écriture/écrasement du fichier cache |
 
@@ -571,6 +571,35 @@ export ADAPTIVE_CTX_SUMMARIZER=heuristic
 | `llmlingua` | LLMLingua-2 uniquement (modèle HF) |
 | `both` | Claw puis LLMLingua sur le résultat |
 | `auto` | Claw ; LLMLingua seulement si Claw n’a pas compressé |
+| `headroom` | Utilise les moteurs locaux légers (SmartCrusher + CCR) |
+
+### SmartCrusher local (`smart_crusher.py`)
+
+Le moteur local **SmartCrusher** analyse syntaxiquement les gros volumes de données (outputs d'outils, logs volumineux, dictionnaires JSON) et les élague intelligemment en conservant :
+- Les $N$ premiers éléments (pour conserver la structure et le schéma des données).
+- Les $M$ derniers éléments (pour la récence et les fins d'exécutions).
+- Toutes les anomalies et alertes (lignes contenant des mots-clés `"error"`, `"exception"`, `"fail"`, `"warning"` ou des codes d'état incorrects).
+- Les autres lignes répétitives ou standards sont supprimées.
+
+### Protocole CCR (Compress-Cache-Retrieve)
+
+Le protocole **CCR** résout le dilemme entre la complétude du contexte et l'économie de jetons :
+1. **Compression et Cache** : Lorsqu'un gros bloc de données (texte ou code) dépasse `CCR_THRESHOLD_CHARS` (défini dans `compression.env`), son contenu complet est écrit dans `~/.gemini/antigravity/projects/ccr_cache/<sha256>.txt`.
+2. **Substitution** : Le bloc original est remplacé dans le prompt par une instruction courte :
+   `[CCR_BLOCK: <sha256> (Logs collapsés). Pour récupérer l'original, lance la commande: python3 ~/.gemini/antigravity/bin/ccr_retrieve.py <sha256>]`
+3. **Récupération à la demande** : Si l'agent a besoin de lire le contenu complet pour analyser un point précis, il exécute la commande de récupération via l'outil `run_command` dans le terminal.
+4. **Rétention** : Le cache dispose d'une durée de vie (TTL) par défaut de 24 heures pour éviter l'engorgement du disque.
+
+### Protocole de "Session Reset" (Context Compressor)
+
+Les IDE comme Cursor et Antigravity accumulent et renvoient tout l'historique de la conversation à chaque message dans le chat principal ($O(N^2)$). Pour stopper ce gaspillage de crédits sur les longs fils de discussion :
+1. **Indicateur de Reset** : Après **10-15 messages**, ou dès que l'entrée dépasse 15k tokens, proposez ou appliquez un Session Reset.
+2. **Génération du Résumé** : L'agent compile l'état courant dans un bloc standardisé (conforme à la règle `session-reset.mdc`) contenant :
+   - L'objectif actif et le statut des tâches (task list).
+   - Les fichiers et plages de lignes édités/analysés.
+   - Les variables clés et configurations actives.
+3. **Exécution du Reset** : L'utilisateur copie ce résumé, ouvre un **New Chat** (CMD+L/CMD+K) et le fournit comme premier message. L'agent suivant charge instantanément ce contexte sans traîner l'historique lourd des messages précédents.
+
 
 ### Variables d’environnement
 
@@ -598,7 +627,7 @@ export ADAPTIVE_CTX_SUMMARIZER=heuristic
 ### Installation (venv hub, tous workspaces)
 
 ```bash
-cd ~/.cursor/token-telemetry
+cd ~/.gemini/antigravity/token-telemetry
 python3.12 -m venv .venv-desktop
 ./.venv-desktop/bin/pip install -r requirements-desktop.txt
 # claw-compactor[accurate] + llmlingua + deps
@@ -607,18 +636,18 @@ python3.12 -m venv .venv-desktop
 **CLI global :**
 
 ```bash
-~/.cursor/bin/claw-compactor benchmark /chemin/vers/repo
-# ou après export PATH="$HOME/.cursor/bin:$PATH"
+~/.gemini/antigravity/bin/claw-compactor benchmark /chemin/vers/repo
+# ou après export PATH="$HOME/.antigravity/bin:$PATH"
 claw-compactor compress /chemin/vers/repo
 ```
 
-**Fichiers :** `src/utils/adaptive_context_manager.py` · `token-telemetry/claw_compactor_adapter.py` · package `claw-compactor` dans `.venv-desktop` · caches `~/.cursor/projects/cache_*.json`
+**Fichiers :** `src/utils/adaptive_context_manager.py` · `token-telemetry/claw_compactor_adapter.py` · package `claw-compactor` dans `.venv-desktop` · caches `~/.gemini/antigravity/projects/cache_*.json`
 
 ---
 
 ## Télémétrie & tableau de bord
 
-Journal append-only : `~/.cursor/token-telemetry/events.jsonl` (tous workspaces du profil).
+Journal append-only : `~/.gemini/antigravity/token-telemetry/events.jsonl` (tous workspaces du profil).
 
 ### Types d’événements (`events.jsonl`)
 
@@ -653,7 +682,7 @@ Le dashboard recalcule aussi les anciennes lignes via `compression_input_tokens`
 
 | Interface | Commande / accès |
 |-----------|------------------|
-| CLI | `python3 ~/.cursor/token-telemetry/report.py` — inclut `claw=` / `llmlingua=` |
+| CLI | `python3 ~/.gemini/antigravity/token-telemetry/report.py` — inclut `claw=` / `llmlingua=` |
 | Web | `serve_dashboard.py` → http://127.0.0.1:8765/ |
 | App macOS | `./build_macos_app.sh` → `dist/Token Telemetry.app` (**rebuild** après changement `dashboard.html`) |
 | Fenêtre native | `dashboard_app.py` (pywebview) |
@@ -670,7 +699,7 @@ Le dashboard recalcule aussi les anciennes lignes via `compression_input_tokens`
 
 Refresh auto : 5 min / 30 min / 1 h · import JSONL offline · thème sombre/clair.
 
-**Important :** `approx_tokens = ceil(chars/4)` — **orientation**, pas facture Cursor. Croiser **RTK** (Shell) + **hook** (Task) + `billed_total_tokens` parent quand exposé.
+**Important :** `approx_tokens = ceil(chars/4)` — **orientation**, pas facture Antigravity. Croiser **RTK** (Shell) + **hook** (Task) + `billed_total_tokens` parent quand exposé.
 
 **Privacy :** `events.jsonl` peut contenir chemins ou extraits — `safe-output-hygiene` avant partage.
 
@@ -678,7 +707,7 @@ Refresh auto : 5 min / 30 min / 1 h · import JSONL offline · thème sombre/cla
 
 ## Intégrations MCP
 
-Registre : `~/.cursor/mcp.json` (**ne jamais committer** — tokens DB, API keys).
+Registre : `~/.gemini/antigravity/mcp.json` (**ne jamais committer** — tokens DB, API keys).
 
 | Serveur | Usage typique |
 |---------|---------------|
@@ -691,15 +720,15 @@ Registre : `~/.cursor/mcp.json` (**ne jamais committer** — tokens DB, API keys
 | `github` / `gitlab` | Issues, MR, CI, fichiers distants |
 | `atlassian` | Jira + Confluence (SSE officiel) |
 
-**Plugins Cursor** (selon workspace) : Linear, Figma, Atlassian plugin — en complément du registre user.
+**Plugins Antigravity** (selon workspace) : Linear, Figma, Atlassian plugin — en complément du registre user.
 
 **Politique agent :** check santé **1×/jour** ; phrase *« vérif MCP »* ou *« problème MCP »* pour forcer. Jira/Confluence workflows → MCP **`user-atlassian`** pour `jira-prompter`.
 
 ---
 
-## Skills Cursor (éditeur)
+## Skills Antigravity (éditeur)
 
-Dans `skills-cursor/` (maintenance Cursor / meta) :
+Dans `skills-antigravity/` (maintenance Antigravity / meta) :
 
 | Skill | Usage |
 |-------|-------|
@@ -708,9 +737,9 @@ Dans `skills-cursor/` (maintenance Cursor / meta) :
 | `babysit` | PR merge-ready, CI, commentaires |
 | `canvas` | Livrables visuels (analyses, tableaux interactifs) |
 | `loop` | Tâches récurrentes / polling local |
-| `sdk` | Automatisation via `@cursor/sdk` |
+| `sdk` | Automatisation via `@antigravity/sdk` |
 | `split-to-prs` | Découper un gros changement en PRs |
-| `update-cursor-settings` | `settings.json` |
+| `update-antigravity-settings` | `settings.json` |
 | `statusline` | Barre de statut CLI |
 | `shell` | Séquences terminal longues |
 
@@ -744,43 +773,43 @@ Dans `skills-cursor/` (maintenance Cursor / meta) :
 
 | Question | Réponse |
 |----------|---------|
-| Pourquoi pas de tokens exacts Cursor ? | Les hooks publics n’exposent pas `usage` facturé — proxies + RTK seulement. |
+| Pourquoi pas de tokens exacts Antigravity ? | Les hooks publics n’exposent pas `usage` facturé — proxies + RTK seulement. |
 | Diff-Only a-t-il appliqué mon patch ? | Vérifier fichier sur disque ; logs hook `[diff-only]` ; ligne `diffOnlyApply` dans `events.jsonl`. |
 | RTK ne s’active pas | Vérifier hook `preToolUse` Shell ; commande lancée hors tool Shell (terminal manuel) → `rtk` à la main. |
 | Subagent ignoré le brief | Rappeler Diff-Only + `[AC]` + `RESCAN: forbidden` ; vérifier extraits `[CONTEXT]` (verbatim). |
 | Subagent relit tout le fichier | Extraits insuffisants ou ambigus → parent élargit `[CONTEXT]` une fois, puis `Task` ; pas de second `explore` sur la même zone. |
 | Sortie subagent = récit + fichier entier | Violation idempotence + Diff-Only — demander AC checklist + hunks seulement. |
 | Compression dégrade la qualité | `COMPRESSION_BACKEND=claw` seul ; ou monter `LLMLINGUA_HOOK_RATE` ; `ADAPTIVE_CTX_SUMMARIZER=heuristic`. |
-| 2ᵉ `Task` relance quand même le flash/Ollama | Vérifier `git_cache=hit` dans stderr ; même historique requis (`history_fingerprint`) ; `ADAPTIVE_CTX_GIT_CACHE=0` pour forcer recalcul ; supprimer `~/.cursor/projects/cache_*.json` si KV obsolète. |
+| 2ᵉ `Task` relance quand même le flash/Ollama | Vérifier `git_cache=hit` dans stderr ; même historique requis (`history_fingerprint`) ; `ADAPTIVE_CTX_GIT_CACHE=0` pour forcer recalcul ; supprimer `~/.gemini/antigravity/projects/cache_*.json` si KV obsolète. |
 | Dashboard ne montre pas Claw | Recharger `serve_dashboard.py` ; rebuild `.app` si bundle macOS ; vérifier `subagentLaunch` dans `events.jsonl`. |
-| `claw-compactor` introuvable | `pip install -r token-telemetry/requirements-desktop.txt` ; CLI `~/.cursor/bin/claw-compactor`. |
+| `claw-compactor` introuvable | `pip install -r token-telemetry/requirements-desktop.txt` ; CLI `~/.gemini/antigravity/bin/claw-compactor`. |
 | L’agent relance quand même après 2 échecs | Rappeler `token-budget-guardrail` ; passer `guardrail_state.failure_streak: 2` sur le prochain `Task`. |
 | `explore` part sans grep préalable | ROI gate : `rtk grep` / `code-review-graph` d’abord ; brief avec preuves. |
-| Où est la config globale vs projet ? | **Global** : `~/.cursor/*` ; **projet** : `.cursor/rules`, `AGENT.md` repo. |
+| Où est la config globale vs projet ? | **Global** : `~/.gemini/antigravity/*` ; **projet** : `.antigravity/rules`, `AGENT.md` repo. |
 
 ---
 
 ## Structure du hub
 
 ```
-~/.cursor/
+~/.gemini/antigravity/
 ├── AGENT.md                 # Index agent (hub)
 ├── docs/
-│   ├── CURSOR-IA-OPTIMISATION.md   # Ce document
+│   ├── ANTIGRAVITY-IA-OPTIMISATION.md   # Ce document
 │   └── assets/                     # Schémas PNG (pipeline, tokens, Jira)
 ├── hooks.json               # Hooks globaux tous workspaces
 ├── bin/claw-compactor       # Wrapper CLI global (venv hub)
 ├── hooks/                   # RTK, diff-only, télémétrie, compression Task
 ├── rules/*.mdc              # 13 règles (dont token-budget-guardrail)
 ├── skills/                  # 25 skills métier
-├── skills-cursor/           # Skills meta Cursor
+├── skills-antigravity/           # Skills meta Antigravity
 ├── src/
 │   ├── rules/               # diff_protocol, diff_integration
 │   └── utils/               # diff_applier, adaptive_context, token_budget_guardrail, summarizers
 ├── token-telemetry/         # Dashboard, Claw adapter, LLMLingua, events.jsonl
 ├── mcp.json                 # MCP (secrets locaux)
 ├── mcp-daily-stamp.txt      # Cache check MCP journalier
-├── .cursorignore            # Exclut projects/, extensions/, transcripts
+├── .geminiignore            # Exclut projects/, extensions/, transcripts
 └── projects/                # Métadonnées par workspace + cache_<git_sig>.json (BLOCK_2)
 ```
 

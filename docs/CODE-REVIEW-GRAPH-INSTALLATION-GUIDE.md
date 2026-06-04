@@ -1,4 +1,4 @@
-# Code Review Graph — Installation Guide (Cursor, global mode)
+# Code Review Graph — Installation Guide (Antigravity, global mode)
 
 > Structure inspired by [RTK - Installation Guide](https://voyageprive.atlassian.net/wiki/spaces/companydepartment/pages/2444099649/RTK+-+Installation+Guide) (VPG Confluence).  
 > Upstream project: [tirth8205/code-review-graph](https://github.com/tirth8205/code-review-graph).
@@ -38,13 +38,13 @@ code-review-graph detect-changes
 | OS | everything | macOS or Linux (guide tested on macOS) |
 | Git | graph | Source repo with `.git` |
 | Python 3.10+ | CLI / MCP | Base for `pipx` or `uv` |
-| **`uv` + `uvx`** | **MCP (default VPG config)** | Cursor runs `uvx code-review-graph serve` — **without `uvx` on PATH, the MCP server will not start** |
+| **`uv` + `uvx`** | **MCP (default VPG config)** | Antigravity runs `uvx code-review-graph serve` — **without `uvx` on PATH, the MCP server will not start** |
 | `code-review-graph` (CLI) | CLI + pipx MCP variant | Installed via `pipx` or `uv tool`; separate from `uvx` as the server launcher |
-| Cursor | MCP | Access to **Settings → Tools & MCP** |
+| Antigravity | MCP | Access to **Settings → Tools & MCP** |
 
 > **Two binaries, two roles**  
 > - **`code-review-graph`**: manual commands / hooks (`build`, `status`, `detect-changes`).  
-> - **`uvx`**: **launcher** Cursor uses to start the **MCP server** (`uvx code-review-graph serve`). Having the pipx CLI alone is not enough if `mcp.json` points at `uvx` and `uv` is not installed.
+> - **`uvx`**: **launcher** Antigravity uses to start the **MCP server** (`uvx code-review-graph serve`). Having the pipx CLI alone is not enough if `mcp.json` points at `uvx` and `uv` is not installed.
 
 ---
 
@@ -83,7 +83,7 @@ code-review-graph --version
 
 ## Step 1b — Install `uv` / `uvx` (required for the VPG MCP)
 
-The recommended MCP config below uses **`"command": "uvx"`**. Cursor literally runs `uvx code-review-graph serve` when starting the server. If `uvx` is missing, the MCP status stays in error or the server does not appear — **even if** `code-review-graph --version` already works in your terminal via pipx.
+The recommended MCP config below uses **`"command": "uvx"`**. Antigravity literally runs `uvx code-review-graph serve` when starting the server. If `uvx` is missing, the MCP status stays in error or the server does not appear — **even if** `code-review-graph --version` already works in your terminal via pipx.
 
 ### macOS
 
@@ -109,13 +109,13 @@ All three commands must succeed. The last one may download CRG on first run (`uv
 
 ---
 
-## Step 2 — **Global** installation for Cursor
+## Step 2 — **Global** installation for Antigravity
 
-> **Important**: `code-review-graph install --platform cursor` writes by default to **`{project}/.cursor/mcp.json`**, not the global user config. For the MCP in **all** Cursor workspaces, configure **`~/.cursor/mcp.json`**.
+> **Important**: `code-review-graph install --platform antigravity` writes by default to **`{project}/.antigravity/mcp.json`**, not the global user config. For the MCP in **all** Antigravity workspaces, configure **`~/.gemini/antigravity/mcp.json`**.
 
 ### 2.1 — Global MCP server
 
-Edit **`~/.cursor/mcp.json`** and add (or merge) the following entry under `mcpServers`.
+Edit **`~/.gemini/antigravity/mcp.json`** and add (or merge) the following entry under `mcpServers`.
 
 #### Default VPG config (requires `uvx` — Step 1b)
 
@@ -132,7 +132,7 @@ Edit **`~/.cursor/mcp.json`** and add (or merge) the following entry under `mcpS
 
 | Field | Role |
 |-------|------|
-| `command: "uvx"` | **uv** binary — must be on Cursor’s `PATH` (not only your interactive terminal) |
+| `command: "uvx"` | **uv** binary — must be on Antigravity’s `PATH` (not only your interactive terminal) |
 | `args[0]: "code-review-graph"` | PyPI package launched by uvx |
 | `args[1]: "serve"` | MCP stdio server mode |
 
@@ -148,7 +148,7 @@ If you **cannot** install `uv` (proxy, machine policy), use an explicit path to 
 }
 ```
 
-Or, if `code-review-graph` is already on the `PATH` Cursor sees:
+Or, if `code-review-graph` is already on the `PATH` Antigravity sees:
 
 ```json
 "code-review-graph": {
@@ -158,16 +158,16 @@ Or, if `code-review-graph` is already on the `PATH` Cursor sees:
 }
 ```
 
-> On macOS, Cursor’s inherited `PATH` may differ from the terminal (e.g. no Homebrew). If startup fails, prefer the **absolute path** from `which code-review-graph`.
+> On macOS, Antigravity’s inherited `PATH` may differ from the terminal (e.g. no Homebrew). If startup fails, prefer the **absolute path** from `which code-review-graph`.
 
-**Do not** duplicate the same server in `{project}/.cursor/mcp.json` when a global entry exists — Cursor would load the MCP twice.
+**Do not** duplicate the same server in `{project}/.antigravity/mcp.json` when a global entry exists — Antigravity would load the MCP twice.
 
-### 2.2 — Cursor hooks (automatic refresh)
+### 2.2 — Antigravity hooks (automatic refresh)
 
 Hooks update the graph after edits and show status at session start. Install at **user level**:
 
 ```bash
-code-review-graph install --platform cursor \
+code-review-graph install --platform antigravity \
   --no-skills \
   --no-instructions \
   -y \
@@ -176,8 +176,8 @@ code-review-graph install --platform cursor \
 
 Effects:
 
-- Scripts in `~/.cursor/hooks/crg-*.sh`
-- Merge into `~/.cursor/hooks.json` (`afterFileEdit`, `sessionStart`, `beforeShellExecution` on `git commit`)
+- Scripts in `~/.gemini/antigravity/hooks/crg-*.sh`
+- Merge into `~/.gemini/antigravity/hooks.json` (`afterFileEdit`, `sessionStart`, `beforeShellExecution` on `git commit`)
 
 > If you already have custom hooks (RTK, telemetry, etc.), the installer **merges** without overwriting existing entries.
 
@@ -187,16 +187,16 @@ On a machine already set up with the VPG hub, these files guide the agent:
 
 | File | Role |
 |------|------|
-| `~/.cursor/rules/code-review-graph.mdc` | Graph routing before broad exploration |
-| `~/.cursor/skills/code-review-graph/SKILL.md` | Agent workflow (status → detect-changes → targeted reads) |
+| `~/.gemini/antigravity/rules/code-review-graph.mdc` | Graph routing before broad exploration |
+| `~/.gemini/antigravity/skills/code-review-graph/SKILL.md` | Agent workflow (status → detect-changes → targeted reads) |
 
 For a from-scratch install outside the hub, copy these files from the internal tooling repo or generate them with:
 
 ```bash
-code-review-graph install --platform cursor -y --repo /path/to/your-repo
+code-review-graph install --platform antigravity -y --repo /path/to/your-repo
 ```
 
-then **move** the MCP config to `~/.cursor/mcp.json` as in §2.1.
+then **move** the MCP config to `~/.gemini/antigravity/mcp.json` as in §2.1.
 
 ### 2.4 — Multi-repo registry (optional but recommended)
 
@@ -246,7 +246,7 @@ uvx code-review-graph serve --help
 
 The second command should print `serve` help (then Ctrl+C if the process stays attached — quick terminal-only test).
 
-**If MCP is red in Cursor but OK in the terminal:** Cursor does not see the same `PATH`. Fix with the absolute path from `which uvx` (e.g. `/opt/homebrew/bin/uvx`) in `mcp.json`:
+**If MCP is red in Antigravity but OK in the terminal:** Antigravity does not see the same `PATH`. Fix with the absolute path from `which uvx` (e.g. `/opt/homebrew/bin/uvx`) in `mcp.json`:
 
 ```json
 "code-review-graph": {
@@ -256,9 +256,9 @@ The second command should print `serve` help (then Ctrl+C if the process stays a
 }
 ```
 
-### 3.1 — Restart Cursor
+### 3.1 — Restart Antigravity
 
-Quit and reopen Cursor (or **Settings → Tools & MCP** → confirm **code-review-graph** is **connected**, not “failed to start” / binary not found).
+Quit and reopen Antigravity (or **Settings → Tools & MCP** → confirm **code-review-graph** is **connected**, not “failed to start” / binary not found).
 
 ### 3.2 — Validate the CLI in a repo
 
@@ -269,7 +269,7 @@ code-review-graph status
 
 ### 3.3 — Validate MCP via the agent
 
-Open Cursor on the repo and ask:
+Open Antigravity on the repo and ask:
 
 > “Use the code-review-graph MCP tool to show graph stats for this repo.”
 
@@ -299,7 +299,7 @@ code-review-graph update --repo "$PWD"
 code-review-graph build
 ```
 
-Cursor hooks already run `update --skip-flows` after file edits (if §2.2 is installed).
+Antigravity hooks already run `update --skip-flows` after file edits (if §2.2 is installed).
 
 ### Watch / daemon (multiple repos)
 
@@ -363,11 +363,11 @@ code-review-graph visualize --format obsidian  # → .code-review-graph/obsidian
 2. `code-review-graph register "$PWD" --alias "$(basename "$PWD")"`  
 3. `code-review-graph build` (first time: a few minutes depending on size)  
 4. `code-review-graph status` → nodes > 0  
-5. Open the project in Cursor → verify **code-review-graph** MCP (global)  
+5. Open the project in Antigravity → verify **code-review-graph** MCP (global)  
 6. (Optional) Ensure `.code-review-graph/` is in `.gitignore` if missing:
 
    ```bash
-   code-review-graph install --platform cursor --no-skills --no-hooks --no-instructions -y --repo "$PWD"
+   code-review-graph install --platform antigravity --no-skills --no-hooks --no-instructions -y --repo "$PWD"
    ```
 
    → updates `.gitignore` without rewriting project MCP config.
@@ -379,12 +379,12 @@ code-review-graph visualize --format obsidian  # → .code-review-graph/obsidian
 | Symptom | Likely cause | Action |
 |---------|--------------|--------|
 | **MCP does not start** / “command not found” | **`uvx` missing** while `mcp.json` uses `"command": "uvx"` | `brew install uv` → validate `which uvx` (§1b) **or** switch to `command: code-review-graph` / absolute path (§2.1) |
-| MCP OK in terminal, **fails in Cursor** | Cursor `PATH` ≠ terminal (common on macOS) | Put absolute path from `which uvx` or `which code-review-graph` in `mcp.json` |
+| MCP OK in terminal, **fails in Antigravity** | Antigravity `PATH` ≠ terminal (common on macOS) | Put absolute path from `which uvx` or `which code-review-graph` in `mcp.json` |
 | CLI `code-review-graph` OK, MCP dead | pipx CLI vs `uvx` launcher confusion | Install **uv** (Step 1b) — pipx alone does not replace `uvx` for the default config |
-| MCP missing in Cursor | Entry only in `{project}/.cursor/mcp.json` | Add §2.1 to `~/.cursor/mcp.json`, restart Cursor |
+| MCP missing in Antigravity | Entry only in `{project}/.antigravity/mcp.json` | Add §2.1 to `~/.gemini/antigravity/mcp.json`, restart Antigravity |
 | MCP connected but empty graph | No `build` in this repo | `code-review-graph build` from repo root |
-| `status` OK in CLI, MCP silent | Wrong cwd / wrong workspace open | Open the Git **repo root** in Cursor |
-| Duplicate MCP servers | Global + project entry | Remove entry from `{project}/.cursor/mcp.json` |
+| `status` OK in CLI, MCP silent | Wrong cwd / wrong workspace open | Open the Git **repo root** in Antigravity |
+| Duplicate MCP servers | Global + project entry | Remove entry from `{project}/.antigravity/mcp.json` |
 | Stale graph | Branch switch / large merge | `code-review-graph update` or `build` |
 
 ---
@@ -393,16 +393,16 @@ code-review-graph visualize --format obsidian  # → .code-review-graph/obsidian
 
 ### Remove global MCP
 
-Delete the `code-review-graph` block from `~/.cursor/mcp.json`, then restart Cursor.
+Delete the `code-review-graph` block from `~/.gemini/antigravity/mcp.json`, then restart Antigravity.
 
 ### Remove hooks
 
-Delete entries pointing to `crg-*.sh` in `~/.cursor/hooks.json`, then:
+Delete entries pointing to `crg-*.sh` in `~/.gemini/antigravity/hooks.json`, then:
 
 ```bash
-rm -f ~/.cursor/hooks/crg-update.sh \
-      ~/.cursor/hooks/crg-session-start.sh \
-      ~/.cursor/hooks/crg-pre-commit.sh
+rm -f ~/.gemini/antigravity/hooks/crg-update.sh \
+      ~/.gemini/antigravity/hooks/crg-session-start.sh \
+      ~/.gemini/antigravity/hooks/crg-pre-commit.sh
 ```
 
 ### Remove a repo from the registry
@@ -426,8 +426,8 @@ Local data remains in each repo (`.code-review-graph/`) and in `~/.code-review-g
 ## Global vs per-project architecture (summary)
 
 ```text
-~/.cursor/mcp.json              → code-review-graph MCP (ALL workspaces)
-~/.cursor/hooks.json            → crg-update / sessionStart (user level)
+~/.gemini/antigravity/mcp.json              → code-review-graph MCP (ALL workspaces)
+~/.gemini/antigravity/hooks.json            → crg-update / sessionStart (user level)
 ~/.code-review-graph/registry.json → registered repo list
 {repo}/.code-review-graph/      → SQLite graph for THAT repo (build required)
 ```
@@ -436,11 +436,11 @@ Local data remains in each repo (`.code-review-graph/`) and in `~/.code-review-g
 |-----------|-------|----------|
 | **`uv` / `uvx`** | Machine | **Yes** if MCP uses `"command": "uvx"` (VPG default) |
 | CLI `code-review-graph` | Machine | Yes (build, hooks, or MCP variant without uvx) |
-| MCP in `~/.cursor/mcp.json` | Global Cursor | Yes (global mode) |
+| MCP in `~/.gemini/antigravity/mcp.json` | Global Antigravity | Yes (global mode) |
 | `register` | Global | Recommended |
 | `build` / `update` | **Per repo** | Yes (once per repository) |
-| Hooks `crg-*.sh` | Global Cursor | Recommended |
-| `{project}/.cursor/mcp.json` | Project | **No** if global MCP is configured |
+| Hooks `crg-*.sh` | Global Antigravity | Recommended |
+| `{project}/.antigravity/mcp.json` | Project | **No** if global MCP is configured |
 
 ---
 
@@ -448,8 +448,8 @@ Local data remains in each repo (`.code-review-graph/`) and in `~/.code-review-g
 
 - [RTK - Installation Guide](https://voyageprive.atlassian.net/wiki/spaces/companydepartment/pages/2444099649/RTK+-+Installation+Guide) — VPG structure template  
 - [code-review-graph (GitHub)](https://github.com/tirth8205/code-review-graph) — upstream documentation  
-- Internal hub: `~/.cursor/docs/CURSOR-IA-OPTIMISATION.md` (graph + token stack section)
+- Internal hub: `~/.gemini/antigravity/docs/ANTIGRAVITY-IA-OPTIMISATION.md` (graph + token stack section)
 
 ---
 
-*Last updated: May 2026 — aligned with CRG 2.3.x and VPG global Cursor configuration.*
+*Last updated: May 2026 — aligned with CRG 2.3.x and VPG global Antigravity configuration.*

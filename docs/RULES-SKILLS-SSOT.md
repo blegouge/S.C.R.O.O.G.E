@@ -38,6 +38,6 @@ English procedure text; French notes OK in user-facing docs elsewhere.
 ## Verification
 
 ```bash
-~/.cursor/bin/health-check-hub.sh          # includes ssot_* checks
-~/.cursor/bin/health-check-hub.sh --full   # + unit tests
+~/.gemini/antigravity/bin/health-check-hub.sh          # includes ssot_* checks
+~/.gemini/antigravity/bin/health-check-hub.sh --full   # + unit tests
 ```

@@ -1,13 +1,13 @@
-# Runbook onboarding — plateforme Cursor IA (hub `~/.cursor`)
+# Runbook onboarding — plateforme Antigravity IA (hub `~/.gemini/antigravity`)
 
 **Public :** développeurs qui veulent le même niveau de configuration agent (rules, hooks, MCP, télémétrie, compression).  
 **Plateforme cible :** macOS + zsh (Linux possible avec adaptations mineures).  
 **Durée estimée :** 2–4 h première installation · 30 min si le hub est déjà versionné.
 
 **Documents liés :**
-- [`CURSOR-IA-OPTIMISATION.md`](CURSOR-IA-OPTIMISATION.md) — référence fonctionnelle complète
+- [`ANTIGRAVITY-IA-OPTIMISATION.md`](ANTIGRAVITY-IA-OPTIMISATION.md) — référence fonctionnelle complète
 - [`CODE-REVIEW-GRAPH-INSTALLATION-GUIDE.md`](CODE-REVIEW-GRAPH-INSTALLATION-GUIDE.md) — CRG détaillé
-- [`../RAPPORT-ANALYSE-CURSOR-IA.md`](../RAPPORT-ANALYSE-CURSOR-IA.md) — audit / notes
+- [`../RAPPORT-ANALYSE-ANTIGRAVITY-IA.md`](../RAPPORT-ANALYSE-ANTIGRAVITY-IA.md) — audit / notes
 - [`../token-telemetry/COMPRESSION_README.md`](../token-telemetry/COMPRESSION_README.md) — Claw / LLMLingua
 - [`../token-telemetry/README.md`](../token-telemetry/README.md) — dashboard télémétrie
 
@@ -22,11 +22,12 @@
 5. [Phase B — Outils système](#5-phase-b--outils-système)
 6. [Phase C — Secrets MCP](#6-phase-c--secrets-mcp)
 7. [Phase D — Environnement compression](#7-phase-d--environnement-compression)
-8. [Phase E — Hooks Cursor](#8-phase-e--hooks-cursor)
+8. [Phase E — Hooks Antigravity](#8-phase-e--hooks-antigravity)
 9. [Phase F — Code Review Graph](#9-phase-f--code-review-graph)
 10. [Phase G — RTK](#10-phase-g--rtk)
 11. [Phase H — Télémétrie & dashboard](#11-phase-h--télémétrie--dashboard)
 12. [Phase I — Repo métier (`AGENT.md`)](#12-phase-i--repo-métier-agentmd)
+12b. [Phase J — Intégration Cursor & Session Reset](#12b-phase-j--intégration-cursor--session-reset)
 13. [Health check automatisé](#13-health-check-automatisé)
 14. [Vérification manuelle (smoke tests)](#14-vérification-manuelle-smoke-tests)
 15. [Runbook équipe — rollout](#15-runbook-équipe--rollout)
@@ -56,7 +57,7 @@
 
 | Outil | Version min. | Usage |
 |-------|--------------|-------|
-| **Cursor** | récent (hooks supportés) | IDE + agents |
+| **Antigravity** | récent (hooks supportés) | IDE + agents |
 | **macOS** ou Linux | — | guide testé macOS |
 | **zsh** | — | shell par défaut |
 | **Python 3** | 3.10+ (3.12 pour venv compression) | hooks, télémétrie |
@@ -73,7 +74,7 @@ Optionnel : `pip`, Homebrew, accès réseau interne (MCP Grafana, MySQL, ES…).
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ 1. Hub ~/.cursor (rules, skills, hooks, src, token-telemetry)│
+│ 1. Hub ~/.gemini/antigravity (rules, skills, hooks, src, token-telemetry)│
 └───────────────────────────┬─────────────────────────────────┘
                             │
      ┌──────────────────────┼──────────────────────┐
@@ -83,7 +84,7 @@ Optionnel : `pip`, Homebrew, accès réseau interne (MCP Grafana, MySQL, ES…).
      │                      │                      │
      └──────────────────────┼──────────────────────┘
                             ▼
-              Cursor lit hooks.json + mcp.json
+              Antigravity lit hooks.json + mcp.json
                             │
                             ▼
               Repo métier + AGENT.md + CRG build
@@ -97,10 +98,10 @@ Optionnel : `pip`, Homebrew, accès réseau interne (MCP Grafana, MySQL, ES…).
 
 ### Option 1 — Copie depuis une machine de référence
 
-Copier **au minimum** ces chemins vers `~/.cursor/` :
+Copier **au minimum** ces chemins vers `~/.gemini/antigravity/` :
 
 ```
-.cursor/
+.antigravity/
 ├── AGENT.md
 ├── hooks.json
 ├── mcp.json                    # sans secrets (voir phase C)
@@ -118,16 +119,16 @@ Copier **au minimum** ces chemins vers `~/.cursor/` :
 **Ne pas copier / régénérer localement :**
 - `mcp.secrets.env` (credentials personnels)
 - `token-telemetry/events.jsonl` (historique perso)
-- `projects/`, `extensions/` (générés par Cursor)
+- `projects/`, `extensions/` (générés par Antigravity)
 - `.venv-desktop/`, `.venv-build/`, `dist/`
 
 ### Option 2 — Dépôt Git d'équipe (recommandé à terme)
 
-Versionner le hub (sans secrets) dans un repo `cursor-hub` ; chaque dev :
+Versionner le hub (sans secrets) dans un repo `antigravity-hub` ; chaque dev :
 
 ```bash
-git clone <url-cursor-hub> ~/.cursor-hub-template
-rsync -a --exclude='.git' ~/.cursor-hub-template/ ~/.cursor/
+git clone <url-antigravity-hub> ~/.gemini/antigravity-hub-template
+rsync -a --exclude='.git' ~/.gemini/antigravity-hub-template/ ~/.gemini/antigravity/
 ```
 
 Ajouter au `.gitignore` du repo hub :
@@ -147,7 +148,7 @@ Dans `hooks.json`, remplacer les chemins absolus par des relatifs si possible :
 "command": "./hooks/crg-update.sh"
 ```
 
-au lieu de `/Users/<vous>/.cursor/hooks/crg-update.sh`.
+au lieu de `/Users/<vous>/.antigravity/hooks/crg-update.sh`.
 
 Dans `mcp.json`, adapter :
 - `code-explorer` → `--path` vers votre racine code (`~/www`, `~/projects`, …)
@@ -169,8 +170,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uvx --version
 
 # Rendre les scripts exécutables
-chmod +x ~/.cursor/bin/*.sh
-chmod +x ~/.cursor/hooks/*.sh
+chmod +x ~/.gemini/antigravity/bin/*.sh
+chmod +x ~/.gemini/antigravity/hooks/*.sh
 ```
 
 ---
@@ -180,8 +181,8 @@ chmod +x ~/.cursor/hooks/*.sh
 ### 6.1 Créer le fichier secrets
 
 ```bash
-cp ~/.cursor/mcp.secrets.env.example ~/.cursor/mcp.secrets.env
-chmod 600 ~/.cursor/mcp.secrets.env
+cp ~/.gemini/antigravity/mcp.secrets.env.example ~/.gemini/antigravity/mcp.secrets.env
+chmod 600 ~/.gemini/antigravity/mcp.secrets.env
 ```
 
 Remplir les variables (exemples) :
@@ -199,16 +200,16 @@ export GITLAB_TOKEN="glpat-..."
 
 ### 6.2 Vérifier mcp.json
 
-- Les serveurs sensibles doivent utiliser `"command": "~/.cursor/bin/mcp-env-exec.sh"` + `args: ["node", ...]` ou `["npx", ...]`.
+- Les serveurs sensibles doivent utiliser `"command": "~/.gemini/antigravity/bin/mcp-env-exec.sh"` + `args: ["node", ...]` ou `["npx", ...]`.
 - **Aucun** token en clair dans `mcp.json`.
-- `atlassian` peut rester en URL SSE (auth OAuth côté Cursor).
+- `atlassian` peut rester en URL SSE (auth OAuth côté Antigravity).
 
-### 6.3 Activer les MCP dans Cursor
+### 6.3 Activer les MCP dans Antigravity
 
-1. **Cursor → Settings → Tools & MCP**
+1. **Antigravity → Settings → Tools & MCP**
 2. Vérifier que les serveurs listés dans `mcp.json` apparaissent
 3. Connecter **Atlassian** si besoin (flux navigateur)
-4. Redémarrer Cursor après modification de `mcp.json` ou secrets
+4. Redémarrer Antigravity après modification de `mcp.json` ou secrets
 
 ### 6.4 Rotation
 
@@ -221,7 +222,7 @@ Si un token a déjà été commité en clair : **révoquer et régénérer** ava
 Le hook Task (`semantic-compress-pretool.sh`) utilise `.venv-desktop` pour Claw Compactor (et optionnellement LLMLingua).
 
 ```bash
-cd ~/.cursor/token-telemetry
+cd ~/.gemini/antigravity/token-telemetry
 python3.12 -m venv .venv-desktop    # ou python3 si 3.12 indispo
 ./.venv-desktop/bin/pip install -r requirements-desktop.txt
 ```
@@ -229,7 +230,7 @@ python3.12 -m venv .venv-desktop    # ou python3 si 3.12 indispo
 Configurer la compression persistante :
 
 ```bash
-cp ~/.cursor/compression.env.example ~/.cursor/compression.env
+cp ~/.gemini/antigravity/compression.env.example ~/.gemini/antigravity/compression.env
 ```
 
 Contenu recommandé :
@@ -244,16 +245,16 @@ LLMLINGUA_HOOK_MIN_CHARS=1200
 Lien symbolique CLI global (optionnel) :
 
 ```bash
-ln -sf ~/.cursor/token-telemetry/.venv-desktop/bin/claw-compactor ~/.cursor/bin/claw-compactor
+ln -sf ~/.gemini/antigravity/token-telemetry/.venv-desktop/bin/claw-compactor ~/.gemini/antigravity/bin/claw-compactor
 ```
 
 **Premier run LLMLingua :** téléchargement modèle Hugging Face (~quelques minutes).
 
 ---
 
-## 8. Phase E — Hooks Cursor
+## 8. Phase E — Hooks Antigravity
 
-### 8.1 Fichier `~/.cursor/hooks.json`
+### 8.1 Fichier `~/.gemini/antigravity/hooks.json`
 
 Événements enregistrés :
 
@@ -269,17 +270,17 @@ ln -sf ~/.cursor/token-telemetry/.venv-desktop/bin/claw-compactor ~/.cursor/bin/
 | `sessionStart` | CRG session |
 | `beforeShellExecution` | CRG pre-commit |
 
-### 8.2 Activer dans Cursor
+### 8.2 Activer dans Antigravity
 
 - Vérifier **Settings → Hooks** (ou équivalent selon version)
-- Le fichier user-level est `~/.cursor/hooks.json`
-- Sauvegarder → Cursor recharge ; sinon **redémarrer Cursor**
+- Le fichier user-level est `~/.gemini/antigravity/hooks.json`
+- Sauvegarder → Antigravity recharge ; sinon **redémarrer Antigravity**
 
 ### 8.3 Désactiver temporairement
 
 ```bash
-export CURSOR_DIFF_ONLY_DISABLE=1
-export CURSOR_CONSUMPTION_ENFORCE_DISABLE=1
+export ANTIGRAVITY_DIFF_ONLY_DISABLE=1
+export ANTIGRAVITY_CONSUMPTION_ENFORCE_DISABLE=1
 # compression.env : TASK_BRIEF_ENFORCE=off
 ```
 
@@ -384,7 +385,7 @@ Après une session agent avec des `Shell` tools :
 rtk gain -d
 ```
 
-Le hook `preToolUse` avec matcher `Shell` appelle `rtk hook cursor` — RTK doit être sur le **PATH** du processus Cursor (lancer Cursor depuis un terminal si besoin, ou installer RTK globalement).
+Le hook `preToolUse` avec matcher `Shell` appelle `rtk hook antigravity` — RTK doit être sur le **PATH** du processus Antigravity (lancer Antigravity depuis un terminal si besoin, ou installer RTK globalement).
 
 ---
 
@@ -393,7 +394,7 @@ Le hook `preToolUse` avec matcher `Shell` appelle `rtk hook cursor` — RTK doit
 ### 11.1 Fichier de log
 
 ```
-~/.cursor/token-telemetry/events.jsonl
+~/.gemini/antigravity/token-telemetry/events.jsonl
 ```
 
 Alimenté automatiquement par les hooks (`postToolUse`, `afterAgentResponse`, `subagentLaunch`, etc.).
@@ -401,7 +402,7 @@ Alimenté automatiquement par les hooks (`postToolUse`, `afterAgentResponse`, `s
 ### 11.2 Rapport terminal
 
 ```bash
-python3 ~/.cursor/token-telemetry/report.py
+python3 ~/.gemini/antigravity/token-telemetry/report.py
 ```
 
 Indicateurs utiles :
@@ -412,14 +413,14 @@ Indicateurs utiles :
 ### 11.3 Dashboard web
 
 ```bash
-python3 ~/.cursor/token-telemetry/serve_dashboard.py
+python3 ~/.gemini/antigravity/token-telemetry/serve_dashboard.py
 # → http://127.0.0.1:8765/
 ```
 
 ### 11.4 App macOS (optionnel)
 
 ```bash
-cd ~/.cursor/token-telemetry && ./build_macos_app.sh
+cd ~/.gemini/antigravity/token-telemetry && ./build_macos_app.sh
 # → dist/Token Telemetry.app
 ```
 
@@ -463,13 +464,45 @@ git fetch
 
 ---
 
+## 12b. Phase J — Intégration Cursor & Session Reset
+
+### 12b.1 Intégration des règles (.mdc) dans Cursor
+
+Cursor (version 0.40+) utilise le format standardisé `.cursor/rules/*.mdc` pour charger les règles contextuelles spécifiques à un projet.
+
+Pour appliquer les optimisations de jetons et les règles d'orchestration (dont `diff-only`, `token-budget-guardrail`, `session-reset`) dans vos projets ouverts sous Cursor, créez un lien symbolique vers les règles du hub global :
+
+```bash
+# Dans le dossier racine de votre projet de code
+mkdir -p .cursor/rules
+ln -sf ~/.gemini/antigravity/rules/*.mdc .cursor/rules/
+```
+
+Désormais, Cursor lira automatiquement les règles à chaque tour de chat ou d'Agent.
+
+### 12b.2 Télémétrie Cursor vs Antigravity
+
+Puisque Cursor n'exécute pas nativement de script de hooks lors de l'appel d'outils, la collecte de sa télémétrie se fait de manière passive en lisant son journal interne.
+L'application **Token Telemetry** (compilée ou lancée via `serve_dashboard.py`) écoute et mutualise les deux sources :
+- Utilisez le sélecteur en haut à droite du Dashboard (dropdown) pour basculer instantanément entre **Cursor** et **Antigravity**.
+- Les indicateurs (RTK, Claw, Diff-Only) s'adapteront à la source active.
+
+### 12b.3 Protocole "Session Reset" (Context Compressor)
+
+L'accumulation de l'historique dans le panneau de chat crée une consommation quadratique $O(N^2)$ de crédits. Pour contourner cette limite de l'IDE :
+1. **Détecter la surcharge** : Après 10 à 15 messages ou lorsque le volume de jetons augmente, l'agent ou le développeur suggère de réinitialiser la session.
+2. **Générer le résumé** : Demandez à l'agent : `génère le résumé de session reset`. L'agent produit un bloc structuré `# RESUMING SESSION` décrivant l'objectif actif, le statut des tâches et les fichiers ouverts.
+3. **Reset** : Copiez ce bloc, cliquez sur **New Chat** (CMD+L ou CMD+K) dans l'IDE pour vider le contexte, et collez le bloc comme premier message. L'agent reprend instantanément avec une consommation de jetons minimale.
+
+---
+
 ## 13. Health check automatisé
 
-Script : **`~/.cursor/bin/health-check-hub.sh`**
+Script : **`~/.gemini/antigravity/bin/health-check-hub.sh`**
 
 ```bash
 # Ajouter au PATH (optionnel, dans ~/.zshrc)
-export PATH="$HOME/.cursor/bin:$PATH"
+export PATH="$HOME/.antigravity/bin:$PATH"
 
 # Contrôle rapide
 health-check-hub.sh
@@ -507,14 +540,14 @@ Exécuter après le health check.
 
 ### Test 1 — RTK
 
-1. Ouvrir un repo dans Cursor
+1. Ouvrir un repo dans Antigravity
 2. Demander à l'agent : « liste les fichiers à la racine avec une commande shell »
 3. Vérifier `rtk gain` augmente
 
 ### Test 2 — Télémétrie
 
 1. Une conversation agent avec au moins 1 tool call
-2. `python3 ~/.cursor/token-telemetry/report.py` → événements > 0
+2. `python3 ~/.gemini/antigravity/token-telemetry/report.py` → événements > 0
 
 ### Test 3 — Consumption report
 
@@ -529,7 +562,7 @@ Exécuter après le health check.
 
 ### Test 5 — MCP
 
-1. Cursor → Tools & MCP → serveurs verts
+1. Antigravity → Tools & MCP → serveurs verts
 2. Demander « vérif MCP » → probe complet (1×/jour ensuite stamp)
 
 ### Test 6 — CRG (dans un repo buildé)
@@ -547,7 +580,7 @@ code-review-graph detect-changes
 
 | # | Action | Responsable |
 |---|--------|-------------|
-| 1 | Créer repo `cursor-hub` sans secrets | Lead |
+| 1 | Créer repo `antigravity-hub` sans secrets | Lead |
 | 2 | Documenter tokens MCP (vault / 1Password) | SecOps |
 | 3 | Publier ce runbook + `health-check-hub.sh` | Lead |
 
@@ -583,19 +616,19 @@ code-review-graph detect-changes
 
 | Symptôme | Cause probable | Action |
 |----------|----------------|--------|
-| Hooks ne tournent pas | Cursor pas rechargé | Redémarrer Cursor ; vérifier Settings → Hooks |
-| RTK 0 % savings | Pas sur PATH de Cursor | `which rtk` depuis terminal qui lance Cursor |
+| Hooks ne tournent pas | Antigravity pas rechargé | Redémarrer Antigravity ; vérifier Settings → Hooks |
+| RTK 0 % savings | Pas sur PATH de Antigravity | `which rtk` depuis terminal qui lance Antigravity |
 | Task toujours refusé | Brief incomplet | Suivre template § 8.5 ; ou `TASK_BRIEF_ENFORCE=warn` temporaire |
 | Boucle Consumption report | Mauvais format `**Label:**` | Utiliser `**Label**:` (voir § 8.4) |
-| MCP rouge | Token expiré / script manquant | `mcp.secrets.env` ; logs MCP dans Cursor |
+| MCP rouge | Token expiré / script manquant | `mcp.secrets.env` ; logs MCP dans Antigravity |
 | CRG vide | Pas de `build` | `code-review-graph build` dans le repo |
 | Claw import error | venv absent | Phase D — `pip install -r requirements-desktop.txt` |
 | LLMLingua lent | 1er téléchargement HF | Attendre ; ou `COMPRESSION_BACKEND=claw` seul |
-| `subagentStop` 0 events | Hook Cursor souvent inactif | **Fallback** `postToolUse` Task ; `diagnose-subagent-telemetry.sh` |
+| `subagentStop` 0 events | Hook Antigravity souvent inactif | **Fallback** `postToolUse` Task ; `diagnose-subagent-telemetry.sh` |
 
 ### Logs utiles
 
-- Cursor : **Output → Hooks**
+- Antigravity : **Output → Hooks**
 - stderr hooks : `[adaptive-context]`, `[diff-only]`, `[consumption-report]`, `[task-brief]`
 
 ---
@@ -609,7 +642,7 @@ Cocher avant de considérer l'onboarding terminé :
 - [ ] `compression.env` avec `TASK_BRIEF_ENFORCE=deny`
 - [ ] `.venv-desktop` + claw import OK
 - [ ] RTK installé, `rtk gain` fonctionne
-- [ ] `hooks.json` chargé par Cursor
+- [ ] `hooks.json` chargé par Antigravity
 - [ ] Au moins 1 repo avec `AGENT.md` + CRG `build`
 - [ ] `report.py` montre des événements après une session
 - [ ] Consumption report visible en fin de réponse agent
@@ -617,6 +650,6 @@ Cocher avant de considérer l'onboarding terminé :
 
 ---
 
-**Maintenance :** relancer `health-check-hub.sh --full` après toute mise à jour du hub ou upgrade Cursor.
+**Maintenance :** relancer `health-check-hub.sh --full` après toute mise à jour du hub ou upgrade Antigravity.
 
-**Contact / évolutions :** modifier ce runbook et `AGENT.md` ; tenir `RAPPORT-ANALYSE-CURSOR-IA.md` à jour pour les audits.
+**Contact / évolutions :** modifier ce runbook et `AGENT.md` ; tenir `RAPPORT-ANALYSE-ANTIGRAVITY-IA.md` à jour pour les audits.
