@@ -762,6 +762,17 @@
       padding: 0.35rem 0.95rem 0.15rem;
       border-bottom: 1px solid var(--border);
     }
+    .feed-cols.crg-row-cols {
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 0.55fr) minmax(0, 0.8fr) minmax(0, 0.5fr) minmax(0, 0.45fr) minmax(0, 0.6fr) minmax(0, 0.45fr);
+    }
+    .feed-cols.crg-head-cols {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      padding: 0.35rem 0.95rem 0.15rem;
+      border-bottom: 1px solid var(--border);
+    }
     .compress-pill.claw { color: #7ee787; border-color: rgba(126, 231, 135, 0.35); }
     .compress-pill.llm { color: #79c0ff; border-color: rgba(121, 192, 255, 0.35); }
     .compress-pill.none { color: var(--muted); }
@@ -1337,6 +1348,54 @@
       </div>
     </div>
 
+    <div class="dash-section" data-section-id="table-crg">
+      <div class="dash-section-header">
+        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-table-crg" title="Afficher ou masquer la section">
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="dash-section-drag-handle" title="Glisser pour réordonner" aria-label="Glisser pour réordonner">⋮⋮</span>
+        <h2 class="dash-section-title">Commits (Code Review Graph)</h2>
+      </div>
+      <div class="dash-section-body" id="dash-body-table-crg">
+    <section class="glass-strip crg-strip" aria-label="Git Commits Metrics">
+      <article class="metric-chip">
+        <label>Checks Commits</label>
+        <div class="big" id="kpiCrgRuns">—</div>
+        <div class="sub">pre-commit hook</div>
+      </article>
+      <article class="metric-chip">
+        <label>Tokens Épargnés</label>
+        <div class="big" id="kpiCrgSaved">—</div>
+        <div class="sub" id="kpiCrgSavedSub">par réduction de contexte</div>
+      </article>
+      <article class="metric-chip">
+        <label>Score de Risque Moyen</label>
+        <div class="big" id="kpiCrgRisk">—</div>
+        <div class="sub">sur l'ensemble des commits</div>
+      </article>
+    </section>
+
+    <section class="tables-row">
+      <div class="glass-panel" style="grid-column: 1 / -1;">
+        <div class="panel-head section-title">
+          <h2>Rapports de commits récents (Code Review Graph)</h2>
+        </div>
+        <div id="crgHead" class="feed-cols crg-row-cols crg-head-cols" hidden>
+          <div>Date (UTC)</div>
+          <div>Projet</div>
+          <div>Branche</div>
+          <div>Files / Fns</div>
+          <div>Test Gaps</div>
+          <div>Context Saved</div>
+          <div>Risk Score</div>
+        </div>
+        <div id="crgList" class="feed-list" hidden></div>
+        <div class="empty-state" id="emptyCrg">Aucun rapport de commit (pre-commit)</div>
+      </div>
+    </section>
+      </div>
+    </div>
+
     <div class="dash-section" data-section-id="charts">
       <div class="dash-section-header">
         <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-charts" title="Afficher ou masquer la section">
@@ -1432,6 +1491,7 @@
       subagentPostToolUse: "#f472b6",
       taskBriefValidation: "#f87171",
       consumptionReportCompliance: "#a78bfa",
+      codeReviewGraph: "#10b981",
     };
 
     let trendChart = null;
@@ -1520,6 +1580,9 @@
         return hookSavedTokens(e);
       }
       if (isDiffOnlyEvent(e)) return diffOnlySavings(e);
+      if (e.event === "codeReviewGraph") {
+        return num(e.saved_tokens);
+      }
       return 0;
     }
 
@@ -2330,6 +2393,99 @@
       });
     }
 
+    function renderCrgTable(events) {
+      const list = document.getElementById("crgList");
+      const head = document.getElementById("crgHead");
+      const empty = document.getElementById("emptyCrg");
+      list.replaceChildren();
+
+      const rows = events
+        .filter((e) => e.event === "codeReviewGraph")
+        .sort((a, b) => (parseTs(b.ts)?.getTime() || 0) - (parseTs(a.ts)?.getTime() || 0))
+        .slice(0, 40);
+
+      empty.hidden = rows.length > 0;
+      list.hidden = rows.length === 0;
+      head.hidden = rows.length === 0;
+
+      let crgSaved = 0;
+      let crgRiskSum = 0.0;
+      
+      const allCrg = events.filter((e) => e.event === "codeReviewGraph");
+      allCrg.forEach((e) => {
+        crgSaved += num(e.saved_tokens);
+        crgRiskSum += num(e.risk_score);
+      });
+      
+      document.getElementById("kpiCrgRuns").textContent = fmtNum(allCrg.length);
+      document.getElementById("kpiCrgSaved").textContent = fmtCompact(crgSaved);
+      document.getElementById("kpiCrgRisk").textContent = allCrg.length > 0 ? (crgRiskSum / allCrg.length).toFixed(2) : "—";
+      
+      rows.forEach((e) => {
+        const row = document.createElement("div");
+        row.className = "feed-row";
+        row.style.setProperty("--accent", "#10b981");
+        const bar = document.createElement("div");
+        bar.className = "feed-row-accent";
+        const cols = document.createElement("div");
+        cols.className = "feed-cols crg-row-cols";
+
+        const cDate = document.createElement("div");
+        cDate.className = "mono cell-wide";
+        cDate.textContent = fmtDateUtcCell(e.ts);
+
+        const cRepo = document.createElement("div");
+        cRepo.className = "mono";
+        cRepo.textContent = e.repo || "—";
+
+        const cBranch = document.createElement("div");
+        cBranch.className = "mono cell-wide";
+        cBranch.textContent = e.branch || "—";
+        cBranch.title = e.branch || "";
+
+        const cFilesFns = document.createElement("div");
+        cFilesFns.className = "mono";
+        cFilesFns.textContent = `${e.files_changed ?? 0} / ${e.functions_changed ?? 0}`;
+
+        const cGaps = document.createElement("div");
+        cGaps.className = "mono num";
+        cGaps.textContent = fmtNum(e.test_gaps);
+
+        const cSaved = document.createElement("div");
+        cSaved.className = "mono num strong";
+        cSaved.textContent = `${fmtCompact(e.saved_tokens)} (~${e.saved_percent ?? 0}%)`;
+
+        const cRisk = document.createElement("div");
+        const riskPill = document.createElement("span");
+        riskPill.className = "tool-pill";
+        const r = num(e.risk_score);
+        riskPill.textContent = r.toFixed(2);
+        if (r >= 0.7) {
+          riskPill.style.borderColor = "rgba(239, 68, 68, 0.4)";
+          riskPill.style.color = "#ef4444";
+        } else if (r >= 0.4) {
+          riskPill.style.borderColor = "rgba(245, 158, 11, 0.4)";
+          riskPill.style.color = "#f59e0b";
+        } else {
+          riskPill.style.borderColor = "rgba(16, 185, 129, 0.4)";
+          riskPill.style.color = "#10b981";
+        }
+        cRisk.appendChild(riskPill);
+
+        cols.appendChild(cDate);
+        cols.appendChild(cRepo);
+        cols.appendChild(cBranch);
+        cols.appendChild(cFilesFns);
+        cols.appendChild(cGaps);
+        cols.appendChild(cSaved);
+        cols.appendChild(cRisk);
+        
+        row.appendChild(bar);
+        row.appendChild(cols);
+        list.appendChild(row);
+      });
+    }
+
     function isSubagentLaunch(e) {
       return e.event === "subagentLaunch" || e.event === "preToolUseCompression";
     }
@@ -2932,6 +3088,7 @@
       renderConsumptionStats(events);
       renderComplianceStats(events);
       renderComplianceTable(events);
+      renderCrgTable(events);
       renderSubagentStats(events);
       renderSubagentTable(events);
       renderStackKpis(events);
@@ -2960,6 +3117,7 @@
       "kpi-compliance",
       "table-subagents",
       "table-compliance",
+      "table-crg",
       "charts",
       "tables-lists",
     ];

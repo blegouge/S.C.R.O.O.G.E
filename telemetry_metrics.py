@@ -207,6 +207,9 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
             latest_in = int(latest.get("input_tokens") or 0)
             latest_out = int(latest.get("output_tokens") or 0)
 
+    crg_runs = crg_saved = 0
+    crg_risk_sum = 0.0
+
     for r in rows:
         if r.get("event") == "afterFileEdit":
             agent_la += int(r.get("lines_added") or 0)
@@ -226,6 +229,10 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 billed_sum += billed
                 billed_n += 1
         ev = str(r.get("event", ""))
+        if ev == "codeReviewGraph":
+            crg_runs += 1
+            crg_saved += int(r.get("saved_tokens") or 0)
+            crg_risk_sum += float(r.get("risk_score") or 0.0)
         if ev in SUBAGENT_LAUNCH_EVENTS:
             hook_runs += 1
             hook_saved += hook_saved_tokens(r)
@@ -268,6 +275,11 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "saved_tokens": hook_saved,
             "claw": hook_claw,
             "llmlingua": hook_llm,
+        },
+        "code_review_graph": {
+            "runs": crg_runs,
+            "saved_tokens": crg_saved,
+            "avg_risk": crg_risk_sum / crg_runs if crg_runs > 0 else 0.0,
         },
         "subagents": {
             "launch": sub_launch,
