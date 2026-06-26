@@ -1045,6 +1045,7 @@
           <select id="sourceSelect" class="refresh-split-btn refresh-split-select" title="Source des données de télémétrie">
             <option value="antigravity">Antigravity</option>
             <option value="cursor">Cursor</option>
+            <option value="claude">Claude Code</option>
           </select>
           <ul class="refresh-dropdown" id="refreshDropdown" role="menu" hidden>
             <li role="none"><button type="button" role="menuitemradio" data-interval-ms="0" data-short="Désactivé">Désactivé</button></li>
@@ -2207,7 +2208,10 @@
       let tabN = 0;
       let tabAdd = 0;
       events.forEach((e) => {
-        if (e.event === "afterFileEdit") {
+        // Support both afterFileEdit and postToolUse with Edit/Write
+        const isEditEvent = e.event === "afterFileEdit" ||
+          (e.event === "postToolUse" && (e.tool === "Edit" || e.tool === "Write") && (e.lines_added || e.lines_removed));
+        if (isEditEvent) {
           agentAdd += Number(e.lines_added || 0);
           agentRem += Number(e.lines_removed || 0);
           agentPass++;
@@ -3576,7 +3580,12 @@
       const source = getSource();
       const titleEl = document.querySelector(".brand h1");
       if (titleEl) {
-        titleEl.textContent = source === "antigravity" ? "Telemetry Token (Antigravity)" : "Telemetry Token (Cursor)";
+        const titles = {
+          antigravity: "Telemetry Token (Antigravity)",
+          cursor: "Telemetry Token (Cursor)",
+          claude: "Telemetry Token (Claude Code)"
+        };
+        titleEl.textContent = titles[source] || "Telemetry Token (Cursor)";
       }
     }
 

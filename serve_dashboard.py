@@ -24,13 +24,19 @@ def package_root() -> pathlib.Path:
 
 
 def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
-    """Return (log_path, layout_path) for source ('cursor' or 'antigravity')."""
+    """Return (log_path, layout_path) for source ('cursor', 'antigravity', or 'claude')."""
     if source == "antigravity":
         home = os.getenv("ANTIGRAVITY_HOME")
         if home:
             d = pathlib.Path(home) / "token-telemetry"
         else:
             d = pathlib.Path.home() / ".gemini" / "antigravity" / "token-telemetry"
+    elif source == "claude":
+        home = os.getenv("CLAUDE_HOME")
+        if home:
+            d = pathlib.Path(home) / "token-telemetry"
+        else:
+            d = pathlib.Path.home() / ".claude" / "token-telemetry"
     else:
         d = resolve_data_dir()
     d.mkdir(parents=True, exist_ok=True)
@@ -111,6 +117,10 @@ def load_rtk_gain(project: bool = False, source: str = "cursor") -> dict[str, ob
         antigravity_dir = pathlib.Path.home() / ".gemini" / "antigravity"
         if antigravity_dir.is_dir():
             cwd = str(antigravity_dir)
+    elif source == "claude":
+        claude_dir = pathlib.Path.home() / ".claude"
+        if claude_dir.is_dir():
+            cwd = str(claude_dir)
 
     errors: list[str] = []
     for base in _rtk_cmd_candidates():
@@ -336,7 +346,8 @@ def make_httpd(preferred_port: int = PORT) -> tuple[HTTPServer, int]:
 def main() -> None:
     c_log, _ = get_paths("cursor")
     a_log, _ = get_paths("antigravity")
-    print(f"Telemetry Token: Cursor = {c_log} | Antigravity = {a_log}")
+    cl_log, _ = get_paths("claude")
+    print(f"Telemetry Token: Cursor = {c_log} | Antigravity = {a_log} | Claude = {cl_log}")
     httpd, port = make_httpd()
     print(f"Ouvre http://{HOST}:{port}/ (CTRL+C pour arrêter)")
     httpd.serve_forever()
