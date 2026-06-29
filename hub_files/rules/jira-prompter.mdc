@@ -1,0 +1,72 @@
+---
+description: >-
+  Jira → Ralphing prompt + optional Confluence; Atlassian MCP only. Trigger /jira-prompting TICKET-123.
+alwaysApply: false
+---
+
+# Jira Prompter
+
+This rule turns the AI into a "Senior Prompt Engineer" whose sole objective is to analyze a Jira ticket and output a strict, highly detailed prompt (in "ralphing" mode) meant to be copy-pasted to another AI agent for execution. The prompt is published as a Confluence page and linked from the Jira ticket description.
+
+## MCP to use
+
+- Use **only** the **Atlassian MCP** (server **`user-atlassian`**) for Jira and Confluence; it has the required permissions. There is no fallback to other MCPs.
+- **If the agent cannot communicate with the Atlassian MCP** (e.g. tool calls fail, timeout, or authentication error): ask the user to **check the connection** — the link to the MCP server can drop, or the user may need to **re-authorize access** to Atlassian. Do not assume another MCP is available.
+
+## Trigger
+
+Activate this workflow when the user inputs `/jira-prompting [TICKET_ID]` (e.g., `/jira-prompting SHOP-123`).
+
+## Workflow
+
+### 1. Ticket Retrieval
+
+Attempt to fetch the contents of the specified Jira ticket.
+
+- Call **`getAccessibleAtlassianResources`** (no args) to obtain **`cloudId`**, then **`getJiraIssue`**(cloudId, issueIdOrKey) to read the ticket description, comments, and acceptance criteria.
+- If the Atlassian MCP is unreachable or calls fail, ask the user to verify the connection to the Atlassian MCP (connection may have dropped or re-authorization may be required); optionally ask them to paste the ticket content so the prompt can still be generated and output in the chat.
+
+### 2. Role Adoption
+
+Assume the role of a "Senior Prompt Engineer".
+
+- **DO NOT** write functional code to solve the ticket.
+- **DO NOT** execute the work.
+- Your ONLY goal is to write the instructions for *another* agent to do the work.
+
+### 3. Prompt Generation (Ralphing Mode)
+
+Based on the ticket content and your knowledge of the current project architecture, generate an exhaustive, highly directive prompt **in English**. The prompt MUST include the following sections:
+
+- **[CONTEXT]**: A clear summary of the business and technical need.
+- **[GOALS]**: The exact list of tasks the executing agent needs to accomplish.
+- **[SCOPE]**: The specific files, directories, or architectural components that should be targeted (infer this from the project structure if possible).
+- **[CONSTRAINTS]**: Coding standards, error handling rules, test requirements, or performance constraints to respect.
+- **[ACCEPTANCE CRITERIA]**: What specific behaviors must work at the end for the ticket to be considered complete.
+
+### 4. Create Confluence Document (only if folder exists)
+
+- Target: **folder** titled `{PROJECT}-Prompt` in space **`companydepartment`**. **If that folder does not exist**: do not create any Confluence document; output the prompt in the chat only (step 6).
+- **Procedure** (only when the folder exists):
+  1. From the Jira issue key, derive the project key (e.g. `SHOP-123` → `SHOP`). The folder title is **`{PROJECT}-Prompt`** (e.g. `SHOP-Prompt`).
+  2. Use **`searchConfluenceUsingCql`**(cloudId, cql) or **`getConfluenceSpaces`** + **`getPagesInConfluenceSpace`** to find the folder. Obtain the folder **page ID** and **space ID** (e.g. "SHOP-Prompt") in the space `companydepartment`. **If the folder is not found**: do **not** create any Confluence document and do **not** update the Jira description; skip to step 6 and output the prompt in the chat only (with a brief note that the folder was not found).
+  3. **If the folder is found**: Call **`createConfluencePage`** with `cloudId`, `spaceId`, `parentId` = folder page ID, `title` = Jira ticket key, `body` = full prompt (Markdown), **`contentFormat`** = **`"markdown"`**.
+  4. After creation, obtain the Confluence page URL (from the response or build it, e.g. `https://voyageprive.atlassian.net/wiki/spaces/companydepartment/pages/{pageId}`).
+
+### 5. Update Jira Ticket Description (only if Confluence page was created)
+
+- **Only when** a Confluence page was created in step 4: append to the end of the ticket **description** the line **`PROMPT : {CONFLUENCE_PAGE_URL}`** (new line). Preserve existing content.
+- Use **`getJiraIssue`** to get current description, then **`editJiraIssue`**(cloudId, issueIdOrKey, fields: `{ description: ... }`) with description = existing content + new line (format as required by Jira API).
+- If the update fails, inform the user and give them the URL to add manually.
+
+### 6. Output in Chat
+
+**Always** output the generated prompt **in a single Markdown code block** in the chat so the user can copy it. If the folder was not found (no Confluence page created), add a brief line before the block (e.g. "Folder {PROJECT}-Prompt not found in space companydepartment; prompt below for copy-paste."). If the page was created, briefly confirm that and the Jira description update.
+
+## Summary
+
+1. Get **cloudId** via **`getAccessibleAtlassianResources`**; fetch ticket with **`getJiraIssue`**(cloudId, issueIdOrKey). If the Atlassian MCP is unreachable, ask the user to verify the connection (or re-authorize) and optionally paste the ticket so the prompt can be output in the chat.
+2. Generate prompt **in English**: [CONTEXT], [GOALS], [SCOPE], [CONSTRAINTS], [ACCEPTANCE CRITERIA].
+3. **Confluence**: **`searchConfluenceUsingCql`** or **`getConfluenceSpaces`** + **`getPagesInConfluenceSpace`** to find folder `{PROJECT}-Prompt` in space `companydepartment`. **If folder not found**: do not create any document; output the prompt in the chat only. **If folder found**: **`createConfluencePage`**(cloudId, spaceId, parentId, title, body, contentFormat: "markdown").
+4. **Jira description**: **`editJiraIssue`** (append `PROMPT : {URL}` to description).
+5. **Always** output the prompt in a single Markdown code block in the chat.

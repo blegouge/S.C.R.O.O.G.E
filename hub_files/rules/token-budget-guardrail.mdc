@@ -1,0 +1,19 @@
+---
+description: >-
+  Deterministic token-budget arbitration before heavy reads, explore subagents,
+  or third automatic retries; upstream guardrail report after BLOCK_1_STATIC.
+alwaysApply: true
+---
+
+# Token Budget Guardrail
+
+**Canonical procedure:** `skills/token-budget-guardrail/SKILL.md` (SSOT — examples, ROI checklist, templates).
+
+Always-on gates (details in skill):
+
+1. **After** `BLOCK_1_STATIC` / always-on rules — budget arbitration **before** any high-cost tool; honor `[BLOCK_1B_TOKEN_BUDGET_GUARDRAIL]` on Task launches.
+2. **ROI proof** before Read on file **> 500 lines** or `Task` with `subagent_type: explore`.
+3. **Two-strike halt** per track (test, Diff-Only file, subagent brief) — no automatic 3rd attempt; user override resets streak.
+4. **Upstream report** before first high-cost action (parent) or comply with injected BLOCK_1B (subagent).
+
+Cross-rules: `subagent-usage.mdc` (caps), `rtk-cli-tokens.mdc`, `diff-only-protocol.mdc`, `consumption-report.mdc`.

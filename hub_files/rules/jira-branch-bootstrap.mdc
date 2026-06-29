@@ -1,0 +1,38 @@
+---
+description: >-
+  Git branch bootstrap for implementing a Jira key (XYZ-123, traite ce ticket). Run before code edits on ticket work.
+alwaysApply: false
+---
+
+# Jira Branch Bootstrap
+
+When the user asks to implement/process a Jira ticket (for example `SHOP-123`, "traite ce ticket Jira", "start ticket"), run this git bootstrap workflow before code analysis or edits.
+
+This workflow is cumulative with the AGENT context rule:
+- first respect the mandatory `AGENT.md`/`agent.md` check and instructions
+- then execute the ticket branch workflow below
+
+## Required workflow
+
+1. Extract the Jira key from the request (`[A-Z][A-Z0-9]+-[0-9]+`).
+2. If missing/ambiguous, ask the user for the exact ticket key and stop.
+3. Ask for parent branch if not provided (for example `main`, `develop`, `release/x.y`).
+4. Ensure current folder is a git repository; if not, ask user for the correct repo path.
+5. Fetch remotes before branch checks: `git fetch --all --prune`.
+6. Check whether a branch already exists for the ticket:
+   - local exact match: `git show-ref --verify --quiet refs/heads/<TICKET_KEY>`
+   - remote exact match: `git ls-remote --heads origin <TICKET_KEY>`
+7. If ticket branch exists:
+   - checkout existing branch (`git checkout <TICKET_KEY>`)
+   - continue ticket work on that branch.
+8. If ticket branch does not exist:
+   - checkout parent branch (`git checkout <PARENT_BRANCH>`)
+   - update it (`git pull --ff-only`)
+   - create ticket branch (`git checkout -b <TICKET_KEY>`)
+   - continue ticket work on the new branch.
+
+## Guardrails
+
+- Never create the branch from the wrong base: require explicit parent branch.
+- Do not start implementation until branch setup is complete.
+- If any git command fails, stop and ask for user confirmation before continuing.

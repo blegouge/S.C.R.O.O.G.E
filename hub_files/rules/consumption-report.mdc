@@ -1,0 +1,25 @@
+---
+description: Enforce Consumption report block at the end of each response.
+alwaysApply: true
+---
+
+# Consumption Report
+
+You MUST append a **Consumption report** section to your responses. This is parsed by the stop hook validation script (`stop-compliance.py`) to log credit and token telemetry.
+
+## Format (Mandatory)
+
+Always append this exact structure at the very end of your response:
+
+```markdown
+## Consumption report
+- **Work mode**: <direct tools only | single subagent | multiple subagents>
+- **Tool activity**: <N tool calls / description of tools used>
+- **Token risk level**: <low | medium | high>
+- **Main cost drivers**: <description of what consumed tokens, e.g. large file reads, subagents>
+- **Optimization applied**: <optimization used: RTK, Diff-Only, CCR, SmartCrusher, spec-driven-idempotency, or none>
+- exact token count unavailable in this environment
+```
+
+Ensure the colon (`:`) is placed immediately after the closing double asterisks (`**`) of each key, without spaces before it.
+

@@ -21,8 +21,21 @@ def resolve_log_file() -> Path:
     return _default_log_file()
 
 
+def resolve_skills_dir() -> Path:
+    override = os.environ.get("SKILLS_DIR", "").strip()
+    if override:
+        return Path(override).expanduser()
+    hub = os.environ.get("HUB", "").strip()
+    if hub:
+        return Path(hub).expanduser() / "skills"
+    c_home = os.environ.get("CURSOR_HOME", "").strip()
+    if c_home:
+        return Path(c_home).expanduser() / "skills"
+    return Path.home() / ".cursor" / "skills"
+
+
 LOG_FILE = resolve_log_file()  # default at import; append_event resolves live
-SKILLS_DIR = Path.home() / ".cursor" / "skills"
+SKILLS_DIR = resolve_skills_dir()
 
 _SKILL_LINE = re.compile(r"(?im)^\s*Skill:\s*([a-z0-9][a-z0-9_-]*)\s*$")
 _KNOWN_SKILLS: set[str] | None = None
@@ -37,7 +50,36 @@ def append_event(row: dict[str, Any]) -> None:
     log_file = resolve_log_file()
     log_file.parent.mkdir(parents=True, exist_ok=True)
     with log_file.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+        locked = False
+        pos = 0
+        try:
+            import fcntl
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+            locked = True
+        except (ImportError, OSError):
+            try:
+                import msvcrt
+                pos = fh.tell()
+                msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
+                locked = True
+            except (ImportError, OSError):
+                pass
+
+        try:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            fh.flush()
+        finally:
+            if locked:
+                try:
+                    import fcntl
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                except (ImportError, OSError):
+                    try:
+                        import msvcrt
+                        fh.seek(pos)
+                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+                    except (ImportError, OSError):
+                        pass
 
 
 def _load_known_skills() -> set[str]:

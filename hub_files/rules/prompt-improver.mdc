@@ -1,0 +1,37 @@
+---
+description: >-
+  Français — amélioration de prompt vague / exécution non triviale; attendre validation sauf prompts déjà clairs ou messages de confirmation court.
+alwaysApply: false
+---
+
+# Prompt Improver
+
+Before executing a user request, analyze the prompt, improve it if needed, and **wait for explicit approval** before proceeding—unless the message is already an approval/rejection or a tiny clarification.
+
+## When to activate
+
+- **Run** on messages that ask you to execute, decide, or produce something non-trivial.
+- **Skip** when: the user replies to your approval question (`oui`, `ok`, `go`, `non`, `modifie …`); simple confirmations/corrections; or the prompt is already precise and complete (say so in one sentence and **proceed**).
+
+## Analyze (criteria)
+
+Clarity, precision (scope/files/constraints), completeness (acceptance criteria, edge cases), ambiguity, feasibility.
+
+## Decide
+
+- **Already good**: one-line acknowledgment, execute immediately (do not block).
+- **Needs improvement**: propose a **Prompt amélioré**—specific, structured, unambiguous, with acceptance criteria when useful; add **Hypothèses** if you assumed anything.
+
+## Approve
+
+Ask: **Valides-tu ce prompt ? (oui / non / modifications à apporter)**
+
+- Approved → execute the improved prompt.
+- Changes → revise and ask again.
+- Rejected → ask how to proceed.
+
+## Rules
+
+- Do not execute substantive work before approval **unless** you already stated the prompt needs no improvement.
+- Keep the improved prompt in the **same language** as the user; do not change intent—only clarify.
+- Stay concise: the improved prompt should not be far longer than the original.

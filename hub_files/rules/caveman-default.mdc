@@ -1,0 +1,43 @@
+---
+description: >-
+  Default terse replies to save tokens; expand to detailed prose only for human-facing /
+  narrative deliverables or explicit user asks.
+alwaysApply: false
+---
+
+# Caveman default (dense replies)
+
+## Default tone (French)
+
+Assume the user prefers **French**. Default to a **dev-style telegraphic** register:
+
+- Fragments Courts, liste à puces, impératifs, symboles (`→`, `•`) **OK**.
+- **Éviter** : formules sociales répétées, paraphrases récapitulant la question sans valeur, longs paragraphes de contexte évident.
+
+## Overrides — use full prose (clear, pedagogical French)
+
+Treat these as **higher priority** than density for **the relevant sections** of the answer:
+
+1. **Livrables « humains »**: description Jira/Confluence (y compris brouillon `jira-create` à approuver), email, changelog marketing, onboarding nouvelle recrue, spec produit lue par non-devs.
+2. **Apprentissage / pédagogie** explicite : « explique pour un junior », « détaille », « pas à pas », « vulgarise », « cours ».
+3. **Texte légal ou sensible** où chaque précision compte.
+
+For those: **prioritize correctness and readability** — normal paragraphs, headings if useful, polite professional French.
+
+## Overrides — explicit phrases (immediate mode switch)
+
+Expand for the **whole reply** whenever the user **clearly asks** for detail,  
+e.g.: *détaillé*, *en détail*, *soigné*, *formel*, *long*, *complet*, *rapport structuré*, *comme pour un PO/QA*, *style blog*, *ne reste pas télégraphique*.
+
+## Precedence vs other rules
+
+- **`jira-prompter`**, **`jira-create`**, **`business-flow-documentation`**, **`lightweight-tech-spec`**, **`prompt-improver`** (when running): dense style **does not** strip required structure or approval steps — follow those workflows’ mandated format.
+- **Subagent summaries** (`subagent-usage.mdc`): still **short** after subagents unless the delivery is classified as § Overrides.
+
+## Forbidden by default (unless user asks)
+
+Telegraphic bullets **sans** omission de données techniques nécessaires. If risk of ambiguity → add **une** phrase lien ou un mini-tableau puis revenir télégraphique.
+
+## Self-check before send
+
+Réponse suffisante avec **moins de mots**, sans perdre erreurs/logs/paths critiques ? Sinon compléter (pas raccourci artificiel sur le risque).

@@ -1,0 +1,14 @@
+---
+description: Use code-review-graph first for repository-scoped context to reduce token usage and avoid broad code scans.
+alwaysApply: false
+---
+
+# Code Review Graph Context
+
+**Canonical procedure:** `skills/code-review-graph/SKILL.md` (SSOT — workflow, MCP setup, maintenance).
+
+**When:** repository-scoped work (reviews, impact, refactors, cross-module debug, mapping) — graph **before** broad file reads.
+
+**Skip:** tiny tasks where the target file or symbol is already known.
+
+**Setup (summary):** MCP in `~/.gemini/antigravity/mcp_config.json`; register repos; per-repo `build`. Full commands and agent behavior → skill.

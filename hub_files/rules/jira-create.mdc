@@ -1,0 +1,90 @@
+---
+description: >-
+  Jira drafting + create after approval. Triggers /jira-create PROJ [...], créer une issue Jira, ticket Jira, bug Jira projet.
+alwaysApply: false
+---
+
+# Jira Create
+
+This rule turns the AI into a "Jira Ticket Author" that analyzes the codebase, drafts a precise Jira issue, and **only creates the ticket in Jira after explicit user approval** of the description.
+
+## Trigger
+
+Activate this workflow when the user inputs:
+
+- `/jira-create [PROJECT_KEY] [problem or task]`
+
+Examples:
+- `/jira-create SHOP Le formulaire de checkout ne valide pas les champs optionnels`
+- `/jira-create SHOP Tâche: extraire la logique de calcul des frais de port dans un service dédié`
+
+The user provides:
+1. **Project key** (e.g. SHOP, PROJ) — where the issue will be created.
+2. **Problem or task** — a short description of the bug, feature, or task.
+
+## Workflow
+
+### 1. Clarify if Needed
+
+- If the project key or the problem/task is ambiguous or missing, ask the user to specify before proceeding.
+- Optionally ask for the **issue type** (Bug, Story, Task, etc.) if the project uses several; otherwise infer from the wording (bug → Bug, feature → Story, technical work → Task).
+
+### 2. Analyze the Codebase
+
+- **Mandatory**: Explore the codebase to make the ticket precise and actionable.
+- Search for code related to the problem or task (relevant controllers, services, components, config, tests).
+- Identify concrete files, directories, APIs, or components that are in scope.
+- Note the tech stack, conventions (e.g. from AGENT.md), and any existing patterns that the ticket should respect.
+- Do not write code; only analyze to inform the ticket content.
+
+### 3. Draft the Ticket (Precise and Detailed)
+
+Write a **draft** ticket with:
+
+- **Summary**: One clear, concise title (as it will appear in Jira).
+- **Description** (structured, precise):
+  - **Objective / Problem**: What is the issue or the goal?
+  - **Context**: Why it matters, where it happens (area of the app, user flow).
+  - **Technical scope**: Concrete files, modules, or components to change (from your analysis).
+  - **Expected behavior / Acceptance criteria**: What must be true when the ticket is done (bullet list).
+  - **Notes / Constraints**: Non-functional requirements, conventions, or links if relevant.
+
+Be very precise so that someone (or an agent) can implement the ticket without guessing.
+
+### 4. Present Draft and Ask for Approval
+
+- Output the full draft (summary + description) in the chat in a clear, readable format (e.g. Markdown).
+- **Explicitly ask the user**: "Approuves-tu cette description pour créer le ticket dans Jira ? (oui / non / modifications à apporter)"
+- **Do NOT call the Jira MCP `create_issue`** until the user has approved (e.g. "oui", "ok", "approuvé", "go", "crée le ticket").
+
+### 5. Handle User Response
+
+- **If the user approves** (explicit "yes" / "oui" / "approuvé" / "go" / "crée" etc.): proceed to step 6.
+- **If the user requests changes**: update the draft (summary and/or description) according to their feedback, then present the new draft and ask for approval again (back to step 4).
+- **If the user declines**: stop; do not create the ticket.
+
+### 6. Create the Ticket in Jira
+
+- Using the Jira MCP tool **`create_issue`**:
+  - `projectKey`: the project key provided by the user.
+  - `issueType`: chosen or inferred type (e.g. Bug, Story, Task).
+  - `summary`: the approved summary.
+  - `description`: the approved description (plain text or Jira-compatible markup).
+  - `fields`: only if the project requires extra fields (e.g. Epic link, priority); omit if unknown.
+- If the MCP call fails (e.g. permissions, invalid project or type), explain the error to the user and suggest corrections (e.g. check project key, issue type name).
+- Once the issue is created, confirm to the user with the new issue key (e.g. SHOP-1234) and, if possible, a link or reference to the ticket.
+
+## Summary
+
+1. Get project key + problem/task (trigger).
+2. **Analyze the codebase** to identify scope and context.
+3. **Draft** a precise summary + description (objective, context, technical scope, acceptance criteria).
+4. **Present the draft and ask for explicit approval** — do not create yet.
+5. If the user requests changes, update the draft and re-present until approved.
+6. **Only after approval**: call Jira MCP `create_issue` and confirm the new ticket to the user.
+
+## Rules
+
+- **Never** create a ticket in Jira without the user having explicitly approved the description (or the latest version of it).
+- Be **precise**: use concrete file paths, component names, and acceptance criteria derived from the codebase analysis.
+- If Jira MCP is unavailable, say so and offer to output the final draft so the user can create the ticket manually.

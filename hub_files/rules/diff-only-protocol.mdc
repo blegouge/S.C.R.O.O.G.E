@@ -1,0 +1,46 @@
+---
+description: >-
+  Diff-Only Protocol — code changes in chat/subagents as SEARCH/REPLACE blocks only;
+  no full-file or unchanged-code output. Use for implementation, refactors, patches.
+alwaysApply: true
+---
+
+# Diff-Only Protocol
+
+**Canonical spec:** `src/rules/diff_protocol.md` (SSOT — SEARCH/REPLACE format, special cases, applier integration).
+
+## Output (mandatory for any code change shown to user or parent agent)
+
+- **Never** print intact/unchanged code, whole files, or “updated file” dumps.
+- **Only** hunks in this exact shape (repeat per hunk):
+
+```text
+path: <relative/path>
+<<<<<<< SEARCH
+<exact existing snippet>
+=======
+<replacement snippet>
+>>>>>>> REPLACE
+```
+
+## Matching
+
+- SEARCH = **verbatim** from disk (indentation, quotes, EOL).
+- Add minimal surrounding lines so the match is **unique**.
+- New file / delete: see `src/rules/diff_protocol.md` § Special cases.
+
+## Subagents
+
+Brief must include: *« Follow Diff-Only: return path + SEARCH/REPLACE blocks only; no file dumps. »*
+
+## Edits in repo (enforced)
+
+- **Existing files:** use `StrReplace` only (unique SEARCH snippet). `Write` is **blocked** by `preToolUse` hook on existing paths.
+- **Shell Bypass Forbidden:** Do NOT use shell commands (like `cat`, `sed`, `tee`, or redirection) to create or edit files in the repository. Doing so bypasses telemetry and optimization.
+- **New files:** `Write` allowed once; later edits → `StrReplace` or SEARCH/REPLACE in chat.
+- Parent/subagent briefs must state: « Diff-Only: StrReplace on existing paths; no full-file dumps ».
+
+## Exceptions
+
+- User explicitly asks for full file, diff, or pedagogy (*détail*, *complet*).
+- Non-code answers: no blocks.

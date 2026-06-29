@@ -10,9 +10,12 @@ import re
 import shutil
 import subprocess
 import sys
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+try:
+    from http.server import ThreadingHTTPServer as HTTPServer, SimpleHTTPRequestHandler
+except ImportError:
+    from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-from telemetry_metrics import summarize_report
+from telemetry_metrics import summarize_report, summarize_layer_kpis
 from telemetry_paths import resolve_data_dir
 
 
@@ -45,8 +48,8 @@ def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
 
 DASH = package_root() / "dashboard.html"
 ICON = package_root() / "icon.jpg"  # app logo / favicon (JPEG)
-HOST = "127.0.0.1"
-PORT = 8765
+HOST = os.environ.get("TELEMETRY_HOST", "127.0.0.1")
+PORT = int(os.environ.get("TELEMETRY_PORT", 8765))
 
 
 def _rtk_cmd_candidates() -> list[list[str]]:
@@ -105,7 +108,23 @@ def _extract_json_object(text: str) -> dict[str, object] | None:
         return None
 
 
+import threading
+import time
+
+_RTK_GAIN_LOCK = threading.Lock()
+_RTK_GAIN_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_RTK_CACHE_TTL = 30.0
+
+
 def load_rtk_gain(project: bool = False, source: str = "cursor") -> dict[str, object]:
+    cache_key = f"{project}:{source}"
+    now = time.time()
+    with _RTK_GAIN_LOCK:
+        if cache_key in _RTK_GAIN_CACHE:
+            ts, val = _RTK_GAIN_CACHE[cache_key]
+            if now - ts < _RTK_CACHE_TTL:
+                return val
+
     # -d: per-day saved_tokens for counterfactual charts in the dashboard
     args = ["gain", "-d", "--format", "json"]
     if project:
@@ -161,6 +180,8 @@ def load_rtk_gain(project: bool = False, source: str = "cursor") -> dict[str, ob
         payload["ok"] = True
         payload["scope"] = "project" if project else "global"
         payload["rtk_command"] = " ".join(cmd)
+        with _RTK_GAIN_LOCK:
+            _RTK_GAIN_CACHE[cache_key] = (time.time(), payload)
         return payload
 
     return {
@@ -245,6 +266,28 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     except json.JSONDecodeError:
                         continue
             payload_obj = summarize_report(rows)
+            payload_obj["ok"] = True
+            payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if path == "/api/layer-kpis":
+            rows = []
+            if log_path.is_file():
+                for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rows.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+            rtk_gain = load_rtk_gain(project=False, source=source)
+            payload_obj = summarize_layer_kpis(rows, rtk_gain=rtk_gain)
             payload_obj["ok"] = True
             payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
