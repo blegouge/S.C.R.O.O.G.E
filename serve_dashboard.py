@@ -24,7 +24,7 @@ def package_root() -> pathlib.Path:
 
 
 def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
-    """Return (log_path, layout_path) for source ('cursor', 'antigravity', or 'claude')."""
+    """Return (log_path, layout_path) for source ('cursor', 'antigravity', 'claude', 'gemini', 'hermes')."""
     if source == "antigravity":
         home = os.getenv("ANTIGRAVITY_HOME")
         if home:
@@ -38,7 +38,7 @@ def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
         else:
             d = pathlib.Path.home() / ".claude" / "token-telemetry"
     else:
-        d = resolve_data_dir()
+        d = resolve_data_dir(source=source)
     d.mkdir(parents=True, exist_ok=True)
     return d / "events.jsonl", d / "dashboard-layout.json"
 
@@ -121,6 +121,14 @@ def load_rtk_gain(project: bool = False, source: str = "cursor") -> dict[str, ob
         claude_dir = pathlib.Path.home() / ".claude"
         if claude_dir.is_dir():
             cwd = str(claude_dir)
+    elif source == "gemini":
+        gemini_dir = pathlib.Path.home() / ".gemini"
+        if gemini_dir.is_dir():
+            cwd = str(gemini_dir)
+    elif source == "hermes":
+        hermes_dir = pathlib.Path.home() / ".hermes"
+        if hermes_dir.is_dir():
+            cwd = str(hermes_dir)
 
     errors: list[str] = []
     for base in _rtk_cmd_candidates():

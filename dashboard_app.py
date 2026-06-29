@@ -37,7 +37,7 @@ def main() -> None:
 
     try:
         webview.create_window(
-            "Télémétrie Cursor",
+            "Cursor Telemetry",
             url,
             width=1280,
             height=840,

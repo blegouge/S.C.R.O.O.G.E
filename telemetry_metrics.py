@@ -186,6 +186,210 @@ def summarize_compliance_kpis(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+
+GUARDRAIL_READ_EVENTS = frozenset(
+    {"guardrailReadBlocked", "guardrailReadScoped", "guardrailReadAllowed"}
+)
+
+
+def _layer_pct(savings: int, observed: int) -> float:
+    total = savings + observed
+    if total <= 0:
+        return 0.0
+    return round(100.0 * savings / total, 2)
+
+
+def _rtk_daily_total(rtk_gain: dict[str, Any] | None, log_days: set[str]) -> tuple[int, bool]:
+    if not rtk_gain or rtk_gain.get("ok") is not True:
+        return 0, False
+    daily = rtk_gain.get("daily")
+    if not isinstance(daily, list):
+        summary = rtk_gain.get("summary")
+        if isinstance(summary, dict):
+            return int(summary.get("total_saved") or 0), True
+        return 0, True
+    total = 0
+    for row in daily:
+        if not isinstance(row, dict):
+            continue
+        day = str(row.get("date") or "").strip()
+        if log_days and day and day not in log_days:
+            continue
+        total += int(row.get("saved_tokens") or 0)
+    return total, True
+
+
+def diff_only_saved_tokens(row: dict[str, Any]) -> int:
+    if not str(row.get("event", "")).startswith("diffOnlyApply"):
+        return 0
+    diff = row.get("diff_only")
+    if isinstance(diff, dict):
+        return max(0, (int(diff.get("estimated_chars_saved") or 0) + 3) // 4)
+    return max(0, (int(row.get("diff_only_chars_saved") or 0) + 3) // 4)
+
+
+def guardrail_read_saved_tokens(row: dict[str, Any]) -> int:
+    if str(row.get("event", "")) not in GUARDRAIL_READ_EVENTS:
+        return 0
+    return int(row.get("guardrail_avoided_tokens") or 0)
+
+
+def _parse_log_days(rows: list[dict[str, Any]]) -> set[str]:
+    days: set[str] = set()
+    for row in rows:
+        ts = str(row.get("ts") or "").strip()
+        if len(ts) >= 10:
+            days.add(ts[:10])
+    return days
+
+
+def summarize_layer_kpis(
+    rows: list[dict[str, Any]],
+    *,
+    rtk_gain: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Per-layer savings vs layer-relevant observed volume (excludes parent chat)."""
+    log_days = _parse_log_days(rows)
+
+    shell_observed = 0
+    read_observed = 0
+    task_input_observed = 0
+    task_compression_saved = 0
+    diff_saved = 0
+    guardrail_read_saved = 0
+    guardrail_read_blocks = 0
+    guardrail_task_saved = 0
+    crg_saved = 0
+    chat_observed = 0
+
+    for row in rows:
+        ev = str(row.get("event", ""))
+        tool = str(row.get("tool") or row.get("tool_name") or "").strip()
+
+        if ev == "postToolUse":
+            tok = int(row.get("approx_tokens") or 0)
+            if tool == "Shell":
+                shell_observed += tok
+            elif tool == "Read":
+                read_observed += tok
+
+        if ev == "afterAgentResponse":
+            billed = int(row.get("billed_total_tokens") or 0)
+            if billed > 0:
+                chat_observed += billed
+            else:
+                inp = int(row.get("input_tokens") or 0)
+                out = int(row.get("output_tokens") or 0)
+                if inp or out:
+                    chat_observed += inp + out
+                else:
+                    chat_observed += int(row.get("approx_tokens") or 0)
+
+        if is_subagent_launch(row):
+            task_compression_saved += hook_saved_tokens(row)
+            task_input_observed += int(row.get("compression_input_tokens") or 0)
+            guardrail_task_saved += row_guardrail_avoided_tokens(row)
+
+        if ev == "codeReviewGraph":
+            crg_saved += int(row.get("saved_tokens") or 0)
+
+        diff_saved += diff_only_saved_tokens(row)
+        guardrail_read_saved += guardrail_read_saved_tokens(row)
+        if ev == "guardrailReadBlocked":
+            guardrail_read_blocks += 1
+
+    rtk_saved, rtk_ok = _rtk_daily_total(rtk_gain, log_days)
+
+    layers: dict[str, dict[str, Any]] = {
+        "rtk_shell": {
+            "savings_tokens": rtk_saved,
+            "observed_tokens": shell_observed,
+            "pct": _layer_pct(rtk_saved, shell_observed),
+            "available": rtk_ok,
+            "events": sum(1 for r in rows if r.get("event") == "postToolUse" and str(r.get("tool") or "") == "Shell"),
+        },
+        "task_compression": {
+            "savings_tokens": task_compression_saved,
+            "observed_tokens": task_input_observed,
+            "pct": _layer_pct(task_compression_saved, task_input_observed),
+            "events": sum(1 for r in rows if is_subagent_launch(r)),
+        },
+        "guardrail_read": {
+            "savings_tokens": guardrail_read_saved,
+            "observed_tokens": read_observed,
+            "pct": _layer_pct(guardrail_read_saved, read_observed),
+            "blocked": guardrail_read_blocks,
+        },
+        "guardrail_task": {
+            "savings_tokens": guardrail_task_saved,
+            "observed_tokens": task_input_observed,
+            "pct": _layer_pct(guardrail_task_saved, task_input_observed),
+        },
+        "diff_only": {
+            "savings_tokens": diff_saved,
+            "observed_tokens": 0,
+            "pct": 0.0,
+            "events": sum(1 for r in rows if str(r.get("event", "")).startswith("diffOnlyApply")),
+        },
+        "code_review_graph": {
+            "savings_tokens": crg_saved,
+            "observed_tokens": 0,
+            "pct": 0.0,
+            "events": sum(1 for r in rows if r.get("event") == "codeReviewGraph"),
+        },
+    }
+
+    blended_savings = (
+        rtk_saved
+        + task_compression_saved
+        + diff_saved
+        + guardrail_read_saved
+        + guardrail_task_saved
+        + crg_saved
+    )
+    blended_observed = shell_observed + task_input_observed + read_observed
+
+    legacy_observed = 0
+    legacy_savings = blended_savings
+    for row in rows:
+        ev = str(row.get("event", ""))
+        if ev in ("afterFileEdit", "afterTabFileEdit"):
+            continue
+        if ev.startswith("diffOnlyApply"):
+            continue
+        if ev == "afterAgentResponse":
+            billed = int(row.get("billed_total_tokens") or 0)
+            if billed > 0:
+                legacy_observed += billed
+            else:
+                legacy_observed += int(row.get("approx_tokens") or 0)
+        elif ev == "postToolUse":
+            legacy_observed += int(row.get("approx_tokens") or 0)
+        elif is_subagent_launch(row):
+            legacy_observed += int(row.get("compression_after_tokens") or row.get("approx_tokens") or 0)
+        elif ev == "subagentStop":
+            legacy_observed += int(row.get("approx_tokens") or 0)
+
+    return {
+        "layers": layers,
+        "blended": {
+            "savings_tokens": blended_savings,
+            "observed_tokens": blended_observed,
+            "pct": _layer_pct(blended_savings, blended_observed),
+            "note": "Parent chat excluded; measures tool/subagent surfaces only.",
+        },
+        "chat_parent": {
+            "observed_tokens": chat_observed,
+            "note": "afterAgentResponse proxy — not in blended pct (session history dominates).",
+        },
+        "legacy_global": {
+            "savings_tokens": legacy_savings,
+            "observed_tokens": legacy_observed,
+            "pct": _layer_pct(legacy_savings, legacy_observed),
+            "note": "Old KPI (includes chat) — often shows <1% when RTK missing.",
+        },
+    }
+
 def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Single source of truth for report.py and dashboard /api/report-summary."""
     agent_la = agent_lr = agent_pass = tab_n = tab_la = 0

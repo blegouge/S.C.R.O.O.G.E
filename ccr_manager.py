@@ -83,7 +83,7 @@ def ccr_compress(text: str, threshold_chars: int | None = None) -> tuple[str, bo
             applied = True
             
             retrieve_path = "~/.cursor/bin/ccr_retrieve.py"
-            return f"[CCR_BLOCK: {sha256_val} (Logs collapsés). Pour récupérer l'original, lance la commande: python3 {retrieve_path} {sha256_val}]"
+            return f"[CCR_BLOCK: {sha256_val} (Collapsed logs). To retrieve the original, run the command: python3 {retrieve_path} {sha256_val}]"
         except Exception as exc:
             sys.stderr.write(f"[ccr] Error caching block {sha256_val}: {exc}\n")
             return match.group(0)

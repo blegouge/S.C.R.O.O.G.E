@@ -801,4 +801,4 @@ if __name__ == "__main__":
 
 ---
 
-*Runbook maintenu dans `~/.cursor/docs/STACK_INSTALL_RUNBOOK.md`. Documents liés : `docs/ONBOARDING-RUNBOOK.md` (onboarding détaillé macOS), `AGENT.md` (architecture du hub), `token-telemetry/COMPRESSION_README.md` (Claw/LLMLingua).*
+*Runbook maintenu dans `~/.cursor/docs/fr/STACK_INSTALL_RUNBOOK.md`. Documents liés : `docs/fr/ONBOARDING-RUNBOOK.md` (onboarding détaillé macOS), `AGENT.md` (architecture du hub), `token-telemetry/COMPRESSION_README.md` (Claw/LLMLingua).*

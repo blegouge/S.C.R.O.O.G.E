@@ -448,7 +448,7 @@ Local data remains in each repo (`.code-review-graph/`) and in `~/.code-review-g
 
 - [RTK - Installation Guide](https://voyageprive.atlassian.net/wiki/spaces/companydepartment/pages/2444099649/RTK+-+Installation+Guide) — VPG structure template  
 - [code-review-graph (GitHub)](https://github.com/tirth8205/code-review-graph) — upstream documentation  
-- Internal hub: `~/.gemini/antigravity/docs/ANTIGRAVITY-IA-OPTIMISATION.md` (graph + token stack section)
+- Internal hub: `~/.gemini/antigravity/docs/fr/ANTIGRAVITY-IA-OPTIMISATION.md` (graph + token stack section)
 
 ---
 

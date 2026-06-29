@@ -1,6 +1,9 @@
 # Token telemetry (local proxy metrics)
 
-> **Location (June 2026)**: application in `~/www/private/TelemetryToken`; persistent data unchanged in `~/.cursor/token-telemetry/` (`events.jsonl`, `dashboard-layout.json`, `diff-only-last-text.txt`). Variables: `CURSOR_TOKEN_TELEMETRY_APP`, `CURSOR_TOKEN_TELEMETRY_DATA_DIR`.
+> **Emplacement (juin 2026)** : application dans `~/www/private/TelemetryToken` ; données persistantes inchangées dans `~/.cursor/token-telemetry/` (`events.jsonl`, `dashboard-layout.json`, `diff-only-last-text.txt`). Variables : `CURSOR_TOKEN_TELEMETRY_APP`, `CURSOR_TOKEN_TELEMETRY_DATA_DIR`.
+
+
+English comments per hub convention; user-facing notes can stay French elsewhere.
 
 ## What this measures
 
@@ -17,16 +20,16 @@ Additionally:
 - Diagnostic: `~/.cursor/bin/diagnose-subagent-telemetry.sh`
 - `afterAgentResponse` rows may include **`input_tokens` / `output_tokens`** when Cursor exposes them.
 
-Python walks **string fields** inside that JSON and counts characters, then derives **`approx_tokens = ceil(chars / 4)`** — a coarse proxy like "English-like GPT tokenization guess".
+Python walks **string fields** inside that JSON and counts characters, then derives **`approx_tokens = ceil(chars / 4)`** — a coarse proxy like “English-like GPT tokenization guess”.
 
 For `afterAgentResponse`, the hook also extracts a structured signal for the **Consumption report** block (`consumption_present`, `consumption_complete`, `work_mode`, `tool_activity`, `token_risk`, etc.) when present in the assistant response text.
 
-**Compliance hooks** (also in `report.py` + dashboard panel "Compliance hooks"):
+**Compliance hooks** (also in `report.py` + dashboard bandeau « Compliance hooks »):
 
 | Event | Source | KPI |
 |-------|--------|-----|
-| `afterAgentResponse` | `token-telemetry.py` | `consumption_present` / `consumption_complete` (5 fields) |
-| `consumptionReportCompliance` | `stop-compliance.py` | retries hook stop, ok, giveup |
+| `afterAgentResponse` | `token-telemetry.py` | `consumption_present` / `consumption_complete` (5 champs) |
+| `consumptionReportCompliance` | `stop-compliance.py` | relances hook stop, ok, abandon |
 | `taskBriefValidation` | `semantic-compress-pretool.py` | brief pass / denied (Task deny) |
 | `subagentLaunch` | pretool | `idempotent_context_injected` |
 
@@ -46,10 +49,10 @@ Composer **reject** counts are **not** available from public Cursor hooks (not s
 |------|------|
 | `token-telemetry/icon.jpg` | navbar logo + favicon (served also as `/favicon.ico` when using `serve_dashboard.py`) |
 | `~/.cursor/token-telemetry/events.jsonl` | append-only JSON log |
-| `token-telemetry/dashboard.html` | Dashboard UI — dark neon "terminal" style, KPI cards, histogram + donut, tables, theme toggle & file load |
+| `token-telemetry/dashboard.html` | Dashboard UI — dark neon “terminal” style, KPI cards, histogram + donut, tables, theme toggle & file upload |
 | `token-telemetry/serve_dashboard.py` | bind `127.0.0.1:8765`; JSON log read from **`~/.cursor/token-telemetry/events.jsonl`** (same when frozen), plus `/api/rtk-gain` for RTK savings (global + project). |
-| `token-telemetry/dashboard_app.py` | System window (**pywebview**), threaded HTTP server. |
-| `token-telemetry/requirements-desktop.txt` / `requirements-native-build.txt` | Optional dependencies (webview only vs `.app` build). |
+| `token-telemetry/dashboard_app.py` | Fenêtre système (**pywebview**), serveur HTTP en thread. |
+| `token-telemetry/requirements-desktop.txt` / `requirements-native-build.txt` | Dépendances optionnelles (webview seul vs build `.app`). |
 | `token-telemetry/build_macos_app.sh` | Build **`dist/Token Telemetry.app`** (PyInstaller). |
 | `token-telemetry/native_app/TokenTelemetry.spec` | Spec PyInstaller. |
 | `token-telemetry/report.py` | no-server CLI totals |
@@ -69,27 +72,27 @@ python3 ~/.cursor/token-telemetry/serve_dashboard.py
 # open http://127.0.0.1:8765/
 ```
 
-### macOS Application (standalone `.app`)
+### Application macOS (`.app` autonome)
 
-To get a Finder / Dock application without manually configuring a python environment with pywebview: compile once from this directory (**macOS only**):
+Pour une **app dans le Finder / Dock**, sans installer Python avec pywebview vous-même : compile une fois depuis ce dossier (**macOS uniquement**) :
 
 ```bash
 cd ~/.cursor/token-telemetry
 ./build_macos_app.sh
 ```
 
-The script:
+Le script :
 
-- uses a venv `./.venv-build` (customizable via `TOKEN_TELEMETRY_BUILD_VENV`);
-- installs `requirements-native-build.txt` (`pywebview` + `pyinstaller`);
-- optionally generates `native_app/Token Telemetry.icns` from `icon.jpg`;
-- builds `dist/Token Telemetry.app` and performs an ad-hoc signing (`codesign --force --deep --sign -`) to satisfy WebKit.
+- utilise un venv `./.venv-build` (modifiable via `TOKEN_TELEMETRY_BUILD_VENV`) ;
+- installe **`requirements-native-build.txt`** (`pywebview` + `pyinstaller`) ;
+- génère éventuellement **`native_app/Token Telemetry.icns`** à partir de `icon.jpg` ;
+- écrit **`dist/Token Telemetry.app`** et tente une signature **ad hoc** (`codesign --sign -`) pour satisfaire WebKit.
 
-Then, drag `Token Telemetry.app` into **Applications** (or run it from `dist/`). Billed data reads stay in `~/.cursor/token-telemetry/events.jsonl` (aligned with Cursor hooks); only the HTML and the icon are embedded in the bundle.
+Ensuite : glisser **`Token Telemetry.app`** dans **Applications** (ou le lancer depuis `dist/`). Les données lues restent **`~/.cursor/token-telemetry/events.jsonl`** (aligné avec les hooks Cursor) ; seuls le HTML et l’icône sont embarqués dans le bundle.
 
-**Gatekeeper**: if macOS blocks execution (*unverified app*), right-click → **Open**, or run `xattr -dr com.apple.quarantine "/path/to/Token Telemetry.app"` once. For serious distribution, a paid **Apple Developer ID** and `codesign` / notarization would be required.
+**Gatekeeper** : si macOS bloque l’ouverture (*app non vérifiée*), clic droit → **Ouvrir**, ou `xattr -dr com.apple.quarantine "/chemin/vers/Token Telemetry.app"` une fois. Pour une distribution sérieuse il faudrait un **Apple Developer ID** et `codesign` / notarization.
 
-**Architecture**: the binary mirrors the interpreter used during build (e.g. Homebrew Python **x86_64** under Rosetta vs native Apple Silicon). Rebuild on the target machine or with an **arm64** Python if needed.
+**Architecture** : le binaire reflète l’interpréteur utilisé lors du build (ex. Python Homebrew **x86_64** sous Rosetta ≠ natif Apple Silicon). Rebuild sur la machine cible ou avec un Python **arm64** si besoin.
 
 ### Desktop window (native WebKit wrapper)
 
@@ -120,9 +123,9 @@ The HTTP server (`127.0.0.1`, default port `8765` or next free port) runs inside
 
 macOS Dock / double-click without tying up a Terminal session: wrap the same `python3 … dashboard_app.py` line in Automator (**Application**) or Shortcuts (**Run Shell Script**), optionally with `nohup … & disown`-style wrappers if you spawn it from Automator scripts that exit immediately — many users keep a pinned Automator `.app` in the Dock.
 
-The dashboard header includes a **Grafana-like refresh control**: immediate **Refresh** (loads `/api/events`) and an interval menu (**Disabled**, **5 min**, **30 min**, **1 h**). The choice is stored in **`localStorage`**. **Load file** switches to offline JSONL and resets auto-refresh to **Disabled**; use **Refresh** again to pull live **`events.jsonl`** from the server, then re-enable an interval if you want.
+The dashboard header includes a **Grafana-like refresh control**: immediate **Rafraîchir** (loads `/api/events`) and an interval menu (**Désactivé**, **5 min**, **30 min**, **1 h**). The choice is stored in **`localStorage`**. **Charger un fichier** switches to offline JSONL and resets auto-refresh to **Désactivé**; use **Rafraîchir** again to pull live **`events.jsonl`** from the server, then re-enable an interval if you want.
 
-RTK integration requires `rtk` to be available on the PATH used by `serve_dashboard.py`; otherwise the RTK KPI falls back to "unavailable".
+RTK integration requires `rtk` to be available on the PATH used by `serve_dashboard.py`; otherwise the RTK KPI falls back to “indisponible”.
 
 Global gains KPI combines:
 
@@ -131,7 +134,7 @@ Global gains KPI combines:
 
 ### Daily gain % chart
 
-Bar chart (always **per calendar day**): `100 × savings / (observed + savings)` where savings = RTK daily + Task compression + Diff-Only. Stays readable when billed tokens are in the millions.
+Bar chart (always **per calendar day**): `100 × savings / (observed + savings)` where savings = RTK daily + Task compression + Diff-Only. Stays readable when billed tokens are in the millions (May 28+ spikes).
 
 ### Counterfactual chart (observed vs without optimizations)
 
@@ -139,8 +142,8 @@ The trend chart plots two series per time bucket (hour or day):
 
 | Series | Meaning |
 |--------|---------|
-| **Consumed (observed)** | `billed_total_tokens` on `afterAgentResponse` when present; else `input_tokens`+`output_tokens`; tool/subagent proxies elsewhere |
-| **Without optimizations (estimated)** | observed + savings attributed in that bucket |
+| **Consommé (observé)** | `billed_total_tokens` on `afterAgentResponse` when present; else `input_tokens`+`output_tokens`; tool/subagent proxies elsewhere |
+| **Sans optimisations (estimé)** | observed + savings attributed in that bucket |
 
 Savings attributed per bucket:
 
@@ -148,13 +151,13 @@ Savings attributed per bucket:
 - **Task compression** — `compression_*_saved*` / input→after delta on `subagentLaunch`
 - **Diff-Only** — `diff_only.estimated_chars_saved / 4` on `diffOnlyApply:*`
 
-KPI strip **Optimizations comparison** sums the same model over the whole log window (RTK only on calendar days that appear in the log).
+KPI strip **Comparatif optimisations** sums the same model over the whole log window (RTK only on calendar days that appear in the log).
 
 This is still an **estimate** (no per-subagent Cursor billing; possible overlap between parent context and hook savings). Use for trend/gain visibility, not invoicing.
 
 Dashboard shows per-run **claw** / **llm** badges and `compression_backend` breakdown. Rebuild **`Token Telemetry.app`** after `dashboard.html` changes if you use the bundled macOS app.
 
-**Parity with `report.py`:** subagent KPIs (launches, stops, prompt/out proxy) and **Parent billed** (average + sum + latest) use the same aggregation as the CLI (`telemetry_metrics.summarize_report`). The web UI also exposes `GET /api/report-summary`. Optional subtitle **this turn** shows the current session only (for context). Task launches now inherit `session_id` from recent log rows when `preToolUse` omits it (`telemetry_common.enrich_correlation`).
+**Parity with `report.py`:** subagent KPIs (launches, stops, prompt/out proxy) and **Parent billed** (average + sum + latest) use the same aggregation as the CLI (`telemetry_metrics.summarize_report`). The web UI also exposes `GET /api/report-summary`. Optional subtitle **ce tour** shows the current session only (for context). Task launches now inherit `session_id` from recent log rows when `preToolUse` omits it (`telemetry_common.enrich_correlation`).
 
 ## Privacy / rotation
 

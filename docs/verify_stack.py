@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""verify_stack.py - Sanity check de la stack d'optimisation de tokens (~/.cursor).
+"""verify_stack.py - Sanity check of the token optimization stack (~/.cursor).
 
 Auto-contenu : stdlib uniquement. Multi-OS (macOS/Linux/Windows).
-Renvoie un rapport [OK]/[FAIL] par brique. Exit 0 si tout OK, 1 sinon.
+Returns a report [OK]/[FAIL] per block. Exit 0 if all OK, 1 otherwise.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def load_module(name: str, path: Path):
     return module
 
 
-# --- Brique 1 : Hooks interceptent une commande factice -----------------------
+# --- Block 1: Hooks intercept a dummy command -----------------------
 def check_hooks() -> None:
     try:
         hooks_file = HUB / "hooks.json"
@@ -52,8 +52,8 @@ def check_hooks() -> None:
         has_after = "afterAgentResponse" in hooks
         has_subagent = "subagentStop" in hooks
 
-        # Interception simulee d'une commande factice : la regle de matching
-        # "Shell" doit s'appliquer a un appel terminal du type "ls -la".
+        # Simulated interception of a dummy command: matching rule
+        # "Shell" must apply to a terminal call of type "ls -la".
         fake_tool = "Shell"
         intercepted = shell_hook is not None and shell_hook.get("matcher") == fake_tool
 
@@ -62,12 +62,12 @@ def check_hooks() -> None:
             f"shell_intercept={intercepted}, "
             f"afterAgentResponse={has_after}, subagentStop={has_subagent}"
         )
-        record("Hooks (interception commande factice)", ok, detail)
+        record("Hooks (dummy command interception)", ok, detail)
     except Exception as exc:  # noqa: BLE001
-        record("Hooks (interception commande factice)", False, f"erreur: {exc}")
+        record("Hooks (dummy command interception)", False, f"error: {exc}")
 
 
-# --- Brique 2 : Diff-Only applique un patch de test ---------------------------
+# --- Block 2: Diff-Only applies a test patch ---------------------------
 def check_diff_only() -> None:
     try:
         applier = load_module("diff_applier", SRC_UTILS / "diff_applier.py")
@@ -90,12 +90,12 @@ def check_diff_only() -> None:
             content = target.read_text(encoding="utf-8")
             ok = bool(getattr(result, "ok", False)) and "line B (patched)" in content
             detail = f"applied={getattr(result, 'applied', None)}, errors={getattr(result, 'errors', None)}"
-            record("Diff-Only (application patch test)", ok, detail)
+            record("Diff-Only (test patch application)", ok, detail)
     except Exception as exc:  # noqa: BLE001
-        record("Diff-Only (application patch test)", False, f"erreur: {exc}")
+        record("Diff-Only (test patch application)", False, f"error: {exc}")
 
 
-# --- Brique 3 : Cache Git ecrit son JSON dans projects/ -----------------------
+# --- Block 3: Git Cache writes its JSON in projects/ -----------------------
 def check_git_cache() -> None:
     try:
         acm = load_module("adaptive_context_manager", SRC_UTILS / "adaptive_context_manager.py")
@@ -114,7 +114,7 @@ def check_git_cache() -> None:
             projects_dir.mkdir()
 
             snapshot = acm.collect_git_repo_snapshot(repo)
-            assert snapshot is not None, "snapshot Git introuvable"
+            assert snapshot is not None, "Git snapshot not found"
             signature = acm.compute_git_signature(snapshot)
 
             entry = acm.Block2CacheEntry(
@@ -134,9 +134,9 @@ def check_git_cache() -> None:
                 and cache_path.suffix == ".json"
                 and cache_path.name.startswith("cache_")
             )
-            record("Cache Git (ecriture JSON dans projects/)", ok, f"file={cache_path.name}")
+            record("Git Cache (JSON write in projects/)", ok, f"file={cache_path.name}")
     except Exception as exc:  # noqa: BLE001
-        record("Cache Git (ecriture JSON dans projects/)", False, f"erreur: {exc}")
+        record("Git Cache (JSON write in projects/)", False, f"error: {exc}")
 
 
 def _git(repo: Path, *args: str) -> None:
@@ -148,7 +148,7 @@ def _git(repo: Path, *args: str) -> None:
     )
 
 
-# --- Brique 4 : Observabilite + Gouvernance -----------------------------------
+# --- Block 4: Observability + Governance -----------------------------------
 def check_observability_and_governance() -> None:
     try:
         TT_DATA.mkdir(parents=True, exist_ok=True)
@@ -166,15 +166,15 @@ def check_observability_and_governance() -> None:
         gov_missing = [str(p) for p in governance if not p.exists()]
 
         ok = append_ok and not gov_missing
-        detail = f"events_append={append_ok}, manquants={gov_missing or 'aucun'}"
-        record("Observabilite + Gouvernance", ok, detail)
+        detail = f"events_append={append_ok}, missing={gov_missing or 'none'}"
+        record("Observability + Governance", ok, detail)
     except Exception as exc:  # noqa: BLE001
-        record("Observabilite + Gouvernance", False, f"erreur: {exc}")
+        record("Observability + Governance", False, f"error: {exc}")
 
 
 def main() -> int:
     print("=" * 64)
-    print(" verify_stack.py - Sanity check stack tokens (~/.cursor)")
+    print(" verify_stack.py - Sanity check token stack (~/.cursor)")
     print(f" HUB = {HUB}")
     print("=" * 64)
 
@@ -196,11 +196,11 @@ def main() -> int:
 
     print()
     total = len(results)
-    print(f"Resultat : {total - failures}/{total} briques OK.")
+    print(f"Result: {total - failures}/{total} blocks OK.")
     if failures:
-        print("Au moins une brique en echec : voir les details ci-dessus.")
+        print("At least one block failed: see details above.")
         return 1
-    print("Stack verifiee : toutes les briques testees sont operationnelles.")
+    print("Stack verified: all tested blocks are operational.")
     return 0
 
 
