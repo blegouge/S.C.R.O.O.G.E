@@ -4212,12 +4212,55 @@
       ev.target.value = "";
     });
 
+    let availableProviders = [];
+
+    async function loadProviders() {
+      try {
+        const resp = await fetch("/api/providers");
+        if (!resp.ok) throw new Error("Failed to load providers");
+        availableProviders = await resp.json();
+        return availableProviders;
+      } catch (e) {
+        console.error("Failed to load providers:", e);
+        // Fallback to cursor if API fails
+        availableProviders = [{ id: "cursor", label: "Cursor" }];
+        return availableProviders;
+      }
+    }
+
+    function populateProviderSelect(providers, selectedId) {
+      const select = document.getElementById("sourceSelect");
+      if (!select) return;
+
+      // Clear existing options
+      select.innerHTML = "";
+
+      // Add options from providers
+      providers.forEach(provider => {
+        const option = document.createElement("option");
+        option.value = provider.id;
+        option.textContent = provider.label;
+        select.appendChild(option);
+      });
+
+      // Set selected value if it exists in the list, otherwise use first available
+      if (providers.find(p => p.id === selectedId)) {
+        select.value = selectedId;
+      } else if (providers.length > 0) {
+        select.value = providers[0].id;
+        // Update localStorage with the fallback
+        try {
+          localStorage.setItem("cursor_telemetry_source", providers[0].id);
+        } catch (_) {}
+      }
+    }
+
     async function switchSource() {
       const source = getSource();
       try {
         localStorage.setItem("cursor_telemetry_source", source);
       } catch (_) {}
-      
+
       updateHeaderTitle();
 
       const container = document.getElementById("dashboardSections");
@@ -4230,7 +4273,7 @@
           console.error("Failed to load layout preferences:", e);
         }
       }
-      
+
       void manualRefreshFromApi();
     }
 
@@ -4239,16 +4282,8 @@
       const titleEl = document.querySelector(".brand h1");
       if (titleEl) {
         const base = t("brandTitle");
-        const suffix =
-          source === "antigravity"
-            ? "(Antigravity)"
-            : source === "hermes"
-              ? "(Hermes)"
-              : source === "gemini"
-                ? "(Gemini CLI)"
-                : source === "claude"
-                  ? "(Claude Code)"
-                  : "(Cursor)";
+        const provider = availableProviders.find(p => p.id === source);
+        const suffix = provider ? `(${provider.label})` : "(Cursor)";
         titleEl.textContent = `${base} ${suffix}`;
       }
     }
@@ -4269,14 +4304,17 @@
         else applyTranslations(ev.target.value);
       });
 
+      // Load available providers from API
+      const providers = await loadProviders();
+
+      // Get saved source preference
       let activeSource = "cursor";
       try {
         activeSource = localStorage.getItem("cursor_telemetry_source") || "cursor";
       } catch (_) {}
-      const sourceSelect = document.getElementById("sourceSelect");
-      if (sourceSelect) {
-        sourceSelect.value = activeSource;
-      }
+
+      // Populate provider select with available providers
+      populateProviderSelect(providers, activeSource);
       updateHeaderTitle();
 
       await initDashboardSections();

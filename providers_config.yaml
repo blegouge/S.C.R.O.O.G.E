@@ -1,0 +1,38 @@
+# Configuration des sources de télémétrie
+# Chaque provider est activé via sa variable d'environnement (disabled par défaut)
+
+sources:
+  cursor:
+    env_enabled: TELEMETRY_CURSOR_ENABLED
+    data_dir: ~/.cursor/token-telemetry
+    rtk_cwd: null
+    env_home: null
+    label: Cursor
+
+  claude:
+    env_enabled: TELEMETRY_CLAUDE_ENABLED
+    data_dir: ~/.claude/token-telemetry
+    rtk_cwd: ~/.claude
+    env_home: CLAUDE_HOME
+    label: Claude Code
+
+  gemini:
+    env_enabled: TELEMETRY_GEMINI_ENABLED
+    data_dir: ~/.gemini/token-telemetry
+    rtk_cwd: ~/.gemini
+    env_home: null
+    label: Gemini CLI
+
+  antigravity:
+    env_enabled: TELEMETRY_ANTIGRAVITY_ENABLED
+    data_dir: ~/.gemini/antigravity/token-telemetry
+    rtk_cwd: ~/.gemini/antigravity
+    env_home: ANTIGRAVITY_HOME
+    label: Antigravity
+
+  hermes:
+    env_enabled: TELEMETRY_HERMES_ENABLED
+    data_dir: ~/.hermes/token-telemetry
+    rtk_cwd: ~/.hermes
+    env_home: HERMES_HOME
+    label: Hermes

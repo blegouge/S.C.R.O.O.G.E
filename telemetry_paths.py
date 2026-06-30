@@ -6,9 +6,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-DEFAULT_DATA_DIR = Path.home() / ".cursor" / "token-telemetry"
-GEMINI_DATA_DIR = Path.home() / ".gemini" / "token-telemetry"
-HERMES_DATA_DIR = Path.home() / ".hermes" / "token-telemetry"
+from providers_config import get_data_dir
+
 DEFAULT_APP_DIR = Path.home() / "www" / "private" / "TelemetryToken"
 
 
@@ -17,11 +16,11 @@ def resolve_data_dir(source: str | None = None) -> Path:
     override = os.environ.get("CURSOR_TOKEN_TELEMETRY_DATA_DIR", "").strip()
     if override:
         return Path(override).expanduser()
-    if source == "hermes":
-        return HERMES_DATA_DIR
-    if source == "gemini":
-        return GEMINI_DATA_DIR
-    return DEFAULT_DATA_DIR
+    data_dir = get_data_dir(source or "cursor")
+    if data_dir is None:
+        # Fallback to cursor default if provider not found
+        return Path.home() / ".cursor" / "token-telemetry"
+    return data_dir
 
 
 def resolve_log_file(source: str | None = None) -> Path:

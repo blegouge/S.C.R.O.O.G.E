@@ -6,12 +6,24 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+
+# Load .env file if present (before other imports that use env vars)
+_env_file = pathlib.Path(__file__).parent / ".env"
+if _env_file.is_file():
+    for line in _env_file.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" in line:
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip())
 import re
 import shutil
 import subprocess
 import sys
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
+from providers_config import get_data_dir, get_enabled_providers, get_rtk_cwd
 from telemetry_metrics import summarize_report
 from telemetry_paths import resolve_data_dir
 
@@ -25,20 +37,10 @@ def package_root() -> pathlib.Path:
 
 def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
     """Return (log_path, layout_path) for source ('cursor', 'antigravity', 'claude', 'gemini', 'hermes')."""
-    if source == "antigravity":
-        home = os.getenv("ANTIGRAVITY_HOME")
-        if home:
-            d = pathlib.Path(home) / "token-telemetry"
-        else:
-            d = pathlib.Path.home() / ".gemini" / "antigravity" / "token-telemetry"
-    elif source == "claude":
-        home = os.getenv("CLAUDE_HOME")
-        if home:
-            d = pathlib.Path(home) / "token-telemetry"
-        else:
-            d = pathlib.Path.home() / ".claude" / "token-telemetry"
-    else:
-        d = resolve_data_dir(source=source)
+    d = get_data_dir(source)
+    if d is None:
+        # Fallback to cursor default if provider not found
+        d = pathlib.Path.home() / ".cursor" / "token-telemetry"
     d.mkdir(parents=True, exist_ok=True)
     return d / "events.jsonl", d / "dashboard-layout.json"
 
@@ -112,23 +114,8 @@ def load_rtk_gain(project: bool = False, source: str = "cursor") -> dict[str, ob
         args.append("--project")
 
     env = _patched_env()
-    cwd = None
-    if source == "antigravity":
-        antigravity_dir = pathlib.Path.home() / ".gemini" / "antigravity"
-        if antigravity_dir.is_dir():
-            cwd = str(antigravity_dir)
-    elif source == "claude":
-        claude_dir = pathlib.Path.home() / ".claude"
-        if claude_dir.is_dir():
-            cwd = str(claude_dir)
-    elif source == "gemini":
-        gemini_dir = pathlib.Path.home() / ".gemini"
-        if gemini_dir.is_dir():
-            cwd = str(gemini_dir)
-    elif source == "hermes":
-        hermes_dir = pathlib.Path.home() / ".hermes"
-        if hermes_dir.is_dir():
-            cwd = str(hermes_dir)
+    rtk_cwd = get_rtk_cwd(source)
+    cwd = str(rtk_cwd) if rtk_cwd is not None else None
 
     errors: list[str] = []
     for base in _rtk_cmd_candidates():
@@ -278,6 +265,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload)
             return
+        if path == "/api/providers":
+            providers = get_enabled_providers()
+            payload = json.dumps(providers, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
         if path in ("/", "/index.html"):
             body = (
                 DASH.read_text(encoding="utf-8")
@@ -352,14 +349,19 @@ def make_httpd(preferred_port: int = PORT) -> tuple[HTTPServer, int]:
 
 
 def main() -> None:
-    c_log, _ = get_paths("cursor")
-    a_log, _ = get_paths("antigravity")
-    cl_log, _ = get_paths("claude")
-    print(f"Telemetry Token: Cursor = {c_log} | Antigravity = {a_log} | Claude = {cl_log}")
+    providers = get_enabled_providers()
+    if providers:
+        paths_info = " | ".join([f"{p['label']} = {get_paths(p['id'])[0]}" for p in providers])
+    else:
+        paths_info = "(no providers enabled)"
+    print(f"Telemetry Token: {paths_info}")
     httpd, port = make_httpd()
     print(f"Ouvre http://{HOST}:{port}/ (CTRL+C pour arrêter)")
     httpd.serve_forever()
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nArrêt du serveur.")
