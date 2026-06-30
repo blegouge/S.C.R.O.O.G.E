@@ -1063,7 +1063,7 @@
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app" style="opacity: 0; transition: opacity 0.2s;">
     <header class="nav-glass">
       <div class="brand">
         <img class="brand-icon" src="icon.jpg" alt="" width="42" height="42" decoding="async" fetchpriority="high" />
@@ -1756,6 +1756,9 @@
         globalUnavailableErr: "global unavailable ({err})",
         globalUnavailable: "global unavailable",
         runServeDashboard: "Run serve_dashboard.py (localhost)",
+        noProvidersError: "No providers enabled. Set TELEMETRY_*_ENABLED=1 in .env (see .env.example)",
+        noProvidersTitle: "No providers configured",
+        noProvidersMessage: "Enable at least one telemetry provider in your .env file, then restart the server.",
         chartEstimatedGain: "Estimated gain (%)",
         chartConsumedObserved: "Consumed (observed)",
         chartWithoutOpts: "Without optimizations (estimated)",
@@ -1967,6 +1970,9 @@
         globalUnavailableErr: "global indisponible ({err})",
         globalUnavailable: "global indisponible",
         runServeDashboard: "Lancer serve_dashboard.py (localhost)",
+        noProvidersError: "Aucun provider activé. Définir TELEMETRY_*_ENABLED=1 dans .env (voir .env.example)",
+        noProvidersTitle: "Aucun provider configuré",
+        noProvidersMessage: "Activez au moins un provider de télémétrie dans votre fichier .env, puis redémarrez le serveur.",
         chartEstimatedGain: "Gain estimé (%)",
         chartConsumedObserved: "Consommé (observé)",
         chartWithoutOpts: "Sans optimisations (estimé)",
@@ -4222,10 +4228,69 @@
         return availableProviders;
       } catch (e) {
         console.error("Failed to load providers:", e);
-        // Fallback to cursor if API fails
-        availableProviders = [{ id: "cursor", label: "Cursor" }];
+        availableProviders = [];
         return availableProviders;
       }
+    }
+
+    function showNoProvidersError() {
+      // Create error overlay that covers everything
+      const overlay = document.createElement("div");
+      overlay.id = "no-providers-error";
+      overlay.innerHTML = `
+        <div class="error-icon">⚠️</div>
+        <h1>${t("noProvidersTitle")}</h1>
+        <p>${t("noProvidersMessage")}</p>
+        <pre><code># .env
+TELEMETRY_CLAUDE_ENABLED=1
+TELEMETRY_CURSOR_ENABLED=1</code></pre>
+      `;
+
+      // Add styles
+      const style = document.createElement("style");
+      style.textContent = `
+        #no-providers-error {
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 99999 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background: #1a1a2e !important;
+          color: #fff !important;
+          font-family: system-ui, sans-serif !important;
+          text-align: center !important;
+          padding: 2rem !important;
+        }
+        #no-providers-error .error-icon {
+          font-size: 5rem !important;
+          margin-bottom: 1.5rem !important;
+        }
+        #no-providers-error h1 {
+          font-size: 2rem !important;
+          margin: 0 0 1rem !important;
+          color: #ff6b6b !important;
+        }
+        #no-providers-error p {
+          font-size: 1.1rem !important;
+          max-width: 500px !important;
+          line-height: 1.6 !important;
+          margin: 0 0 2rem !important;
+        }
+        #no-providers-error pre {
+          background: rgba(0,0,0,0.4) !important;
+          padding: 1.5rem 2rem !important;
+          border-radius: 8px !important;
+          font-size: 1rem !important;
+          text-align: left !important;
+          border: 1px solid rgba(255,255,255,0.2) !important;
+          margin: 0 !important;
+          color: #fff !important;
+        }
+      `;
+      document.head.appendChild(style);
+      document.body.appendChild(overlay);
     }
 
     function populateProviderSelect(providers, selectedId) {
@@ -4307,6 +4372,12 @@
       // Load available providers from API
       const providers = await loadProviders();
 
+      // Error if no providers enabled
+      if (providers.length === 0) {
+        showNoProvidersError();
+        return;
+      }
+
       // Get saved source preference
       let activeSource = "cursor";
       try {
@@ -4316,6 +4387,9 @@
       // Populate provider select with available providers
       populateProviderSelect(providers, activeSource);
       updateHeaderTitle();
+
+      // Show the app now that we know providers exist
+      document.querySelector(".app").style.opacity = "1";
 
       await initDashboardSections();
       try {
