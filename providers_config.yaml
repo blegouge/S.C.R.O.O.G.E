@@ -23,15 +23,15 @@ sources:
     data_dir: ~/.gemini/token-telemetry
     rtk_cwd: ~/.gemini
     env_home: GEMINI_HOME
-    env_stats: GEMINI_CLI_STATS_DIR
+    env_stats: GEMINI_STATS_DIR,GEMINI_CLI_STATS_DIR
     label: Gemini CLI
 
   antigravity:
     env_enabled: TELEMETRY_ANTIGRAVITY_ENABLED
     data_dir: ~/.gemini/antigravity/token-telemetry
     rtk_cwd: ~/.gemini/antigravity
-    env_home: ANTIGRAVITY_HOME,GEMINI_HOME
-    env_stats: GEMINI_STATS_DIR,ANTIGRAVITY_STATS_DIR
+    env_home: ANTIGRAVITY_HOME
+    env_stats: ANTIGRAVITY_STATS_DIR
     label: Antigravity
 
   hermes:
