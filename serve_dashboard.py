@@ -7,16 +7,6 @@ import json
 import os
 import pathlib
 
-# Load .env file if present (before other imports that use env vars)
-_env_file = pathlib.Path(__file__).parent / ".env"
-if _env_file.is_file():
-    for line in _env_file.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if "=" in line:
-            key, _, value = line.partition("=")
-            os.environ.setdefault(key.strip(), value.strip())
 import re
 import shutil
 import subprocess
@@ -26,6 +16,7 @@ try:
 except ImportError:
     from http.server import HTTPServer, SimpleHTTPRequestHandler
 
+import telemetry_paths
 from providers_config import get_data_dir, get_enabled_providers, get_rtk_cwd
 from telemetry_metrics import summarize_report, summarize_layer_kpis
 from telemetry_paths import resolve_data_dir
