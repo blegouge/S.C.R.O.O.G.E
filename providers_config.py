@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -28,6 +29,8 @@ _config_cache: dict[str, ProviderConfig] | None = None
 
 
 def _config_path() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS) / "providers_config.yaml"
     return Path(__file__).parent / "providers_config.yaml"
 
 
