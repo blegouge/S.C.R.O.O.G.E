@@ -48,7 +48,7 @@ def load_telemetry_env() -> None:
 # Load env configurations immediately on import
 load_telemetry_env()
 
-DEFAULT_DATA_DIR = Path.home() / ".cursor" / "token-telemetry"
+from providers_config import get_data_dir
 DEFAULT_APP_DIR = Path.home() / "www" / "private" / "TelemetryToken"
 
 
@@ -58,46 +58,11 @@ def resolve_data_dir(source: str | None = None) -> Path:
     override = os.environ.get("CURSOR_TOKEN_TELEMETRY_DATA_DIR", "").strip()
     if override:
         return Path(override).expanduser()
-
-    # 2. Check source specific stats directories from env
-    if source == "cursor" or source is None:
-        c_stats = os.environ.get("CURSOR_STATS_DIR", "").strip()
-        if c_stats:
-            return Path(c_stats).expanduser()
-        c_home = os.environ.get("CURSOR_HOME", "").strip()
-        if c_home:
-            return Path(c_home).expanduser() / "token-telemetry"
-        return DEFAULT_DATA_DIR
-
-    if source == "gemini" or source == "antigravity":
-        g_stats = os.environ.get("GEMINI_STATS_DIR", "").strip() or os.environ.get("ANTIGRAVITY_STATS_DIR", "").strip()
-        if g_stats:
-            return Path(g_stats).expanduser()
-        g_home = os.environ.get("ANTIGRAVITY_HOME", "").strip() or os.environ.get("GEMINI_HOME", "").strip()
-        if g_home:
-            return Path(g_home).expanduser() / "token-telemetry"
-        return Path.home() / ".gemini" / "antigravity" / "token-telemetry"
-
-    if source == "hermes":
-        h_stats = os.environ.get("HERMES_STATS_DIR", "").strip()
-        if h_stats:
-            return Path(h_stats).expanduser()
-        h_home = os.environ.get("HERMES_HOME", "").strip()
-        if h_home:
-            return Path(h_home).expanduser() / "token-telemetry"
-        return Path.home() / ".hermes" / "token-telemetry"
-
-    if source == "claude":
-        cl_stats = os.environ.get("CLAUDE_STATS_DIR", "").strip()
-        if cl_stats:
-            return Path(cl_stats).expanduser()
-        cl_home = os.environ.get("CLAUDE_HOME", "").strip()
-        if cl_home:
-            return Path(cl_home).expanduser() / "token-telemetry"
-        return Path.home() / ".claude" / "token-telemetry"
-
-    # Default fallback
-    return DEFAULT_DATA_DIR
+    data_dir = get_data_dir(source or "cursor")
+    if data_dir is None:
+        # Fallback to cursor default if provider not found
+        return Path.home() / ".cursor" / "token-telemetry"
+    return data_dir
 
 
 def resolve_log_file(source: str | None = None) -> Path:
