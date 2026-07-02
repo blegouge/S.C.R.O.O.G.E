@@ -1,0 +1,32 @@
+---
+description: Prefer RTK for terminal-heavy work; hook covers Antigravity Shell tool; explicit rtk elsewhere
+alwaysApply: false
+---
+
+# RTK (token-efficient CLI)
+
+## What is already automated
+
+Antigravity is configured with a **global `preToolUse` hook** (`rtk hook antigravity`, matcher **Shell**) that **rewrites** typical shell commands to token-compact RTK equivalents. Assume **invocations via the Shell tool are already rewritten** when the hook is active.
+
+## When to use RTK explicitly (no reliance on the hook)
+
+Do **not** assume RTK applies when:
+
+- The user runs commands **manually** in an external terminal and pastes output into the chat — suggest they install/use `rtk` or paste summarized output.
+- You give **copy-paste command snippets** in the reply (user may run them outside Antigravity) — **write the RTK form** in those snippets (`rtk git status`, not plain `git status`, unless full fidelity is required).
+- Output must be **byte-identical / raw** for debugging — use **`rtk proxy <cmd>`** or **`rtk run <cmd>`** as documented by RTK, not uncompressed dumps by default.
+
+## Prefer RTK-shaped commands when choosing equivalents
+
+When you would otherwise run or recommend raw CLI noise (`cat`, verbose `grep`, `find`, `ls -la`, full test logs, large `git diff`), prefer:
+
+- **`rtk read`** over `cat`/full file dumps when filtering is acceptable.
+- **`rtk grep`**, **`rtk find`**, **`rtk ls`**, **`rtk git`**, **`rtk cargo`**, **`rtk pytest`**, **`rtk npm`/`rtk npx`**, **`rtk kubectl`**, **`rtk docker`**, **`rtk diff`** (and project-specific wrappers like **`rtk jest`**, **`rtk playwright`**) where applicable.
+
+Keep normal safety: confirm destructive commands (`git reset`, migrations, prod) regardless of wrapper.
+
+## Hygiene
+
+- After CLI-heavy sessions, **`rtk gain`** is the supported way to review savings.
+- If a command is not covered by RTK, keep output short (pagination, `head`, scoped paths) per `rules/subagent-usage.mdc` synthesis rules.

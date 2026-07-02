@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "rtk hook cursor",
+        "matcher": "Shell"
+      },
+      {
+        "command": "{{HUB}}/hooks/diff-only-pretool-write.sh",
+        "matcher": "Write"
+      },
+      {
+        "command": "{{HUB}}/hooks/semantic-compress-pretool.sh",
+        "matcher": "Task"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "{{HUB}}/hooks/tt-posttool.sh"
+      }
+    ],
+    "afterAgentResponse": [
+      {
+        "command": "{{HUB}}/hooks/diff-only-after-response.sh"
+      },
+      {
+        "command": "{{HUB}}/hooks/tt-after-response.sh"
+      }
+    ],
+    "stop": [
+      {
+        "command": "{{HUB}}/hooks/stop-compliance.sh",
+        "loop_limit": 2
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": "{{HUB}}/hooks/diff-only-subagent-stop.sh"
+      },
+      {
+        "command": "{{HUB}}/hooks/tt-subagent-stop.sh"
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "{{HUB}}/hooks/tt-after-file-edit.sh"
+      },
+      {
+        "command": "{{HUB}}/hooks/crg-update.sh",
+        "timeout": 5
+      }
+    ],
+    "afterTabFileEdit": [
+      {
+        "command": "{{HUB}}/hooks/tt-after-tab-edit.sh"
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": "{{HUB}}/hooks/crg-session-start.sh",
+        "timeout": 5
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "matcher": "^git\\s+commit",
+        "command": "{{HUB}}/hooks/crg-pre-commit.sh",
+        "timeout": 10
+      }
+    ]
+  }
+}

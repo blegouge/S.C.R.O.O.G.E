@@ -1,0 +1,52 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "command": "uvx",
+      "args": [
+        "code-review-graph",
+        "serve"
+      ],
+      "type": "stdio",
+      "env": {
+        "OPENSSL_DIR": "/usr/local/opt/openssl@3"
+      }
+    },
+    "shell-executor": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-shell"
+      ]
+    },
+    "code-explorer": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-ripgrep",
+        "--path",
+        "{{CODEBASE_ROOT}}"
+      ]
+    },
+    "github": {
+      "command": "{{HUB}}/bin/mcp-env-exec.sh",
+      "args": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {}
+    },
+    "gitlab": {
+      "command": "{{HUB}}/bin/mcp-env-exec.sh",
+      "args": [
+        "npx",
+        "-y",
+        "@structured-world/gitlab-mcp"
+      ],
+      "env": {
+        "GITLAB_API_URL": "https://gitlab.vpg.tech",
+        "LOG_LEVEL": "error"
+      }
+    }
+  }
+}

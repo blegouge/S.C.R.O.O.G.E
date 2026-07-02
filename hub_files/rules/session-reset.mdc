@@ -1,0 +1,53 @@
+---
+description: Session Reset Protocol — guidelines for compressing context and resetting long chats to save credits.
+alwaysApply: true
+---
+
+# Session Reset & Context Compressor Protocol
+
+In modern IDE platforms like Cursor and Antigravity, the chat panel maintains the entire conversation history, transmitting it with every new user message. Over long sessions, this creates quadratic $O(N^2)$ token growth, leading to high credit consumption.
+
+To bypass this platform limitation, you must utilize the **Session Reset Protocol** to periodically prune the conversation context while preserving 100% of the active state.
+
+## 1. When to Suggest a Session Reset
+Suggest a session reset to the user when:
+- The conversation length reaches **10-15 messages** (or is getting noticeably slower).
+- A subagent Task is rejected due to a heavy history or token budget threshold warnings.
+- The user asks about credit optimization or mentions starting clean.
+- The telemetry dashboard indicates high input token counts for recent turns.
+
+## 2. Generating the Session Reset Summary
+When initiating a reset, compile the active state into a copy-pasteable markdown block using the template below. Print this block in your final response and ask the user to start a new chat (CMD+L/CMD+K) and paste it.
+
+```text
+# RESUMING SESSION: [Short Title]
+
+## Active Goal
+[High-level objective of the task]
+
+## Current Progress & Tasks
+- [x] Completed task A
+- [/] In progress task B
+- [ ] Pending task C
+
+## Touched / Relevant Files
+- [File Basename](file:///absolute/path/to/file#L10-L40): [Purpose of changes or context]
+- [Another File](file:///absolute/path/to/another_file)
+
+## Config & Environment
+- CCR_ENABLED: [0 | 1]
+- COMPRESSION_BACKEND: [claw | headroom | llmlingua]
+- Active branches: [branch name]
+
+## Key Technical Decisions / State
+[Brief list of technical constraints, symbols modified, or decisions reached]
+
+## Verification Status
+[Tests run, passing status, or pending manual verification]
+```
+
+## 3. Resuming from a Session Reset Summary
+If a user starts a conversation with a `# RESUMING SESSION` header:
+1. **Acknowledge and Ingest:** Immediately parse the summary and update your internal state (including `task.md` and `walkthrough.md` if applicable).
+2. **Do Not Re-explore:** Do not re-scan the entire repository. Use the listed files and ranges to continue exactly where the previous session left off.
+3. **Continue Implementation:** Resume the active goals immediately.

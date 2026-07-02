@@ -1,0 +1,16 @@
+---
+description: Route subagent-style work to the narrowest skill and matching subagent type
+alwaysApply: false
+---
+
+# Subagent Skill Routing
+
+**Canonical catalog:** `src/rules/skills_routing.md` (SSOT — skill → subagent type, topic index, selection strategy).
+
+**Caps / escalation:** `rules/subagent-usage.mdc` first.
+
+When subagent-style or multi-step analysis is needed:
+
+1. Pick the **narrowest** skill from the catalog; read `skills/<name>/SKILL.md` for procedure.
+2. Broad / ambiguous / multi-workflow → `skills/subagent-playbook/SKILL.md` (still obey caps).
+3. After parent triage → pair domain skill with `skills/spec-driven-idempotency/SKILL.md`.

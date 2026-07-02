@@ -1,0 +1,155 @@
+---
+description: >-
+  MCP health once per calendar day + dynamic MCP routing/masking for subagents
+  (minimal tool inheritance). Override on explicit MCP refresh/troubleshooting.
+alwaysApply: true
+---
+
+# MCP Availability Check (daily oneshot)
+
+## Scope
+
+Perform the full MCP checklist **only when required** below. Goal: avoid repeating probes and noisy status blocks **for the rest of the same calendar day**.
+
+**Also applies every turn (no stamp bypass):** § Dynamic MCP masking — classify the task, compute an MCP allowlist, and enforce minimal MCP inheritance for subagents **before** any `Task` spawn.
+
+## Mandatory first step
+
+1. **Today’s calendar date**: use **`Today's date`** from user_info (canonical). Normalize to **`YYYY-MM-DD`** in local terms (same as the assistant’s authoritative date).
+
+2. **Stamp file**: read **`~/.gemini/antigravity/mcp-daily-stamp.txt`** (always the Antigravity **user config** directory, regardless of current Git/repo workspace).  
+   - If read fails or file is absent: stamp is invalid.
+
+3. **Decide**:
+
+   - If the file contents (trimmed) **equal exactly** today’s **`YYYY-MM-DD`**:  
+     → **STOP** — do **not** read `mcp_config.json` for MCP listing, **do not** probe MCP servers, **do not** output any MCP status block. Continue with the user’s request normally.
+
+   - Otherwise (wrong date / empty / unreadable): run **§ Full check**, then overwrite **`~/.gemini/antigravity/mcp-daily-stamp.txt`** with today’s **`YYYY-MM-DD`** (single line, no BOM). Optionally overwrite **`~/.gemini/antigravity/mcp-daily-status-cache.txt`** with one minimal status line (`OK`, or short failure summary—optional telemetry for the human).
+
+### User overrides — always full check again
+
+Bypass the stamp and force **§ Full check** (+ rewrite **`~/.gemini/antigravity/mcp-daily-stamp.txt`**) whenever the user **explicitly** asks, e.g.: MCP down, reconnect, refresh status, vérif MCP, problème MCP, token MCP, désactiver MCP, etc.—even after a prior check the same day.
+
+## Full check
+
+When required by § Mandatory first step or § User overrides:
+
+1. Read **`mcp_config.json`** (workspace or active **`~/.gemini/antigravity/mcp_config.json`** as appropriate) and list each **`mcpServers`** key.
+2. Probe each server with **`list_mcp_resources`** **or** one minimal read-only MCP call; on error/timeout, mark unavailable. Identifiers may differ from config keys; use MCP responses where needed.
+3. Emit a short **MCP status** section (French is fine):
+
+   - **Disponibles**: OK servers.
+   - **À activer ou à vérifier**: failures with **Activer** (Antigravity → Settings → Tools & MCP), **Mettre à jour l’accès**, **Serveur indisponible**, **Script ou dépendances** hints as applies.
+   - If all OK: one line (*« Tous les serveurs MCP configurés sont disponibles. »*).
+
+### If probe tools unavailable
+
+Still read **`mcp_config.json`** and advise checking **Settings → Tools & MCP** for disconnected servers, then rewrite stamp if this run was intended as daily check completion.
+
+---
+
+## Dynamic MCP masking (subagent isolation)
+
+**Goal:** cut subagent initialization cost by exposing **only** MCP servers the delegated work can use. The parent agent owns routing; subagents inherit a **minimal** allowlist, not the full global registry.
+
+### When to classify
+
+Run classification **once per user turn** (or again only if intent clearly shifts mid-turn):
+
+1. First user message of the turn, **or**
+2. Jira / Confluence ticket already triaged and embedded in `[CONTEXT]` (ticket body counts as the task source), **or**
+3. Explicit user override (`use Datadog`, `check Grafana`, `fetch Jira XYZ-123`, etc.).
+
+Emit a one-line internal decision (not required in user reply unless debugging MCP routing):
+
+`MCP task class: LOCAL_CODE | HYBRID | INTEGRATION — allowlist: <comma-separated keys>`
+
+### Task classes
+
+| Class | Definition | Default parent MCP use |
+|-------|------------|-------------------------|
+| **`LOCAL_CODE`** | Strictly repository-local work: refactor, tests, bugfix, diff-only implementation, PR review prep **after** parent triage, mapping/explore in git tree. No live prod query, no ticket fetch, no dashboard/log search **in the subagent scope**. | **Deny** injecting or using observability / Atlassian / DB MCP for subagents. Parent may still use **`code-review-graph`** (and git host MCP on parent only if user asked for PR/issue fetch). |
+| **`HYBRID`** | Code **plus** one external evidence source (e.g. incident: repo + Datadog; migration: repo + MySQL). | Allowlist = union of **subagent type baseline** + **skill-required** servers only. |
+| **`INTEGRATION`** | Primary work is external: Jira triage, status report, log/metric investigation, DB inspection, deploy/ops, Confluence spec intake. | Allowlist = **skill-required** servers; still **no** “full registry” passthrough. |
+
+**Jira → local handoff:** If the parent already fetched the ticket and embedded excerpts in `[CONTEXT]` (`spec-driven-idempotency`), treat the **subagent** scope as **`LOCAL_CODE`** even when the conversation started from Jira. Atlassian MCP stays on the **parent** only unless the subagent brief explicitly requires live Jira/Confluence reads (`RESCAN: allowed` + reason).
+
+**Upgrade triggers:** User or ticket text explicitly names Datadog, Grafana, Elasticsearch, MySQL (`bong`/`oxy`), GitHub/GitLab API, Atlassian, production logs/metrics/traces, or “check prod” → at least **`HYBRID`** for that subagent.
+
+### Exclusive routing (parent, before `Task`)
+
+When class is **`LOCAL_CODE`**, the parent **must not**:
+
+- Paste MCP tool schemas, JSON descriptors, or `mcps/<server>/tools/*` dumps into the `Task` prompt.
+- Pre-call **`CallMcpTool`** on denied servers “to warm context” for the subagent.
+- List denied servers in the brief except under **`[MCP_DENYLIST]`** (keys only, no schemas).
+
+Denied by default in **`LOCAL_CODE`** (unless user override in the same turn):
+
+`atlassian`, `plugin-atlassian-atlassian`, `user-atlassian`, `datadog`, `user-datadog`, `grafana`, `user-grafana`, `els-product`, `user-els-product`, `els-catalog`, `user-els-catalog`, `bong`, `user-bong`, `oxy`, `user-oxy`, `figma`, `plugin-figma-figma`, `linear`, `plugin-linear-linear`
+
+Allowed baseline for **`LOCAL_CODE`** subagents:
+
+`code-review-graph`, `user-code-review-graph`, `code-explorer`, `user-code-explorer`, `shell-executor`, `user-shell-executor`
+
+Add **`github`** / **`gitlab`** only when the brief includes git-host operations (PR checks, issue links) that the subagent must perform itself.
+
+### Minimal context — subagent type baselines
+
+Intersect **task class** with **subagent type** (from `rules/subagent-usage.mdc`). The subagent receives **only** the intersection unless **`[MCP_ALLOWLIST]`** explicitly adds a key with reason.
+
+| Subagent type | Baseline allowlist | Never inherit by default |
+|---------------|-------------------|---------------------------|
+| **`explore`** | `code-review-graph`, `code-explorer` | `datadog`, `grafana`, `atlassian`, `els-*`, `bong`, `oxy`, `shell-executor`, git hosts |
+| **`generalPurpose`** | Same as **`explore`**, plus servers named by the active **skill** (see `rules/subagent-skill-routing.mdc`) | All others |
+| **`shell`** | `shell-executor`, `code-review-graph` | Observability, Atlassian, DB, git hosts (unless brief adds them) |
+| **`browser`** / UI | *(none)* — browser automation only | Entire MCP registry unless user explicitly pairs browser + MCP in the same subagent |
+| **`ci-investigator`** | `github` or `gitlab` (match repo remote), `code-review-graph` | Observability, DB, Atlassian |
+| **`antigravity-guide`** | *(none)* | Entire MCP registry |
+
+### Skill-required additions (HYBRID / INTEGRATION)
+
+Add **only** what the routed skill needs:
+
+| Skill / topic | Add to allowlist |
+|---------------|------------------|
+| Jira create/prompt rules | `atlassian` (+ plugin/user alias if present) |
+| PR workflow | `github` and/or `gitlab` |
+
+### Subagent brief contract (mandatory with `Task`)
+
+Per `rules/subagent-usage.mdc`, every subagent brief **must** include:
+
+```text
+[MCP_ALLOWLIST]: <comma-separated server keys>
+[MCP_DENYLIST]: <comma-separated server keys — optional but recommended for LOCAL_CODE>
+MCP task class: LOCAL_CODE | HYBRID | INTEGRATION
+```
+
+Rules:
+
+- **Keys only** — never embed tool schemas or descriptor file contents in the brief.
+- Subagent **must** treat `[MCP_DENYLIST]` as hard off-limits: no `CallMcpTool`, no reading `mcps/<denied>/`, no retries on denied servers.
+- Subagent **must not** expand the allowlist; missing MCP → return `ESCALATION: need MCP <key> — reason: …` to parent.
+- Parent **must** compute allowlist **before** spawning; do not rely on the subagent to self-filter from the global MCP file tree.
+
+### Parent vs subagent MCP usage
+
+| Actor | Rule |
+|-------|------|
+| **Parent** | May use any MCP needed for triage **before** `Task`. After spawn, avoid parallel MCP calls on denied servers for the same workstream unless user asked. |
+| **Subagent** | **Strict allowlist only.** Prefer native tools (`Read`, `Grep`, `Shell`, `Task` forbidden) over MCP when equivalent. |
+| **Direct tools (no subagent)** | Full MCP registry remains available; masking applies to **`Task` / subagent** delegation only. |
+
+### Overrides
+
+- User explicitly names a server or integration in the same turn → add that key to `[MCP_ALLOWLIST]` with one-line reason.
+- User says “full MCP” / “all integrations” → skip masking for that subagent (document in brief: `MCP task class: INTEGRATION (user override)`).
+- MCP troubleshooting requests → run **§ Full check**; masking does not block probes on the **parent** agent.
+
+## Notes
+
+- The **small stamp read each turn is intentional** vs full probes—the user accepted that overhead.
+- **Masking is behavioral** (prompt + tool discipline). Antigravity may still attach server descriptors at the platform layer; this rule minimizes **parent-authored** schema bloat and **subagent-initiated** calls to irrelevant servers.
+- **English** for reasoning; preserve French labels in the MCP status paragraph when emitted.

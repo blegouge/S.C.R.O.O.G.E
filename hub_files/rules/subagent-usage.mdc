@@ -1,0 +1,63 @@
+---
+description: Deliberate subagent use with token-aware caps, escalation, and briefs
+alwaysApply: true
+---
+
+# Subagent Usage
+
+Use subagents only when they clearly beat direct tools on speed or coverage. Prefer fewer, better-scoped runs.
+
+## Escalation (default order)
+
+1. Answer with **direct tools** (read, grep, single commands) when the scope is narrow.
+2. If the surface is large or still blocked after one light pass, use **one** subagent with a tight brief.
+3. Add a **second** subagent only for a clearly **independent** workstream (e.g. code vs observability).
+4. **Parallel** subagents only if the user asked for parallelism **or** the wall-clock win is obvious and tasks do not share the same files/context.
+
+## Caps
+
+- **Default**: at most **1** subagent per user turn.
+- **Allow 2** when two independent tracks exist (document why briefly).
+- **More than 2** or heavy parallelism: only when the user explicitly requests it **or** when independent subtasks are strictly parallelizable without overlapping context; never exceed **4** concurrent subagents.
+
+## Subagent types
+
+- `explore`: repository discovery, architecture mapping, wide keyword/file search.
+- `generalPurpose`: complex research when the path is unclear.
+- `shell`: command-heavy workflows or longer terminal sequences.
+- **Browser / UI**: follow **`browser-ui-testing`** skill; use the browser-capable subagent type Antigravity exposes for that skill (e.g. browser automation in the Task/subagent UI), not a generic agent.
+
+Skill → type hints: `src/rules/skills_routing.md`.
+
+## When not to use a subagent
+
+- Simple questions, single-file reads, or narrow searches you can finish directly.
+- Do not paste raw subagent output as the final answer—**synthesize** for the user.
+- Do not spawn a subagent to repeat context the parent already has; point to paths and questions only.
+
+## Spec-driven idempotency (after parent triage)
+
+**Canonical procedure:** `skills/spec-driven-idempotency/SKILL.md`.
+
+When the parent already triaged (Jira, local read/grep, PR prep): follow that skill. Brief must include `Skill: spec-driven-idempotency`, `[CONTEXT]` excerpts (not bare paths), `[GOALS]`, `[SCOPE]`, `[CONSTRAINTS]`, `[AC]`; default `RESCAN: forbidden`.
+
+**MCP isolation:** classify task; set `[MCP_ALLOWLIST]` / `[MCP_DENYLIST]` per `rules/mcp-availability-check.mdc` § Dynamic MCP masking.
+
+**Hook enforcement:** `preToolUse` Task validates brief (`TASK_BRIEF_ENFORCE=deny` in `~/.gemini/antigravity/compression.env`).
+
+## Brief template (every subagent)
+
+- **Skill** (one line): domain skill + `spec-driven-idempotency` when delegating after discovery.
+- **Purpose** (one sentence).
+- **`MCP task class`** + **`[MCP_ALLOWLIST]`** (+ **`[MCP_DENYLIST]`** when `LOCAL_CODE`).
+- **`[CONTEXT]`** with **verbatim excerpts** (required for non-explore; hook injects idempotency tag):
+  ```text
+  [CONTEXT]
+  src/module.py:10-25
+  <paste exact lines from parent triage — not path-only>
+  ```
+- **`[AC]`**, **deliverables**, **output shape** (Diff-Only hunks when editing — `src/rules/diff_protocol.md`), **stop condition**.
+
+## After subagents
+
+Consolidate into one concise user-facing answer: findings, gaps, and recommended next step.
