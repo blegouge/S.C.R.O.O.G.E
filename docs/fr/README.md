@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/icon.jpg" alt="Token Telemetry Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
+  <img src="assets/icon.jpg" alt="S.C.R.O.O.G.E. Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
 </p>
 
-# 🚀 Token Optimization & Telemetry Stack
+# 🚀 S.C.R.O.O.G.E. - Context Optimization & Telemetry Stack
 
 > **Métriques locales par proxy et compression intelligente des invites (prompts) pour les IDE de nouvelle génération**
 
@@ -11,7 +11,7 @@
 [![Supported IDEs: Cursor | Antigravity | Claude Code | Gemini](https://img.shields.io/badge/IDEs-Cursor%20%7C%20Antigravity%20%7C%20ClaudeCode%20%7C%20Gemini-purple.svg)](#)
 [![Licence: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 
-Token Telemetry est une suite locale de métriques de proxy de développement et d'optimisation conçue pour mesurer, visualiser et réduire considérablement le coût d'exécution des workflows de programmation assistés par IA. Elle intercepte automatiquement les requêtes d'agent, applique des stratégies de compression agressives et surveille la conformité de l'espace de travail en temps réel.
+S.C.R.O.O.G.E. (Smart Context Reducer & Optimized Observability Governance Engine) est une suite locale de métriques de proxy de développement et d'optimisation conçue pour mesurer, visualiser et réduire considérablement le coût d'exécution des workflows de programmation assistés par IA. Elle intercepte automatiquement les requêtes d'agent, applique des stratégies de compression agressives et surveille la conformité de l'espace de travail en temps réel.
 
 ---
 
@@ -29,7 +29,7 @@ Faites défiler vers le bas pour suivre chaque session de sous-agent, analyser l
 
 ## ✨ Fonctionnalités Clés
 
-1. **📊 Télémétrie locale des tokens**
+1. **📊 Télémétrie locale S.C.R.O.O.G.E.**
    - Enregistre les métriques de manière asynchrone dans un fichier local `events.jsonl`, puis les synchronise de façon incrémentale dans une base SQLite centrale (`telemetry.db`).
    - Les endpoints de requêtes interrogent directement la base SQLite indexée pour des recherches rapides en O(log N).
    - S'exécute aussi comme une **App macOS Desktop native** (via PyInstaller) pour une expérience autonome sans navigateur.
@@ -63,18 +63,18 @@ Faites défiler vers le bas pour suivre chaque session de sous-agent, analyser l
 
 | Fichier / Répertoire | Description |
 |---|---|
-| 🛠️ [install_stack.py](file:///Users/blegouge/www/private/TelemetryToken/install_stack.py) | Script d'installation interactif, idempotent et automatisé. |
-| 🌐 [serve_dashboard.py](file:///Users/blegouge/www/private/TelemetryToken/serve_dashboard.py) | Backend HTTP léger servant l'API du dashboard et l'interface HTML. |
-| 🖥️ [dashboard_app.py](file:///Users/blegouge/www/private/TelemetryToken/dashboard_app.py) | Chargeur de fenêtre de bureau native utilisant `pywebview`. |
-| 🎨 [dashboard.html](file:///Users/blegouge/www/private/TelemetryToken/dashboard.html) | SPA moderne à thème sombre avec mise en page dynamique et rafraîchissement automatique. |
-| 🎨 [dashboard.css](file:///Users/blegouge/www/private/TelemetryToken/dashboard.css) | Feuilles de style CSS indépendantes extraites pour la SPA. |
-| ⚡ [dashboard.js](file:///Users/blegouge/www/private/TelemetryToken/dashboard.js) | Logique applicative du client dashboard, graphiques Chart.js dynamiques. |
-| 🗄️ [telemetry_db.py](file:///Users/blegouge/www/private/TelemetryToken/telemetry_db.py) | Gestionnaire de la base SQLite et des synchronisations incrémentales. |
-| ⚙️ [telemetry_config.py](file:///Users/blegouge/www/private/TelemetryToken/telemetry_config.py) | ConfigManager centralisant les options d'environnement et de compression. |
-| 📊 [report.py](file:///Users/blegouge/www/private/TelemetryToken/report.py) | Outil CLI pour afficher le résumé de consommation directement dans le terminal. |
-| 📁 [docs/verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py) | Suite de tests automatisée post-installation validant tous les composants. |
-| ⚙️ [providers_config.py](file:///Users/blegouge/www/private/TelemetryToken/providers_config.py) | Logique de mapping des répertoires et des providers IA. |
-| ⚙️ [providers_config.yaml](file:///Users/blegouge/www/private/TelemetryToken/providers_config.yaml) | Définition YAML des répertoires IDE et de la configuration des prix. |
+| 🛠️ [install_stack.py](file:///Users/blegouge/www/private/SCROOGE/install_stack.py) | Script d'installation interactif, idempotent et automatisé. |
+| 🌐 [serve_dashboard.py](file:///Users/blegouge/www/private/SCROOGE/serve_dashboard.py) | Backend HTTP léger servant l'API du dashboard et l'interface HTML. |
+| 🖥️ [dashboard_app.py](file:///Users/blegouge/www/private/SCROOGE/dashboard_app.py) | Chargeur de fenêtre de bureau native utilisant `pywebview`. |
+| 🎨 [dashboard.html](file:///Users/blegouge/www/private/SCROOGE/dashboard.html) | SPA moderne à thème sombre avec mise en page dynamique et rafraîchissement automatique. |
+| 🎨 [dashboard.css](file:///Users/blegouge/www/private/SCROOGE/dashboard.css) | Feuilles de style CSS indépendantes extraites pour la SPA. |
+| ⚡ [dashboard.js](file:///Users/blegouge/www/private/SCROOGE/dashboard.js) | Logique applicative du client dashboard, graphiques Chart.js dynamiques. |
+| 🗄️ [telemetry_db.py](file:///Users/blegouge/www/private/SCROOGE/telemetry_db.py) | Gestionnaire de la base SQLite et des synchronisations incrémentales. |
+| ⚙️ [telemetry_config.py](file:///Users/blegouge/www/private/SCROOGE/telemetry_config.py) | ConfigManager centralisant les options d'environnement et de compression. |
+| 📊 [report.py](file:///Users/blegouge/www/private/SCROOGE/report.py) | Outil CLI pour afficher le résumé de consommation directement dans le terminal. |
+| 📁 [docs/verify_stack.py](file:///Users/blegouge/www/private/SCROOGE/docs/verify_stack.py) | Suite de tests automatisée post-installation validant tous les composants. |
+| ⚙️ [providers_config.py](file:///Users/blegouge/www/private/SCROOGE/providers_config.py) | Logique de mapping des répertoires et des providers IA. |
+| ⚙️ [providers_config.yaml](file:///Users/blegouge/www/private/SCROOGE/providers_config.yaml) | Définition YAML des répertoires IDE et de la configuration des prix. |
 
 ---
 
@@ -93,7 +93,7 @@ python3 install_stack.py
 4. **Configuration interactive des secrets** : Récupère vos clés d'API (Grafana, GitHub, MySQL, etc.) et les stocke dans un fichier `.env` sécurisé (`chmod 600`).
 5. **Environnement virtuel Python** : Crée un environnement dédié `.venv-desktop` et y installe les dépendances.
 6. **Normalisation des règles/skills** : Réécrit dynamiquement les références textuelles selon l'IDE cible (Cursor vs Antigravity).
-7. **Validation** : Exécute [verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py) pour valider l'état fonctionnel de chaque brique.
+7. **Validation** : Exécute [verify_stack.py](file:///Users/blegouge/www/private/SCROOGE/docs/verify_stack.py) pour valider l'état fonctionnel de chaque brique.
 8. **Lancement de service** : Propose de lancer automatiquement le démon du dashboard en tâche de fond sur le port `8765`.
 
 ---
@@ -145,7 +145,7 @@ Pour générer un exécutable double-cliquable dans votre Dock macOS :
 ```bash
 ./build_macos_app.sh
 ```
-Cela générera `dist/Token Telemetry.app` via PyInstaller, inclura l'icône de l'application et effectuera une signature locale.
+Cela générera `dist/SCROOGE.app` via PyInstaller, inclura l'icône de l'application et effectuera une signature locale.
 
 ---
 

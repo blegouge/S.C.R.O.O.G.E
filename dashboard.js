@@ -1,7 +1,7 @@
 const TRANSLATIONS = {
       en: {
-        brandTitle: "Telemetry Token",
-        brandSub: "Proxy consumption & applied edits",
+        brandTitle: "S.C.R.O.O.G.E.",
+        brandSub: "Smart Context Reducer & Optimized Observability Governance Engine",
         navInfoTip: "Local telemetry — the chart compares observed consumption (billed by Cursor when available) to an estimate without optimizations (real + RTK savings, Task compression, Diff-Only).",
         refreshNowTitle: "Refresh from server now",
         refreshMenuTitle: "Auto-refresh interval",
@@ -214,8 +214,8 @@ const TRANSLATIONS = {
         briefsTagged: "{pct}% briefs tagged",
       },
       fr: {
-        brandTitle: "Telemetry Token",
-        brandSub: "Consommation proxy & modifications appliquées",
+        brandTitle: "S.C.R.O.O.G.E.",
+        brandSub: "Smart Context Reducer & Optimized Observability Governance Engine",
         navInfoTip: "Télémesure locale — le graphique compare la consommation observée (facturée par Cursor si disponible) à une estimation sans optimisations (gains réels + RTK, compression Task, Diff-Only).",
         refreshNowTitle: "Actualiser depuis le serveur maintenant",
         refreshMenuTitle: "Intervalle d'auto-actualisation",

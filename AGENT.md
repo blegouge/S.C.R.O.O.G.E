@@ -1,8 +1,8 @@
-# TelemetryToken
+# S.C.R.O.O.G.E.
 
 ## Purpose
 
-Local Token Telemetry application for the Cursor hub: dashboard, CLI reports, Claw Compactor venv, and macOS `.app` build. **Persistent data** stays in `~/.cursor/token-telemetry/` (see `README-DATA.md` there).
+Local S.C.R.O.O.G.E. application for the Cursor hub: dashboard, CLI reports, Claw Compactor venv, and macOS `.app` build. **Persistent data** stays in `~/.cursor/token-telemetry/` (see `README-DATA.md` there).
 
 ## Stack
 
@@ -14,7 +14,7 @@ Local Token Telemetry application for the Cursor hub: dashboard, CLI reports, Cl
 
 | Role | Default |
 |------|---------|
-| App | `~/www/private/TelemetryToken` (`CURSOR_TOKEN_TELEMETRY_APP`) |
+| App | `~/www/private/SCROOGE` (`CURSOR_TOKEN_TELEMETRY_APP`) |
 | Data | `~/.cursor/token-telemetry` (`CURSOR_TOKEN_TELEMETRY_DATA_DIR`) |
 | Events log | `{data}/events.jsonl` (`CURSOR_TOKEN_TELEMETRY_LOG` for tests) |
 
@@ -23,7 +23,7 @@ Hub hooks import this package via `CURSOR_TOKEN_TELEMETRY_APP`; see `~/.cursor/b
 ## Commands
 
 ```bash
-python3 ~/www/private/TelemetryToken/report.py
-python3 ~/www/private/TelemetryToken/serve_dashboard.py
-cd ~/www/private/TelemetryToken && ./build_macos_app.sh
+python3 ~/www/private/SCROOGE/report.py
+python3 ~/www/private/SCROOGE/serve_dashboard.py
+cd ~/www/private/SCROOGE && ./build_macos_app.sh
 ```

@@ -39,7 +39,7 @@ Le hub porte le même rôle sur tous les OS ; seule la racine change. Définisse
 | Skills | `~/.cursor/skills/` | `$HOME\.cursor\skills\` |
 | Spécs / utils injectables | `~/.cursor/src/` | `$HOME\.cursor\src\` |
 | Données télémétrie (append-only) | `~/.cursor/token-telemetry/events.jsonl` | `$HOME\.cursor\token-telemetry\events.jsonl` |
-| App télémétrie (dashboard, report) | `~/www/private/TelemetryToken` | `$HOME\www\private\TelemetryToken` |
+| App télémétrie (dashboard, report) | `~/www/private/SCROOGE` | `$HOME\www\private\SCROOGE` |
 | Cache Git pré-flight (BLOCK_2) | `~/.cursor/projects/cache_<sig>.json` | `$HOME\.cursor\projects\cache_<sig>.json` |
 | Config compression | `~/.cursor/compression.env` | `$HOME\.cursor\compression.env` |
 | Config hooks | `~/.cursor/hooks.json` | `$HOME\.cursor\hooks.json` |
@@ -51,7 +51,7 @@ Le hub porte le même rôle sur tous les OS ; seule la racine change. Définisse
 ```bash
 # macOS / Linux
 export HUB="$HOME/.cursor"
-export TT_APP="${CURSOR_TOKEN_TELEMETRY_APP:-$HOME/www/private/TelemetryToken}"
+export TT_APP="${CURSOR_TOKEN_TELEMETRY_APP:-$HOME/www/private/SCROOGE}"
 export TT_DATA="${CURSOR_TOKEN_TELEMETRY_DATA_DIR:-$HUB/token-telemetry}"
 echo "HUB=$HUB"; echo "TT_APP=$TT_APP"; echo "TT_DATA=$TT_DATA"
 ```
@@ -59,7 +59,7 @@ echo "HUB=$HUB"; echo "TT_APP=$TT_APP"; echo "TT_DATA=$TT_DATA"
 ```powershell
 # Windows PowerShell
 $env:HUB     = "$HOME\.cursor"
-$env:TT_APP  = if ($env:CURSOR_TOKEN_TELEMETRY_APP)      { $env:CURSOR_TOKEN_TELEMETRY_APP }      else { "$HOME\www\private\TelemetryToken" }
+$env:TT_APP  = if ($env:CURSOR_TOKEN_TELEMETRY_APP)      { $env:CURSOR_TOKEN_TELEMETRY_APP }      else { "$HOME\www\private\SCROOGE" }
 $env:TT_DATA = if ($env:CURSOR_TOKEN_TELEMETRY_DATA_DIR) { $env:CURSOR_TOKEN_TELEMETRY_DATA_DIR } else { "$env:HUB\token-telemetry" }
 Write-Host "HUB=$env:HUB"; Write-Host "TT_APP=$env:TT_APP"; Write-Host "TT_DATA=$env:TT_DATA"
 ```

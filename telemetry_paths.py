@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve Token Telemetry application vs persistent data directories."""
+"""Resolve S.C.R.O.O.G.E. application vs persistent data directories."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def load_telemetry_env() -> None:
         search_paths.extend(exec_dir.parents)
     
     # 4. Add default app directory and default home paths
-    search_paths.append(Path.home() / "www" / "private" / "TelemetryToken")
+    search_paths.append(Path.home() / "www" / "private" / "SCROOGE")
     search_paths.append(Path.home() / ".cursor")
     search_paths.append(Path.home() / ".gemini" / "antigravity")
 
@@ -58,7 +58,7 @@ def load_telemetry_env() -> None:
 load_telemetry_env()
 
 from providers_config import get_data_dir
-DEFAULT_APP_DIR = Path.home() / "www" / "private" / "TelemetryToken"
+DEFAULT_APP_DIR = Path.home() / "www" / "private" / "SCROOGE"
 
 
 def resolve_data_dir(source: str | None = None) -> Path:

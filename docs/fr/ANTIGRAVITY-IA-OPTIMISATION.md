@@ -684,7 +684,7 @@ Le dashboard recalcule aussi les anciennes lignes via `compression_input_tokens`
 |-----------|------------------|
 | CLI | `python3 ~/.gemini/antigravity/token-telemetry/report.py` — inclut `claw=` / `llmlingua=` |
 | Web | `serve_dashboard.py` → http://127.0.0.1:8765/ |
-| App macOS | `./build_macos_app.sh` → `dist/Token Telemetry.app` (**rebuild** après changement `dashboard.html`) |
+| App macOS | `./build_macos_app.sh` → `dist/SCROOGE.app` (**rebuild** après changement `dashboard.html`) |
 | Fenêtre native | `dashboard_app.py` (pywebview) |
 | API RTK | `/api/rtk-gain` (global + projet) |
 

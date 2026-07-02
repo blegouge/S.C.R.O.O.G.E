@@ -421,7 +421,7 @@ python3 ~/.gemini/antigravity/token-telemetry/serve_dashboard.py
 
 ```bash
 cd ~/.gemini/antigravity/token-telemetry && ./build_macos_app.sh
-# → dist/Token Telemetry.app
+# → dist/SCROOGE.app
 ```
 
 ---
@@ -483,7 +483,7 @@ Désormais, Cursor lira automatiquement les règles à chaque tour de chat ou d'
 ### 12b.2 Télémétrie Cursor vs Antigravity
 
 Puisque Cursor n'exécute pas nativement de script de hooks lors de l'appel d'outils, la collecte de sa télémétrie se fait de manière passive en lisant son journal interne.
-L'application **Token Telemetry** (compilée ou lancée via `serve_dashboard.py`) écoute et mutualise les deux sources :
+L'application **S.C.R.O.O.G.E.** (compilée ou lancée via `serve_dashboard.py`) écoute et mutualise les deux sources :
 - Utilisez le sélecteur en haut à droite du Dashboard (dropdown) pour basculer instantanément entre **Cursor** et **Antigravity**.
 - Les indicateurs (RTK, Claw, Diff-Only) s'adapteront à la source active.
 

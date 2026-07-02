@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared helpers for token telemetry events.jsonl logging."""
+"""Shared helpers for S.C.R.O.O.G.E. events.jsonl logging."""
 
 from __future__ import annotations
 
