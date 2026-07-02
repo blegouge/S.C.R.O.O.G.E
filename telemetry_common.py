@@ -11,15 +11,29 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from telemetry_paths import resolve_log_file as _default_log_file
+from telemetry_paths import resolve_log_file as _path_log_file
+
+
+def _detect_source() -> str:
+    """Detect telemetry source from environment variables."""
+    if os.environ.get("CLAUDE_TT_EVENT") or os.environ.get("CLAUDE_HOME"):
+        return "claude"
+    if os.environ.get("ANTIGRAVITY_TT_EVENT") or os.environ.get("ANTIGRAVITY_HOME"):
+        return "antigravity"
+    if os.environ.get("GEMINI_TT_EVENT") or os.environ.get("GEMINI_HOME"):
+        return "gemini"
+    if os.environ.get("HERMES_TT_EVENT") or os.environ.get("HERMES_HOME"):
+        return "hermes"
+    # Default to cursor
+    return "cursor"
 
 
 def resolve_log_file() -> Path:
-    """Telemetry log path (override with CURSOR_TOKEN_TELEMETRY_LOG for tests)."""
+    """Telemetry log path (auto-detects source from environment)."""
     override = os.environ.get("CURSOR_TOKEN_TELEMETRY_LOG", "").strip()
     if override:
         return Path(override).expanduser()
-    return _default_log_file()
+    return _path_log_file(source=_detect_source())
 
 
 def resolve_skills_dir() -> Path:
