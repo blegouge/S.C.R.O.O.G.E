@@ -481,9 +481,9 @@ def main() -> int:
                 hooks_out.write_text(json.dumps(tpl_data, indent=2), encoding="utf-8")
                 print(f"Generated {hooks_out}")
 
-        # Process rules and skills to dynamically rewrite references to Cursor vs Antigravity
-        print("Normalizing rule and skill naming references for target IDE...")
-        for root_dir in [HUB / "rules", HUB / "skills", HUB / "docs"]:
+        # Process rules, skills, hooks, and bin files to dynamically rewrite references to Cursor vs Antigravity
+        print("Normalizing path and IDE references for target IDE...")
+        for root_dir in [HUB / "rules", HUB / "skills", HUB / "docs", HUB / "hooks", HUB / "bin"]:
             if root_dir.exists():
                 for p in root_dir.rglob("*"):
                     if p.is_file() and p.suffix in {".md", ".mdc", ".json", ".py", ".sh"}:

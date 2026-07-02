@@ -59,18 +59,18 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 
 | File / Directory | Description |
 |---|---|
-| 🛠️ [install_stack.py](file:///Users/blegouge/www/private/SCROOGE/install_stack.py) | Interactive, idempotent, and automated setup script. |
-| 🌐 [serve_dashboard.py](file:///Users/blegouge/www/private/SCROOGE/serve_dashboard.py) | Light HTTP backend serving the dashboard API and HTML interface. |
-| 🖥️ [dashboard_app.py](file:///Users/blegouge/www/private/SCROOGE/dashboard_app.py) | Native desktop window loader utilizing `pywebview`. |
-| 🎨 [dashboard.html](file:///Users/blegouge/www/private/SCROOGE/dashboard.html) | Modern dark-theme SPA with dynamic layouts and real-time refresh. |
-| 🎨 [dashboard.css](file:///Users/blegouge/www/private/SCROOGE/dashboard.css) | Extracted standalone style sheets for the dashboard SPA. |
-| ⚡ [dashboard.js](file:///Users/blegouge/www/private/SCROOGE/dashboard.js) | Full client application logic, including interactive Chart.js charts. |
-| 🗄️ [telemetry_db.py](file:///Users/blegouge/www/private/SCROOGE/telemetry_db.py) | SQLite database manager coordinating incremental background sync. |
-| ⚙️ [telemetry_config.py](file:///Users/blegouge/www/private/SCROOGE/telemetry_config.py) | Centralized ConfigManager unifying env and compression settings. |
-| 📊 [report.py](file:///Users/blegouge/www/private/SCROOGE/report.py) | Command line utility to display usage summary directly in the terminal. |
-| 📁 [docs/verify_stack.py](file:///Users/blegouge/www/private/SCROOGE/docs/verify_stack.py) | Post-installation automated test suite checking all components. |
-| ⚙️ [providers_config.py](file:///Users/blegouge/www/private/SCROOGE/providers_config.py) | Providers and directory mapping logic. |
-| ⚙️ [providers_config.yaml](file:///Users/blegouge/www/private/SCROOGE/providers_config.yaml) | YAML definition for IDE directories and price configurations. |
+| 🛠️ [install_stack.py](install_stack.py) | Interactive, idempotent, and automated setup script. |
+| 🌐 [serve_dashboard.py](serve_dashboard.py) | Light HTTP backend serving the dashboard API and HTML interface. |
+| 🖥️ [dashboard_app.py](dashboard_app.py) | Native desktop window loader utilizing `pywebview`. |
+| 🎨 [dashboard.html](dashboard.html) | Modern dark-theme SPA with dynamic layouts and real-time refresh. |
+| 🎨 [dashboard.css](dashboard.css) | Extracted standalone style sheets for the dashboard SPA. |
+| ⚡ [dashboard.js](dashboard.js) | Full client application logic, including interactive Chart.js charts. |
+| 🗄️ [telemetry_db.py](telemetry_db.py) | SQLite database manager coordinating incremental background sync. |
+| ⚙️ [telemetry_config.py](telemetry_config.py) | Centralized ConfigManager unifying env and compression settings. |
+| 📊 [report.py](report.py) | Command line utility to display usage summary directly in the terminal. |
+| 📁 [docs/verify_stack.py](docs/verify_stack.py) | Post-installation automated test suite checking all components. |
+| ⚙️ [providers_config.py](providers_config.py) | Providers and directory mapping logic. |
+| ⚙️ [providers_config.yaml](providers_config.yaml) | YAML definition for IDE directories and price configurations. |
 
 ---
 
@@ -89,7 +89,7 @@ python3 install_stack.py
 4. **Interactive Secret Setup**: Collects your API tokens once (Grafana, GitHub, MySQL, etc.) and writes them to a secure `.env` file (`chmod 600`).
 5. **Python Virtual Environment**: Creates a dedicated `.venv-desktop` environment and installs dependencies.
 6. **Rule/Skill Normalization**: Rewrites references to fit the target IDE (Cursor vs. Antigravity).
-7. **Verification**: Executes [verify_stack.py](file:///Users/blegouge/www/private/SCROOGE/docs/verify_stack.py) to validate all components.
+7. **Verification**: Executes [docs/verify_stack.py](docs/verify_stack.py) to validate all components.
 8. **Daemon Launch**: Offers to automatically start the dashboard daemon in the background on port `8765`.
 
 ---

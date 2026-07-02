@@ -30,7 +30,6 @@ def load_telemetry_env() -> None:
         search_paths.extend(exec_dir.parents)
     
     # 4. Add default app directory and default home paths
-    search_paths.append(Path.home() / "www" / "private" / "SCROOGE")
     search_paths.append(Path.home() / ".cursor")
     search_paths.append(Path.home() / ".gemini" / "antigravity")
 
@@ -58,7 +57,7 @@ def load_telemetry_env() -> None:
 load_telemetry_env()
 
 from providers_config import get_data_dir
-DEFAULT_APP_DIR = Path.home() / "www" / "private" / "SCROOGE"
+DEFAULT_APP_DIR = Path(__file__).resolve().parent
 
 
 def resolve_data_dir(source: str | None = None) -> Path:
