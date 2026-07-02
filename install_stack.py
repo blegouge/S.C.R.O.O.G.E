@@ -78,10 +78,17 @@ def copy_tree_idempotent(src: Path, dst: Path, ignore=None, overwrite: bool = Tr
     """Copy directory src to dst, creating parent directories and overwriting existing files (if overwrite is True).
     Prevents infinite recursion if dst is inside src.
     """
-    if not src.exists():
+    if not src.exists() and not src.is_symlink():
         return
-    src_abs = src.resolve()
-    dst_abs = dst.resolve()
+    try:
+        src_abs = src.resolve()
+    except Exception:
+        src_abs = src
+    try:
+        dst_abs = dst.resolve()
+    except Exception:
+        dst_abs = dst
+
     dst.mkdir(parents=True, exist_ok=True)
     for item in os.listdir(src):
         s = src / item
@@ -94,7 +101,18 @@ def copy_tree_idempotent(src: Path, dst: Path, ignore=None, overwrite: bool = Tr
                 continue
         except Exception:
             pass
-        if s.is_dir():
+
+        if s.is_symlink():
+            if not overwrite and (d.exists() or d.is_symlink()):
+                continue
+            try:
+                if d.exists() or d.is_symlink():
+                    d.unlink()
+                target = os.readlink(s)
+                d.symlink_to(target)
+            except Exception as e:
+                print(f"Warning: Could not copy symlink {s} to {d}: {e}")
+        elif s.is_dir():
             copy_tree_idempotent(s, d, ignore, overwrite=overwrite)
         else:
             if not overwrite and d.exists():
@@ -103,6 +121,8 @@ def copy_tree_idempotent(src: Path, dst: Path, ignore=None, overwrite: bool = Tr
                 shutil.copy2(s, d)
             except shutil.SameFileError:
                 pass
+            except Exception as e:
+                print(f"Warning: Could not copy file {s} to {d}: {e}")
 
 
 def main() -> int:
