@@ -9,8 +9,8 @@ import sys
 import threading
 from typing import Any
 
-# Local venv dependency; IDE may not resolve import outside the project interpreter.
-from llmlingua import PromptCompressor
+# Local venv dependency; imported lazily inside _init_compressor.
+# from llmlingua import PromptCompressor
 
 _DEFAULT_MODEL_CANDIDATES = (
     os.getenv("LLMLINGUA_MODEL", "").strip(),
@@ -19,9 +19,10 @@ _DEFAULT_MODEL_CANDIDATES = (
     "microsoft/llmlingua-2-bert-base-multilingual-cased",
 )
 
-_COMPRESSOR: PromptCompressor | None = None
+_COMPRESSOR: Any = None
 _COMPRESSOR_ERROR: Exception | None = None
 _COMPRESSOR_LOCK = threading.Lock()
+_LOADING_THREAD: threading.Thread | None = None
 
 
 def _first_non_empty(items: tuple[str, ...]) -> list[str]:
@@ -37,7 +38,7 @@ def _first_non_empty(items: tuple[str, ...]) -> list[str]:
     return out
 
 
-def _init_compressor() -> PromptCompressor:
+def _init_compressor(blocking: bool = True) -> Any:
     # pylint: disable=global-statement,broad-exception-caught
     global _COMPRESSOR
     global _COMPRESSOR_ERROR
@@ -45,13 +46,24 @@ def _init_compressor() -> PromptCompressor:
     if _COMPRESSOR is not None:
         return _COMPRESSOR
     if _COMPRESSOR_ERROR is not None:
-        raise _COMPRESSOR_ERROR
+        if blocking:
+            raise _COMPRESSOR_ERROR
+        return None
+
+    if not blocking:
+        return None
 
     with _COMPRESSOR_LOCK:
         if _COMPRESSOR is not None:
             return _COMPRESSOR
         if _COMPRESSOR_ERROR is not None:
             raise _COMPRESSOR_ERROR
+
+        try:
+            from llmlingua import PromptCompressor
+        except Exception as exc:
+            _COMPRESSOR_ERROR = exc
+            raise exc
 
         last_error: Exception | None = None
         for model_name in _first_non_empty(_DEFAULT_MODEL_CANDIDATES):
@@ -70,6 +82,28 @@ def _init_compressor() -> PromptCompressor:
 
         _COMPRESSOR_ERROR = last_error or RuntimeError("Unable to initialize LLMLingua")
         raise _COMPRESSOR_ERROR
+
+
+def warmup_compressor() -> None:
+    """Spins up a background thread to load LLMLingua-2 without blocking the main execution."""
+    global _LOADING_THREAD
+    if _COMPRESSOR is not None or _COMPRESSOR_ERROR is not None:
+        return
+    with _COMPRESSOR_LOCK:
+        if _COMPRESSOR is not None or _COMPRESSOR_ERROR is not None:
+            return
+        if _LOADING_THREAD is not None and _LOADING_THREAD.is_alive():
+            return
+
+        def bg_load():
+            try:
+                _init_compressor(blocking=True)
+            except Exception:
+                pass
+
+        _LOADING_THREAD = threading.Thread(target=bg_load, name="llmlingua-warmup", daemon=True)
+        _LOADING_THREAD.start()
+        print("[LLMLingua] Background warmup initiated.", file=sys.stderr)
 
 
 def _approx_token_count(text: str) -> int:
@@ -122,7 +156,16 @@ def compress_prompt_context(prompt: str, rate: float = 0.6) -> tuple[str, bool]:
 
     bounded_rate = min(max(rate, 0.1), 1.0)
     try:
-        compressor = _init_compressor()
+        from telemetry_config import config
+        blocking_init = config.llmlingua_blocking_init
+        if _COMPRESSOR is None:
+            if not blocking_init:
+                warmup_compressor()
+                print("[LLMLingua] Model not ready and blocking init is disabled, skipping compression for this turn.", file=sys.stderr)
+                return prompt, False
+            compressor = _init_compressor(blocking=True)
+        else:
+            compressor = _COMPRESSOR
     except Exception as exc:
         print(f"[LLMLingua] Initialization failed, fallback to original prompt: {exc}", file=sys.stderr)
         return prompt, False

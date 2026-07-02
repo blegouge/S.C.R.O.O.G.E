@@ -51,43 +51,17 @@ from telemetry_common import (  # pylint: disable=import-error
 )
 
 
-def _load_compression_env() -> None:
-    """Load ~/.cursor/compression.env (Cursor hooks do not inherit terminal exports)."""
-    env_path = _HOME_PATH / "compression.env"
-    if not env_path.is_file():
-        return
-    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if line.startswith("export "):
-            line = line[7:].strip()
-        if "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        if key and key not in os.environ:
-            os.environ[key] = value
+from telemetry_config import config
 
-
-_load_compression_env()
-
-DEFAULT_RATE = float(os.getenv("LLMLINGUA_HOOK_RATE", "0.6"))
-DEFAULT_MIN_CHARS = int(os.getenv("LLMLINGUA_HOOK_MIN_CHARS", "1200"))
-DEFAULT_MESSAGE_THRESHOLD = int(os.getenv("ADAPTIVE_CTX_MESSAGE_THRESHOLD", "8"))
-DEFAULT_TOKEN_THRESHOLD = int(os.getenv("ADAPTIVE_CTX_TOKEN_THRESHOLD", "3000"))
+DEFAULT_RATE = config.llmlingua_hook_rate
+DEFAULT_MIN_CHARS = config.llmlingua_hook_min_chars
+DEFAULT_MESSAGE_THRESHOLD = config.adaptive_ctx_message_threshold
+DEFAULT_TOKEN_THRESHOLD = config.adaptive_ctx_token_threshold
 DEFAULT_RECENT_WINDOW = int(os.getenv("ADAPTIVE_CTX_RECENT_WINDOW", "6"))
 DEFAULT_SUMMARIZER_MODE = os.getenv("ADAPTIVE_CTX_SUMMARIZER", "auto").strip().lower() or "auto"
-DEFAULT_COMPRESSION_BACKEND = (
-    os.getenv("COMPRESSION_BACKEND", "claw").strip().lower() or "claw"
-)
-DEFAULT_TASK_BRIEF_ENFORCE = (
-    os.getenv("TASK_BRIEF_ENFORCE", "deny").strip().lower() or "deny"
-)
-DEFAULT_STRUCTURE_MIN_INPUT_TOKENS = int(
-    os.getenv("ADAPTIVE_CTX_STRUCTURE_MIN_INPUT_TOKENS", "2500")
-)
+DEFAULT_COMPRESSION_BACKEND = config.compression_backend
+DEFAULT_TASK_BRIEF_ENFORCE = config.task_brief_enforce
+DEFAULT_STRUCTURE_MIN_INPUT_TOKENS = config.adaptive_ctx_structure_min_input_tokens
 
 STATIC_SYSTEM_BLOCK = build_global_static_block()
 
@@ -483,6 +457,9 @@ def _build_structured_prompt(
     return structured_prompt, stats
 
 
+from telemetry_common import hook_fail_safe
+
+@hook_fail_safe(fallback_json='{"permission": "allow"}')
 def main() -> None:
     data = _load_stdin_json()
     name = _tool_name(data)

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Build Token Telemetry.app with PyInstaller + pywebview (macOS).
-# Run from any directory: bash /path/to/token-telemetry/build_macos_app.sh
+# Build SCROOGE.app with PyInstaller + pywebview (macOS).
+# Run from any directory: bash /path/to/scrooge/build_macos_app.sh
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${TOKEN_TELEMETRY_BUILD_VENV:-${ROOT}/.venv-build}"
-SPEC="${ROOT}/native_app/TokenTelemetry.spec"
-ICNS_DST="${ROOT}/native_app/Token Telemetry.icns"
+SPEC="${ROOT}/native_app/SCROOGE.spec"
+ICNS_DST="${ROOT}/native_app/SCROOGE.icns"
 ICON_SRC="${ROOT}/icon.jpg"
-ICONSET="${ROOT}/native_app/TokenTelemetry.iconset"
+ICONSET="${ROOT}/native_app/SCROOGE.iconset"
 
 log() {
   printf '%s\n' "$*"
@@ -72,7 +72,7 @@ log "Running PyInstaller…"
 cd "${ROOT}"
 "${VENV}/bin/pyinstaller" "${SPEC}" --clean --noconfirm
 
-APP="${ROOT}/dist/Token Telemetry.app"
+APP="${ROOT}/dist/SCROOGE.app"
 if [[ -d "${APP}" ]]; then
   log "Ad-hoc signing (required for WebKit on recent macOS)…"
   codesign --force --deep --sign - "${APP}" 2>/dev/null || log "codesign failed or unavailable; if the app quits at launch, run: codesign --force --deep --sign - \"${APP}\""

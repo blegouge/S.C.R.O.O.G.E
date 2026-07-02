@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/fr/assets/icon.jpg" alt="Token Telemetry Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
+  <img src="docs/fr/assets/icon.jpg" alt="S.C.R.O.O.G.E. Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
 </p>
 
-# 🚀 Token Optimization & Telemetry Stack
+# 🚀 S.C.R.O.O.G.E. - Context Optimization & Telemetry Stack
 
 > **Local Proxy Metrics & Intelligent Prompt Compression for Next-Gen IDEs**
 
@@ -11,7 +11,7 @@
 [![Supported IDEs: Cursor | Antigravity | Claude Code | Gemini](https://img.shields.io/badge/IDEs-Cursor%20%7C%20Antigravity%20%7C%20ClaudeCode%20%7C%20Gemini-purple.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Token Telemetry is a local developer proxy metrics and optimization suite built to measure, visualize, and drastically reduce the cost of running LLM-assisted programming workflows. It automatically intercepts agent requests, applies aggressive compression strategies, and monitors workspace compliance in real-time.
+S.C.R.O.O.G.E. (Smart Context Reducer & Optimized Observability Governance Engine) is a local developer proxy metrics and optimization suite built to measure, visualize, and drastically reduce the cost of running LLM-assisted programming workflows. It automatically intercepts agent requests, applies aggressive compression strategies, and monitors workspace compliance in real-time.
 
 ---
 
@@ -25,9 +25,9 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 
 ## ✨ Key Features
 
-1. **📊 Local Token Telemetry**
-   - Logs metrics asynchronously to a local, append-only `events.jsonl` file.
-   - Derives proxy tokens (`ceil(characters / 4)`) when Cursor does not expose official token counts.
+1. **📊 Local S.C.R.O.O.G.E. Telemetry**
+   - Logs metrics asynchronously to a local, append-only `events.jsonl` file, and syncs them incrementally into a central SQLite database (`telemetry.db`).
+   - Query endpoints utilize the indexed SQLite database for fast O(log N) searches.
    - Compiles into a native **macOS Desktop App** (`.app` bundle via PyInstaller) for a standalone window dashboard.
    
 2. **🗜️ Context Compression & Optimizations**
@@ -51,6 +51,7 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 5. **🛡️ Compliance & Governance**
    - Blocks subagents if the task brief is invalid or lacks required parameters.
    - Validates that the agent outputs a structured consumption report at the end of each turn.
+   - All hooks utilize a fail-safe execution wrapper to prevent any script crashes from blocking editor operations.
 
 ---
 
@@ -58,14 +59,18 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 
 | File / Directory | Description |
 |---|---|
-| 🛠️ [install_stack.py](file:///Users/blegouge/www/private/TelemetryToken/install_stack.py) | Interactive, idempotent, and automated setup script. |
-| 🌐 [serve_dashboard.py](file:///Users/blegouge/www/private/TelemetryToken/serve_dashboard.py) | Light HTTP backend serving the dashboard API and HTML interface. |
-| 🖥️ [dashboard_app.py](file:///Users/blegouge/www/private/TelemetryToken/dashboard_app.py) | Native desktop window loader utilizing `pywebview`. |
-| 🎨 [dashboard.html](file:///Users/blegouge/www/private/TelemetryToken/dashboard.html) | Modern dark-theme SPA with canvas charts and real-time refresh. |
-| 📊 [report.py](file:///Users/blegouge/www/private/TelemetryToken/report.py) | Command line utility to display usage summary directly in the terminal. |
-| 📁 [docs/verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py) | Post-installation automated test suite checking all components. |
-| ⚙️ [providers_config.py](file:///Users/blegouge/www/private/TelemetryToken/providers_config.py) | Providers and directory mapping logic. |
-| ⚙️ [providers_config.yaml](file:///Users/blegouge/www/private/TelemetryToken/providers_config.yaml) | YAML definition for IDE directories and price configurations. |
+| 🛠️ [install_stack.py](file:///Users/blegouge/www/private/SCROOGE/install_stack.py) | Interactive, idempotent, and automated setup script. |
+| 🌐 [serve_dashboard.py](file:///Users/blegouge/www/private/SCROOGE/serve_dashboard.py) | Light HTTP backend serving the dashboard API and HTML interface. |
+| 🖥️ [dashboard_app.py](file:///Users/blegouge/www/private/SCROOGE/dashboard_app.py) | Native desktop window loader utilizing `pywebview`. |
+| 🎨 [dashboard.html](file:///Users/blegouge/www/private/SCROOGE/dashboard.html) | Modern dark-theme SPA with dynamic layouts and real-time refresh. |
+| 🎨 [dashboard.css](file:///Users/blegouge/www/private/SCROOGE/dashboard.css) | Extracted standalone style sheets for the dashboard SPA. |
+| ⚡ [dashboard.js](file:///Users/blegouge/www/private/SCROOGE/dashboard.js) | Full client application logic, including interactive Chart.js charts. |
+| 🗄️ [telemetry_db.py](file:///Users/blegouge/www/private/SCROOGE/telemetry_db.py) | SQLite database manager coordinating incremental background sync. |
+| ⚙️ [telemetry_config.py](file:///Users/blegouge/www/private/SCROOGE/telemetry_config.py) | Centralized ConfigManager unifying env and compression settings. |
+| 📊 [report.py](file:///Users/blegouge/www/private/SCROOGE/report.py) | Command line utility to display usage summary directly in the terminal. |
+| 📁 [docs/verify_stack.py](file:///Users/blegouge/www/private/SCROOGE/docs/verify_stack.py) | Post-installation automated test suite checking all components. |
+| ⚙️ [providers_config.py](file:///Users/blegouge/www/private/SCROOGE/providers_config.py) | Providers and directory mapping logic. |
+| ⚙️ [providers_config.yaml](file:///Users/blegouge/www/private/SCROOGE/providers_config.yaml) | YAML definition for IDE directories and price configurations. |
 
 ---
 
@@ -84,7 +89,7 @@ python3 install_stack.py
 4. **Interactive Secret Setup**: Collects your API tokens once (Grafana, GitHub, MySQL, etc.) and writes them to a secure `.env` file (`chmod 600`).
 5. **Python Virtual Environment**: Creates a dedicated `.venv-desktop` environment and installs dependencies.
 6. **Rule/Skill Normalization**: Rewrites references to fit the target IDE (Cursor vs. Antigravity).
-7. **Verification**: Executes [verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py) to validate all components.
+7. **Verification**: Executes [verify_stack.py](file:///Users/blegouge/www/private/SCROOGE/docs/verify_stack.py) to validate all components.
 8. **Daemon Launch**: Offers to automatically start the dashboard daemon in the background on port `8765`.
 
 ---
@@ -136,7 +141,7 @@ To generate a double-clickable macOS bundle in your Dock:
 ```bash
 ./build_macos_app.sh
 ```
-This builds `dist/Token Telemetry.app` using PyInstaller, embeds the logo, and applies an ad-hoc signature.
+This builds `dist/SCROOGE.app` using PyInstaller, embeds the logo, and applies an ad-hoc signature.
 
 ---
 

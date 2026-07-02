@@ -14,6 +14,8 @@ block_cipher = None
 
 datas = [
     (str(PACKAGE / "dashboard.html"), "."),
+    (str(PACKAGE / "dashboard.js"), "."),
+    (str(PACKAGE / "dashboard.css"), "."),
     (str(PACKAGE / "icon.jpg"), "."),
     (str(PACKAGE / "providers_config.yaml"), "."),
 ] + webview_datas
@@ -31,7 +33,7 @@ a = Analysis(
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-icon_path = SPECDIR / "Token Telemetry.icns"
+icon_path = SPECDIR / "SCROOGE.icns"
 icon_arg = str(icon_path) if icon_path.is_file() else None
 
 exe = EXE(
@@ -39,7 +41,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="TokenTelemetry",
+    name="SCROOGE",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -60,17 +62,17 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name="TokenTelemetry",
+    name="SCROOGE",
 )
 
 app = BUNDLE(
     coll,
-    name="Token Telemetry.app",
-    bundle_identifier="com.local.cursor.TokenTelemetry",
+    name="SCROOGE.app",
+    bundle_identifier="com.local.cursor.SCROOGE",
     icon=icon_arg,
     info_plist={
-        "CFBundleDisplayName": "Token Telemetry",
-        "CFBundleName": "Token Telemetry",
+        "CFBundleDisplayName": "S.C.R.O.O.G.E.",
+        "CFBundleName": "S.C.R.O.O.G.E.",
         "NSHumanReadableCopyright": "Local tooling; not affiliated with Cursor.",
         "NSHighResolutionCapable": True,
         "LSMinimumSystemVersion": "11.0",

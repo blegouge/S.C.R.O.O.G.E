@@ -41,6 +41,8 @@ def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
 
 DASH = package_root() / "dashboard.html"
 ICON = package_root() / "icon.jpg"  # app logo / favicon (JPEG)
+JS = package_root() / "dashboard.js"
+CSS = package_root() / "dashboard.css"
 HOST = os.environ.get("TELEMETRY_HOST", "127.0.0.1")
 PORT = int(os.environ.get("TELEMETRY_PORT", 8765))
 
@@ -213,17 +215,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         log_path, layout_path = get_paths(source)
 
+        from telemetry_db import sync_source, fetch_events_from_db
+        try:
+            sync_source(source, log_path)
+        except Exception as e:
+            sys.stderr.write(f"[serve_dashboard] SQLite sync failed for {source}: {e}\n")
+
         if path == "/api/events":
-            rows = []
-            if log_path.is_file():
-                for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        rows.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        continue
+            rows = fetch_events_from_db(source)
             payload = json.dumps(rows, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -233,16 +232,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.wfile.write(payload)
             return
         if path == "/api/report-summary":
-            rows = []
-            if log_path.is_file():
-                for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        rows.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        continue
+            rows = fetch_events_from_db(source)
             payload_obj = summarize_report(rows)
             payload_obj["ok"] = True
             payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
@@ -254,16 +244,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.wfile.write(payload)
             return
         if path == "/api/layer-kpis":
-            rows = []
-            if log_path.is_file():
-                for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        rows.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        continue
+            rows = fetch_events_from_db(source)
             rtk_gain = load_rtk_gain(project=False, source=source)
             payload_obj = summarize_layer_kpis(rows, rtk_gain=rtk_gain)
             payload_obj["ok"] = True
@@ -317,6 +298,22 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             ).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if path == "/dashboard.js" and JS.is_file():
+            body = JS.read_text(encoding="utf-8").encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if path == "/dashboard.css" and CSS.is_file():
+            body = CSS.read_text(encoding="utf-8").encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/css; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)

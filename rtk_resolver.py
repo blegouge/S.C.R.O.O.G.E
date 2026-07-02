@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve RTK binary for TelemetryToken (terminal, frozen .app, minimal PATH)."""
+"""Resolve RTK binary for SCROOGE (terminal, frozen .app, minimal PATH)."""
 
 from __future__ import annotations
 
@@ -178,7 +178,7 @@ def diagnose_rtk(*, cwd: str | None = None, frozen: bool | None = None) -> dict[
         "attempts": attempts[:12],
         "hint": (
             "Set RTK_BIN=/chemin/vers/rtk in ~/.cursor/compression.env "
-            "then reopen Token Telemetry.app"
+            "then reopen S.C.R.O.O.G.E.app"
             if not cmd
             else None
         ),
