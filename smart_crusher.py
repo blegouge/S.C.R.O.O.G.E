@@ -137,8 +137,9 @@ def _compress_text_lines(text: str, n: int, m: int) -> str:
 
 class SmartCrusherConfig:
     def __init__(self, n: int | None = None, m: int | None = None):
-        self.n = n if n is not None else int(os.getenv("SMART_CRUSHER_N", "10"))
-        self.m = m if m is not None else int(os.getenv("SMART_CRUSHER_M", "10"))
+        from telemetry_config import config
+        self.n = n if n is not None else config.smart_crusher_n
+        self.m = m if m is not None else config.smart_crusher_m
 
 class SmartCrusher:
     def __init__(self, config: SmartCrusherConfig | None = None):

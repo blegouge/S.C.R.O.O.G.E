@@ -25,12 +25,8 @@ def _enabled() -> bool:
     }
 
 def _ccr_enabled() -> bool:
-    return os.getenv("CCR_ENABLED", "1").strip().lower() not in {
-        "0",
-        "false",
-        "no",
-        "off",
-    }
+    from telemetry_config import config
+    return config.ccr_enabled
 
 def _min_savings_pct() -> float:
     try:

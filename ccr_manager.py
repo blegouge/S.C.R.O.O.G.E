@@ -50,10 +50,8 @@ def ccr_compress(text: str, threshold_chars: int | None = None) -> tuple[str, bo
         return text, False
 
     if threshold_chars is None:
-        try:
-            threshold_chars = int(os.getenv("CCR_THRESHOLD_CHARS", "4000"))
-        except ValueError:
-            threshold_chars = 4000
+        from telemetry_config import config
+        threshold_chars = config.ccr_threshold_chars
 
     cache_dir = get_ccr_cache_dir()
     cache_dir.mkdir(parents=True, exist_ok=True)

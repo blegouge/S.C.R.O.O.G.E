@@ -77,6 +77,9 @@ def _log_compliance(*, present: bool, complete: bool, loop_count: int, enforced:
     )
 
 
+from telemetry_common import hook_fail_safe
+
+@hook_fail_safe(fallback_json='{}')
 def main() -> int:
     if os.environ.get(DISABLE_ENV, "").strip().lower() in {"1", "true", "yes"}:
         _log_compliance(present=True, complete=True, loop_count=0, enforced=False)

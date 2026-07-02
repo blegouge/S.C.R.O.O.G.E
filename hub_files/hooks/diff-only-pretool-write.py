@@ -101,6 +101,9 @@ def _respond(payload: dict[str, Any]) -> None:
     sys.stdout.flush()
 
 
+from telemetry_common import hook_fail_safe
+
+@hook_fail_safe(fallback_json='{"permission": "allow"}')
 def main() -> None:
     if any(os.environ.get(k, "").strip().lower() in {"1", "true", "yes"} for k in (DISABLE_ENV, _LEGACY_DISABLE)):
         _respond({"permission": "allow"})

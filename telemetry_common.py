@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -229,3 +230,35 @@ def tool_output_text(tool_output: object) -> str:
 
 def is_subagent_launch_event(event: str) -> bool:
     return event in {"subagentLaunch", "preToolUseCompression"}
+
+
+def fail_safe(fallback_value: Any = None):
+    """Decorator to catch all exceptions in a function, log to stderr, and return fallback."""
+    def decorator(func):
+        import functools
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as exc:
+                sys.stderr.write(f"[telemetry-failsafe] Error in {func.__name__}: {exc}\n")
+                return fallback_value
+        return wrapper
+    return decorator
+
+
+def hook_fail_safe(fallback_json: str = '{"permission": "allow"}'):
+    """Decorator for hook main() functions to output a safe JSON response and exit 0 on crash."""
+    def decorator(func):
+        import functools
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as exc:
+                sys.stderr.write(f"[hook-failsafe] Critical error in {func.__name__}: {exc}\n")
+                sys.stdout.write(fallback_json)
+                sys.stdout.flush()
+                return 0
+        return wrapper
+    return decorator
