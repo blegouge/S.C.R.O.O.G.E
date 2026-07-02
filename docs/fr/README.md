@@ -30,8 +30,8 @@ Faites défiler vers le bas pour suivre chaque session de sous-agent, analyser l
 ## ✨ Fonctionnalités Clés
 
 1. **📊 Télémétrie locale des tokens**
-   - Enregistre les métriques de manière asynchrone dans un fichier local en écriture seule `events.jsonl`.
-   - Calcule des approximations de tokens (`ceil(caractères / 4)`) lorsque l'IDE (ex: Cursor) n'expose pas directement le nombre de tokens.
+   - Enregistre les métriques de manière asynchrone dans un fichier local `events.jsonl`, puis les synchronise de façon incrémentale dans une base SQLite centrale (`telemetry.db`).
+   - Les endpoints de requêtes interrogent directement la base SQLite indexée pour des recherches rapides en O(log N).
    - S'exécute aussi comme une **App macOS Desktop native** (via PyInstaller) pour une expérience autonome sans navigateur.
    
 2. **🗜️ Compression de contexte & Optimisations**
@@ -55,6 +55,7 @@ Faites défiler vers le bas pour suivre chaque session de sous-agent, analyser l
 5. **🛡️ Conformité et Gouvernance**
    - Bloque les sous-agents si le brief de tâche est manquant ou invalide.
    - Valide que l'agent génère un rapport de consommation structuré à la fin de chaque tour.
+   - Tous les hooks utilisent une enveloppe d'exécution fail-safe pour s'assurer qu'aucun crash de script ne bloque l'éditeur de code.
 
 ---
 
@@ -65,7 +66,11 @@ Faites défiler vers le bas pour suivre chaque session de sous-agent, analyser l
 | 🛠️ [install_stack.py](file:///Users/blegouge/www/private/TelemetryToken/install_stack.py) | Script d'installation interactif, idempotent et automatisé. |
 | 🌐 [serve_dashboard.py](file:///Users/blegouge/www/private/TelemetryToken/serve_dashboard.py) | Backend HTTP léger servant l'API du dashboard et l'interface HTML. |
 | 🖥️ [dashboard_app.py](file:///Users/blegouge/www/private/TelemetryToken/dashboard_app.py) | Chargeur de fenêtre de bureau native utilisant `pywebview`. |
-| 🎨 [dashboard.html](file:///Users/blegouge/www/private/TelemetryToken/dashboard.html) | SPA moderne à thème sombre avec graphiques dynamiques et rafraîchissement automatique. |
+| 🎨 [dashboard.html](file:///Users/blegouge/www/private/TelemetryToken/dashboard.html) | SPA moderne à thème sombre avec mise en page dynamique et rafraîchissement automatique. |
+| 🎨 [dashboard.css](file:///Users/blegouge/www/private/TelemetryToken/dashboard.css) | Feuilles de style CSS indépendantes extraites pour la SPA. |
+| ⚡ [dashboard.js](file:///Users/blegouge/www/private/TelemetryToken/dashboard.js) | Logique applicative du client dashboard, graphiques Chart.js dynamiques. |
+| 🗄️ [telemetry_db.py](file:///Users/blegouge/www/private/TelemetryToken/telemetry_db.py) | Gestionnaire de la base SQLite et des synchronisations incrémentales. |
+| ⚙️ [telemetry_config.py](file:///Users/blegouge/www/private/TelemetryToken/telemetry_config.py) | ConfigManager centralisant les options d'environnement et de compression. |
 | 📊 [report.py](file:///Users/blegouge/www/private/TelemetryToken/report.py) | Outil CLI pour afficher le résumé de consommation directement dans le terminal. |
 | 📁 [docs/verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py) | Suite de tests automatisée post-installation validant tous les composants. |
 | ⚙️ [providers_config.py](file:///Users/blegouge/www/private/TelemetryToken/providers_config.py) | Logique de mapping des répertoires et des providers IA. |

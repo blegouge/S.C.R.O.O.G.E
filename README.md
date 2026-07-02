@@ -26,8 +26,8 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 ## ✨ Key Features
 
 1. **📊 Local Token Telemetry**
-   - Logs metrics asynchronously to a local, append-only `events.jsonl` file.
-   - Derives proxy tokens (`ceil(characters / 4)`) when Cursor does not expose official token counts.
+   - Logs metrics asynchronously to a local, append-only `events.jsonl` file, and syncs them incrementally into a central SQLite database (`telemetry.db`).
+   - Query endpoints utilize the indexed SQLite database for fast O(log N) searches.
    - Compiles into a native **macOS Desktop App** (`.app` bundle via PyInstaller) for a standalone window dashboard.
    
 2. **🗜️ Context Compression & Optimizations**
@@ -51,6 +51,7 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 5. **🛡️ Compliance & Governance**
    - Blocks subagents if the task brief is invalid or lacks required parameters.
    - Validates that the agent outputs a structured consumption report at the end of each turn.
+   - All hooks utilize a fail-safe execution wrapper to prevent any script crashes from blocking editor operations.
 
 ---
 
@@ -61,7 +62,11 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 | 🛠️ [install_stack.py](file:///Users/blegouge/www/private/TelemetryToken/install_stack.py) | Interactive, idempotent, and automated setup script. |
 | 🌐 [serve_dashboard.py](file:///Users/blegouge/www/private/TelemetryToken/serve_dashboard.py) | Light HTTP backend serving the dashboard API and HTML interface. |
 | 🖥️ [dashboard_app.py](file:///Users/blegouge/www/private/TelemetryToken/dashboard_app.py) | Native desktop window loader utilizing `pywebview`. |
-| 🎨 [dashboard.html](file:///Users/blegouge/www/private/TelemetryToken/dashboard.html) | Modern dark-theme SPA with canvas charts and real-time refresh. |
+| 🎨 [dashboard.html](file:///Users/blegouge/www/private/TelemetryToken/dashboard.html) | Modern dark-theme SPA with dynamic layouts and real-time refresh. |
+| 🎨 [dashboard.css](file:///Users/blegouge/www/private/TelemetryToken/dashboard.css) | Extracted standalone style sheets for the dashboard SPA. |
+| ⚡ [dashboard.js](file:///Users/blegouge/www/private/TelemetryToken/dashboard.js) | Full client application logic, including interactive Chart.js charts. |
+| 🗄️ [telemetry_db.py](file:///Users/blegouge/www/private/TelemetryToken/telemetry_db.py) | SQLite database manager coordinating incremental background sync. |
+| ⚙️ [telemetry_config.py](file:///Users/blegouge/www/private/TelemetryToken/telemetry_config.py) | Centralized ConfigManager unifying env and compression settings. |
 | 📊 [report.py](file:///Users/blegouge/www/private/TelemetryToken/report.py) | Command line utility to display usage summary directly in the terminal. |
 | 📁 [docs/verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py) | Post-installation automated test suite checking all components. |
 | ⚙️ [providers_config.py](file:///Users/blegouge/www/private/TelemetryToken/providers_config.py) | Providers and directory mapping logic. |
