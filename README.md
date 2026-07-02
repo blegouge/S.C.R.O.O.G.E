@@ -1,161 +1,145 @@
-# Token telemetry (local proxy metrics)
+<p align="center">
+  <img src="docs/fr/assets/icon.jpg" alt="Token Telemetry Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
+</p>
 
-> **Location (June 2026)**: application in `~/www/private/TelemetryToken`; persistent data unchanged in `~/.cursor/token-telemetry/` (`events.jsonl`, `dashboard-layout.json`, `diff-only-last-text.txt`). Variables: `CURSOR_TOKEN_TELEMETRY_APP`, `CURSOR_TOKEN_TELEMETRY_DATA_DIR`.
+# 🚀 Token Optimization & Telemetry Stack
 
-## What this measures
+> **Local Proxy Metrics & Intelligent Prompt Compression for Next-Gen IDEs**
 
-Hooks call `hooks/token-telemetry.py` after:
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue.svg?logo=python&logoColor=white)](https://python.org)
+[![Platform: macOS | Linux | Windows](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)](#)
+[![Supported IDEs: Cursor | Antigravity | Claude Code | Gemini](https://img.shields.io/badge/IDEs-Cursor%20%7C%20Antigravity%20%7C%20ClaudeCode%20%7C%20Gemini-purple.svg)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- **`postToolUse`** — Cursor sends JSON that usually includes tool output (already truncated/editor-dependent).
-- **`afterAgentResponse`** — JSON that typically includes assistant-visible text blocks.
+Token Telemetry is a local developer proxy metrics and optimization suite built to measure, visualize, and drastically reduce the cost of running LLM-assisted programming workflows. It automatically intercepts agent requests, applies aggressive compression strategies, and monitors workspace compliance in real-time.
 
-Additionally:
+---
 
-- `hooks/semantic-compress-pretool.py` writes **`subagentLaunch`** rows (Task subagent start: type, skill, **Claw Compactor** / LLMLingua, `compression_backend`, end-to-end saved tokens, correlation ids).
-- `hooks/tt-subagent-stop.sh` writes **`subagentStop`** rows (summary/transcript proxy size).
-- **Fallback:** when Cursor does not fire `subagentStop`, `postToolUse` with `tool_name=Task` is logged as **`subagentStop`** with `subagent_stop_source=postToolUse_fallback`.
-- Diagnostic: `~/.cursor/bin/diagnose-subagent-telemetry.sh`
-- `afterAgentResponse` rows may include **`input_tokens` / `output_tokens`** when Cursor exposes them.
+## 📸 Dashboard Preview
 
-Python walks **string fields** inside that JSON and counts characters, then derives **`approx_tokens = ceil(chars / 4)`** — a coarse proxy like "English-like GPT tokenization guess".
+### 📊 Main Metrics & Savings
+The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-time token histograms, and a counterfactual chart displaying observed usage versus estimated consumption without optimizations.
+![Main Dashboard View](docs/fr/assets/dashboard_main.png)
 
-For `afterAgentResponse`, the hook also extracts a structured signal for the **Consumption report** block (`consumption_present`, `consumption_complete`, `work_mode`, `tool_activity`, `token_risk`, etc.) when present in the assistant response text.
+---
 
-**Compliance hooks** (also in `report.py` + dashboard panel "Compliance hooks"):
+## ✨ Key Features
 
-| Event | Source | KPI |
-|-------|--------|-----|
-| `afterAgentResponse` | `token-telemetry.py` | `consumption_present` / `consumption_complete` (5 fields) |
-| `consumptionReportCompliance` | `stop-compliance.py` | retries hook stop, ok, giveup |
-| `taskBriefValidation` | `semantic-compress-pretool.py` | brief pass / denied (Task deny) |
-| `subagentLaunch` | pretool | `idempotent_context_injected` |
+1. **📊 Local Token Telemetry**
+   - Logs metrics asynchronously to a local, append-only `events.jsonl` file.
+   - Derives proxy tokens (`ceil(characters / 4)`) when Cursor does not expose official token counts.
+   - Compiles into a native **macOS Desktop App** (`.app` bundle via PyInstaller) for a standalone window dashboard.
+   
+2. **🗜️ Context Compression & Optimizations**
+   - **RTK Gain**: Integrates with shell command savings (saves up to 98% on command runs).
+   - **Diff-Only Protocol**: Applies SEARCH/REPLACE delta patching to avoid rewriting large source files, saving up to 95% of output tokens.
+   - **Claw Compactor & LLMLingua**: Reduces dynamic context size by pruning low-information tokens before sending payloads.
 
-Cursor **does not** expose provider-reported billed usage inside these payloads (often `usage`/`tokens` absent). Dashboard = **orientation**, not accountant truth.
+3. **🔄 Adaptive Context Routing**
+   - Assembles requests deterministically:
+     1. `BLOCK_1`: Static global rules, cursor rules, and active skills.
+     2. `BLOCK_1B`: Token budget guardrails.
+     3. `BLOCK_2`: Git & Workspace state.
+     4. `BLOCK_3`: Compacted dynamic message history.
+     5. `BLOCK_4`: Latest query.
+   - Automatically compresses history above 8 messages or 3000 tokens.
 
-Compare with **`rtk gain`** for **shell** compression savings.
+4. **⚡ Git Pre-flight Cache**
+   - Computes a signature based on `git branch + HEAD SHA + modified files`.
+   - Reuses compacted workspace states instantly, bypassing redundant LLM summarization.
 
-## Edit / Tab hooks
+5. **🛡️ Compliance & Governance**
+   - Blocks subagents if the task brief is invalid or lacks required parameters.
+   - Validates that the agent outputs a structured consumption report at the end of each turn.
 
-`hooks.json` registers **`afterFileEdit`** (agent edits applied to disk) and **`afterTabFileEdit`** (Tab inline completion accepted). Rows include **`lines_added` / `lines_removed`** via `difflib` on payloads (shape varies per Cursor release).
+---
 
-Composer **reject** counts are **not** available from public Cursor hooks (not shown in the dashboard).
+## 📂 Repository Structure
 
-## Files
+| File / Directory | Description |
+|---|---|
+| 🛠️ [install_stack.py](file:///Users/blegouge/www/private/TelemetryToken/install_stack.py) | Interactive, idempotent, and automated setup script. |
+| 🌐 [serve_dashboard.py](file:///Users/blegouge/www/private/TelemetryToken/serve_dashboard.py) | Light HTTP backend serving the dashboard API and HTML interface. |
+| 🖥️ [dashboard_app.py](file:///Users/blegouge/www/private/TelemetryToken/dashboard_app.py) | Native desktop window loader utilizing `pywebview`. |
+| 🎨 [dashboard.html](file:///Users/blegouge/www/private/TelemetryToken/dashboard.html) | Modern dark-theme SPA with canvas charts and real-time refresh. |
+| 📊 [report.py](file:///Users/blegouge/www/private/TelemetryToken/report.py) | Command line utility to display usage summary directly in the terminal. |
+| 📁 [docs/verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py) | Post-installation automated test suite checking all components. |
+| ⚙️ [providers_config.py](file:///Users/blegouge/www/private/TelemetryToken/providers_config.py) | Providers and directory mapping logic. |
+| ⚙️ [providers_config.yaml](file:///Users/blegouge/www/private/TelemetryToken/providers_config.yaml) | YAML definition for IDE directories and price configurations. |
 
-| Path | Role |
-|------|------|
-| `token-telemetry/icon.jpg` | navbar logo + favicon (served also as `/favicon.ico` when using `serve_dashboard.py`) |
-| `~/.cursor/token-telemetry/events.jsonl` | append-only JSON log |
-| `token-telemetry/dashboard.html` | Dashboard UI — dark neon "terminal" style, KPI cards, histogram + donut, tables, theme toggle & file load |
-| `token-telemetry/serve_dashboard.py` | bind `127.0.0.1:8765`; JSON log read from **`~/.cursor/token-telemetry/events.jsonl`** (same when frozen), plus `/api/rtk-gain` for RTK savings (global + project). |
-| `token-telemetry/dashboard_app.py` | System window (**pywebview**), threaded HTTP server. |
-| `token-telemetry/requirements-desktop.txt` / `requirements-native-build.txt` | Optional dependencies (webview only vs `.app` build). |
-| `token-telemetry/build_macos_app.sh` | Build **`dist/Token Telemetry.app`** (PyInstaller). |
-| `token-telemetry/native_app/TokenTelemetry.spec` | Spec PyInstaller. |
-| `token-telemetry/report.py` | no-server CLI totals |
+---
 
-## View
+## 🚀 Installation Guide
 
-Terminal:
+Run the automated installer from the repository root:
 
 ```bash
-python3 ~/.cursor/token-telemetry/report.py
+python3 install_stack.py
 ```
 
-Web (after some agent turns):
+### What the installer does:
+1. **Target Hub Selection**: Auto-detects and installs configuration templates to `~/.cursor`, `~/.gemini/antigravity`, or custom locations.
+2. **Codebase Directory**: Asks for your active workspace path to configure code-explorer.
+3. **Compression Backend**: Configures whether to use `claw`, `headroom`, `both`, or disable compaction.
+4. **Interactive Secret Setup**: Collects your API tokens once (Grafana, GitHub, MySQL, etc.) and writes them to a secure `.env` file (`chmod 600`).
+5. **Python Virtual Environment**: Creates a dedicated `.venv-desktop` environment and installs dependencies.
+6. **Rule/Skill Normalization**: Rewrites references to fit the target IDE (Cursor vs. Antigravity).
+7. **Verification**: Executes [verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py) to validate all components.
+8. **Daemon Launch**: Offers to automatically start the dashboard daemon in the background on port `8765`.
 
-```bash
-python3 ~/.cursor/token-telemetry/serve_dashboard.py
-# open http://127.0.0.1:8765/
+---
+
+## ⚙️ Configuration File Overview
+
+### 1. `compression.env`
+Defines parameters and thresholds for context compression:
+```ini
+# Token optimization context compression configuration
+COMPRESSION_BACKEND=claw
+TASK_BRIEF_ENFORCE=deny
+LLMLINGUA_HOOK_RATE=0.5
+ADAPTIVE_CTX_TOKEN_THRESHOLD=4000
+ADAPTIVE_CTX_MESSAGE_THRESHOLD=10
+CCR_ENABLED=1
 ```
 
-### macOS Application (standalone `.app`)
+### 2. `mcp.secrets.env`
+Stores private credentials loaded by the MCP wrapper scripts:
+```ini
+GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...
+GRAFANA_API_TOKEN=glsa_...
+MYSQL_PASSWORD=...
+```
 
-To get a Finder / Dock application without manually configuring a python environment with pywebview: compile once from this directory (**macOS only**):
+### 3. `hooks.json` & `mcp.json`
+Located in your IDE Hub folder (e.g. `~/.cursor/`), they define the active hooks (e.g. `postToolUse`, `afterAgentResponse`) and register the custom local MCP servers.
 
+---
+
+## 🖥️ Usage
+
+### Terminal Report
+Run the report CLI to see a summary of your session consumption:
 ```bash
-cd ~/.cursor/token-telemetry
+python3 report.py
+```
+
+### Start the Dashboard Server
+If you chose not to start it during installation, run:
+```bash
+python3 serve_dashboard.py
+# Open http://127.0.0.1:8765/
+```
+
+### Build a Standalone macOS App (`.app`)
+To generate a double-clickable macOS bundle in your Dock:
+```bash
 ./build_macos_app.sh
 ```
+This builds `dist/Token Telemetry.app` using PyInstaller, embeds the logo, and applies an ad-hoc signature.
 
-The script:
+---
 
-- uses a venv `./.venv-build` (customizable via `TOKEN_TELEMETRY_BUILD_VENV`);
-- installs `requirements-native-build.txt` (`pywebview` + `pyinstaller`);
-- optionally generates `native_app/Token Telemetry.icns` from `icon.jpg`;
-- builds `dist/Token Telemetry.app` and performs an ad-hoc signing (`codesign --force --deep --sign -`) to satisfy WebKit.
-
-Then, drag `Token Telemetry.app` into **Applications** (or run it from `dist/`). Billed data reads stay in `~/.cursor/token-telemetry/events.jsonl` (aligned with Cursor hooks); only the HTML and the icon are embedded in the bundle.
-
-**Gatekeeper**: if macOS blocks execution (*unverified app*), right-click → **Open**, or run `xattr -dr com.apple.quarantine "/path/to/Token Telemetry.app"` once. For serious distribution, a paid **Apple Developer ID** and `codesign` / notarization would be required.
-
-**Architecture**: the binary mirrors the interpreter used during build (e.g. Homebrew Python **x86_64** under Rosetta vs native Apple Silicon). Rebuild on the target machine or with an **arm64** Python if needed.
-
-### Desktop window (native WebKit wrapper)
-
-Use this when you want a **standalone window** instead of Safari/Chrome plus a foreground terminal thread.
-
-Install once (`pywebview`). On macOS/Homebrew Python (PEP 668), use a venv under this folder rather than `--break-system-packages`:
-
-```bash
-cd ~/.cursor/token-telemetry
-python3 -m venv .venv-desktop
-source .venv-desktop/bin/activate
-pip install -r requirements-desktop.txt
-```
-
-Then run (with that venv activated, or invoke its interpreter explicitly):
-
-```bash
-~/.cursor/token-telemetry/.venv-desktop/bin/python ~/.cursor/token-telemetry/dashboard_app.py
-```
-
-Or from an activated shell:
-
-```bash
-python ~/.cursor/token-telemetry/dashboard_app.py
-```
-
-The HTTP server (`127.0.0.1`, default port `8765` or next free port) runs inside the same Python process until you close the window. Opening the URL in two places at once (browser + app) remains possible while that process is alive.
-
-macOS Dock / double-click without tying up a Terminal session: wrap the same `python3 … dashboard_app.py` line in Automator (**Application**) or Shortcuts (**Run Shell Script**), optionally with `nohup … & disown`-style wrappers if you spawn it from Automator scripts that exit immediately — many users keep a pinned Automator `.app` in the Dock.
-
-The dashboard header includes a **Grafana-like refresh control**: immediate **Refresh** (loads `/api/events`) and an interval menu (**Disabled**, **5 min**, **30 min**, **1 h**). The choice is stored in **`localStorage`**. **Load file** switches to offline JSONL and resets auto-refresh to **Disabled**; use **Refresh** again to pull live **`events.jsonl`** from the server, then re-enable an interval if you want.
-
-RTK integration requires `rtk` to be available on the PATH used by `serve_dashboard.py`; otherwise the RTK KPI falls back to "unavailable".
-
-Global gains KPI combines:
-
-- RTK global saved tokens (`rtk gain -d --format json`, including per-day `saved_tokens`)
-- Hook-based Task compression saved tokens (`subagentLaunch` / legacy `preToolUseCompression`), using **`compression_input_tokens` → `compression_after_tokens`** (Claw + optional LLMLingua)
-
-### Daily gain % chart
-
-Bar chart (always **per calendar day**): `100 × savings / (observed + savings)` where savings = RTK daily + Task compression + Diff-Only. Stays readable when billed tokens are in the millions.
-
-### Counterfactual chart (observed vs without optimizations)
-
-The trend chart plots two series per time bucket (hour or day):
-
-| Series | Meaning |
-|--------|---------|
-| **Consumed (observed)** | `billed_total_tokens` on `afterAgentResponse` when present; else `input_tokens`+`output_tokens`; tool/subagent proxies elsewhere |
-| **Without optimizations (estimated)** | observed + savings attributed in that bucket |
-
-Savings attributed per bucket:
-
-- **RTK** — `daily[].saved_tokens` from `rtk gain -d` (full day on day view; split across active hours on hour view)
-- **Task compression** — `compression_*_saved*` / input→after delta on `subagentLaunch`
-- **Diff-Only** — `diff_only.estimated_chars_saved / 4` on `diffOnlyApply:*`
-
-KPI strip **Optimizations comparison** sums the same model over the whole log window (RTK only on calendar days that appear in the log).
-
-This is still an **estimate** (no per-subagent Cursor billing; possible overlap between parent context and hook savings). Use for trend/gain visibility, not invoicing.
-
-Dashboard shows per-run **claw** / **llm** badges and `compression_backend` breakdown. Rebuild **`Token Telemetry.app`** after `dashboard.html` changes if you use the bundled macOS app.
-
-**Parity with `report.py`:** subagent KPIs (launches, stops, prompt/out proxy) and **Parent billed** (average + sum + latest) use the same aggregation as the CLI (`telemetry_metrics.summarize_report`). The web UI also exposes `GET /api/report-summary`. Optional subtitle **this turn** shows the current session only (for context). Task launches now inherit `session_id` from recent log rows when `preToolUse` omits it (`telemetry_common.enrich_correlation`).
-
-## Privacy / rotation
-
-Hook payload may embed code paths or secrets if the tool echoed them — keep `events.jsonl` private; rotate/delete when needed.
+## 🔒 Privacy & Rotation
+All agent payloads, which may contain file paths, queries, and code outputs, are logged strictly on your local machine in `events.jsonl`.
+Keep this file private, and rotate/delete it whenever necessary.
