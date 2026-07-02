@@ -33,4 +33,4 @@ repos:
     hooks:
       - id: prettier
         types_or: [javascript, css, html]
-        additional_dependencies: [prettier@3.2.5]
+        additional_dependencies: [prettier@3.9.4]

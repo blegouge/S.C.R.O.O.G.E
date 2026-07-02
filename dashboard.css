@@ -68,7 +68,8 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse 80% 55% at 15% -10%, var(--orb-pink), transparent 55%),
+  background:
+    radial-gradient(ellipse 80% 55% at 15% -10%, var(--orb-pink), transparent 55%),
     radial-gradient(ellipse 65% 50% at 95% 5%, var(--orb-blue), transparent 50%),
     radial-gradient(ellipse 55% 40% at 50% 100%, rgba(78, 240, 224, 6%), transparent 55%),
     linear-gradient(168deg, var(--bg-0) 0%, var(--bg-1) 38%, var(--bg-2) 65%, var(--bg-0) 100%);
