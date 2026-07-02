@@ -8,7 +8,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${TOKEN_TELEMETRY_BUILD_VENV:-${ROOT}/.venv-build}"
 SPEC="${ROOT}/native_app/SCROOGE.spec"
 ICNS_DST="${ROOT}/native_app/SCROOGE.icns"
-ICON_SRC="${ROOT}/icon.jpg"
+ICON_SRC="${ROOT}/docs/fr/assets/icon.jpg"
 ICONSET="${ROOT}/native_app/SCROOGE.iconset"
 
 log() {

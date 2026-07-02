@@ -16,7 +16,7 @@ datas = [
     (str(PACKAGE / "dashboard.html"), "."),
     (str(PACKAGE / "dashboard.js"), "."),
     (str(PACKAGE / "dashboard.css"), "."),
-    (str(PACKAGE / "icon.jpg"), "."),
+    (str(PACKAGE / "docs" / "fr" / "assets" / "icon.jpg"), "."),
     (str(PACKAGE / "providers_config.yaml"), "."),
 ] + webview_datas
 
