@@ -4,6 +4,7 @@
 Auto-contenu : stdlib uniquement. Multi-OS (macOS/Linux/Windows).
 Returns a report [OK]/[FAIL] per block. Exit 0 if all OK, 1 otherwise.
 """
+
 from __future__ import annotations
 
 import importlib.util

@@ -2,11 +2,11 @@
 """
 Validate Task/subagent briefs before launch (idempotency + MCP routing compliance).
 """
+
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-
 
 _PATH_EXCERPT_RE = re.compile(
     r"(?im)"
@@ -53,7 +53,9 @@ def validate_task_brief(
     violations: list[str] = []
 
     if not _SKILL_RE.search(blob):
-        violations.append("Missing `Skill: <skill-name>` line (required for routing and telemetry).")
+        violations.append(
+            "Missing `Skill: <skill-name>` line (required for routing and telemetry)."
+        )
 
     if not _AC_RE.search(blob):
         violations.append("Missing `[AC]` acceptance criteria section.")

@@ -2,6 +2,7 @@
 """
 Claw Compactor adapter for Cursor global hooks (FusionEngine, zero LLM cost).
 """
+
 from __future__ import annotations
 
 import os

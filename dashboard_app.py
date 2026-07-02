@@ -20,9 +20,7 @@ try:
     import webview
 except ImportError:
     sys.stderr.write(
-        "Dependency missing: run\n"
-        f'  pip install -r "{_REQ}"\n'
-        "(or: pip install 'pywebview>=5')\n",
+        f"Dependency missing: run\n  pip install -r \"{_REQ}\"\n(or: pip install 'pywebview>=5')\n",
     )
     sys.exit(1)
 

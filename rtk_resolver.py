@@ -107,7 +107,8 @@ def _write_cache(rtk_bin: str) -> None:
     payload = {
         "ok": True,
         "rtk_bin": rtk_bin,
-        "updated_ts": __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+        "updated_ts": __import__("datetime")
+        .datetime.now(__import__("datetime").timezone.utc)
         .isoformat(timespec="seconds")
         .replace("+00:00", "Z"),
     }

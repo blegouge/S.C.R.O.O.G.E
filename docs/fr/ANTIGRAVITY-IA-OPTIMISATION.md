@@ -216,11 +216,11 @@ Les règles sont du **Markdown avec frontmatter** dans `~/.gemini/antigravity/ru
 
 Bloc court **obligatoire** en fin de message :
 
-- **Work mode** : direct / 1 subagent / plusieurs  
-- **Tool activity** : nb d’appels + coûteux (shell, subagents, web, grosses lectures)  
-- **Token risk** : `low` / `medium` / `high`  
-- **Main cost drivers** : 1–3 puces  
-- **Optimization applied** : ce qui a limité le coût (ex. RTK, Diff-Only, `spec-driven-idempotency`, guardrail halt)  
+- **Work mode** : direct / 1 subagent / plusieurs
+- **Tool activity** : nb d’appels + coûteux (shell, subagents, web, grosses lectures)
+- **Token risk** : `low` / `medium` / `high`
+- **Main cost drivers** : 1–3 puces
+- **Optimization applied** : ce qui a limité le coût (ex. RTK, Diff-Only, `spec-driven-idempotency`, guardrail halt)
 
 *Pas de chiffres inventés* si Antigravity ne les expose pas — formulation « exact token count unavailable » acceptée.
 
@@ -301,10 +301,10 @@ Bloc court **obligatoire** en fin de message :
 
 ### Escalade (ordre par défaut)
 
-0. **Budget guardrail** (toujours) : ROI validé avant Read >500 lignes ou `explore` ; pas de 3ᵉ essai auto sur la même piste après 2 échecs.  
-1. **Outils directs** (read, grep, une commande) si scope étroit.  
-2. **Un** subagent avec brief serré si surface large.  
-3. **Deuxième** subagent seulement si piste **indépendante** (ex. code vs observabilité).  
+0. **Budget guardrail** (toujours) : ROI validé avant Read >500 lignes ou `explore` ; pas de 3ᵉ essai auto sur la même piste après 2 échecs.
+1. **Outils directs** (read, grep, une commande) si scope étroit.
+2. **Un** subagent avec brief serré si surface large.
+3. **Deuxième** subagent seulement si piste **indépendante** (ex. code vs observabilité).
 4. **Parallèle** seulement si vous le demandez **ou** gain wall-clock évident sans fichiers partagés — **max 4**.
 
 ### Spec-driven idempotency (parent ↔ subagent)
@@ -469,16 +469,16 @@ path: src/example.py
 
 ### Règles de matching
 
-- SEARCH = **copie exacte** du fichier (espaces, guillemets, fins de ligne).  
-- **3–8 lignes de contexte** pour unicité.  
-- **Nouveau fichier** : SEARCH vide ou omis ; **suppression** : REPLACE vide.  
+- SEARCH = **copie exacte** du fichier (espaces, guillemets, fins de ligne).
+- **3–8 lignes de contexte** pour unicité.
+- **Nouveau fichier** : SEARCH vide ou omis ; **suppression** : REPLACE vide.
 - **Interdit** : `// ... unchanged ...`, fences markdown qui altèrent les espaces, deviner sans lecture.
 
 ### Cycle hook
 
-1. L’agent répond avec des blocs (pas un `Write` du même hunk en double).  
-2. `afterAgentResponse` / `subagentStop` → parse → écriture disque.  
-3. Si SEARCH introuvable / ambigu → stderr + éventuel `followup_message` (boucle ≤3).  
+1. L’agent répond avec des blocs (pas un `Write` du même hunk en double).
+2. `afterAgentResponse` / `subagentStop` → parse → écriture disque.
+3. Si SEARCH introuvable / ambigu → stderr + éventuel `followup_message` (boucle ≤3).
 
 **CI / manuel :**
 
@@ -519,11 +519,11 @@ Pipeline documenté dans `token-telemetry/ADAPTIVE_CONTEXT_ROUTING.md` et `token
 
 ### Chaîne d’exécution (hook `Task`)
 
-1. Segmentation prompt → historique + **latest**  
-2. **Claw Compactor** sur `latest` si ≥ `LLMLINGUA_HOOK_MIN_CHARS` et tags `code` / `logs` / `subagent`  
-3. Structuration cache-friendly (`AdaptiveContextManager`) + injection **`BLOCK_1B`**  
-   - **Pre-flight Git (BLOCK_2)** : si seuils de compaction atteints, tenter `~/.gemini/antigravity/projects/cache_<git_sig>.json` **avant** `flash_kv_summarizer` / heuristique (voir § ci-dessous)  
-4. **Claw** sur blocs `[BLOCK_2]` … `[BLOCK_4]` si mêmes seuils  
+1. Segmentation prompt → historique + **latest**
+2. **Claw Compactor** sur `latest` si ≥ `LLMLINGUA_HOOK_MIN_CHARS` et tags `code` / `logs` / `subagent`
+3. Structuration cache-friendly (`AdaptiveContextManager`) + injection **`BLOCK_1B`**
+   - **Pre-flight Git (BLOCK_2)** : si seuils de compaction atteints, tenter `~/.gemini/antigravity/projects/cache_<git_sig>.json` **avant** `flash_kv_summarizer` / heuristique (voir § ci-dessous)
+4. **Claw** sur blocs `[BLOCK_2]` … `[BLOCK_4]` si mêmes seuils
 5. **LLMLingua** (optionnel) si `COMPRESSION_BACKEND=llmlingua`, `both` ou `auto` (fallback si Claw n’a pas appliqué)
 
 ### Ordre des blocs (cache-friendly)
@@ -749,24 +749,24 @@ Dans `skills-antigravity/` (maintenance Antigravity / meta) :
 
 ### À faire
 
-- Lire / maintenir **`AGENT.md`** par repo métier (stack, conventions, commandes test).  
-- Nommer les tickets Jira avant d’implémenter ; branche = clé ticket.  
-- Demander **un** livrable par message quand possible (réduit re-plans).  
-- Coller des logs **résumés** ou passer par MCP observabilité plutôt que dumps complets.  
-- Avant un gros `Read` ou `explore` : exiger une ligne ROI (*« j’ai déjà grep X »*).  
-- Avant `Task` après triage : brief avec **`Skill: spec-driven-idempotency`** + extraits `[CONTEXT]` (5–40 lignes / hotspot).  
-- Après 2 échecs sur la même commande/test : **stop** et trancher avec l’humain.  
+- Lire / maintenir **`AGENT.md`** par repo métier (stack, conventions, commandes test).
+- Nommer les tickets Jira avant d’implémenter ; branche = clé ticket.
+- Demander **un** livrable par message quand possible (réduit re-plans).
+- Coller des logs **résumés** ou passer par MCP observabilité plutôt que dumps complets.
+- Avant un gros `Read` ou `explore` : exiger une ligne ROI (*« j’ai déjà grep X »*).
+- Avant `Task` après triage : brief avec **`Skill: spec-driven-idempotency`** + extraits `[CONTEXT]` (5–40 lignes / hotspot).
+- Après 2 échecs sur la même commande/test : **stop** et trancher avec l’humain.
 - Fin de sprint token : `rtk gain` + dashboard (KPI **claw** / hook) + ajuster `COMPRESSION_BACKEND` ou `LLMLINGUA_HOOK_RATE` si qualité baisse.
 
 ### À éviter
 
-- « Explore tout le repo » sans skill ni graph **ni** justification ROI.  
-- Relancer automatiquement un 3ᵉ test identique après 2 échecs (violation guardrail).  
-- Plusieurs subagents pour la même zone de fichiers.  
-- Brief du type « lis `src/Foo.ts` » sans extrait alors que le parent l’a déjà lu.  
-- Transférer la sortie brute du subagent à l’utilisateur (doublon de contexte).  
-- Recopier `mcp.json` ou `events.jsonl` dans Slack/Confluence.  
-- Désactiver Diff-Only « pour voir le fichier » — demander explicitement *détail / fichier complet*.  
+- « Explore tout le repo » sans skill ni graph **ni** justification ROI.
+- Relancer automatiquement un 3ᵉ test identique après 2 échecs (violation guardrail).
+- Plusieurs subagents pour la même zone de fichiers.
+- Brief du type « lis `src/Foo.ts` » sans extrait alors que le parent l’a déjà lu.
+- Transférer la sortie brute du subagent à l’utilisateur (doublon de contexte).
+- Recopier `mcp.json` ou `events.jsonl` dans Slack/Confluence.
+- Désactiver Diff-Only « pour voir le fichier » — demander explicitement *détail / fichier complet*.
 - Ignorer le brouillon Jira : la règle `jira-create` **interdit** la création sans OK.
 
 ### FAQ

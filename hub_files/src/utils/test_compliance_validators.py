@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Tests for task brief and consumption report validators."""
+
 from __future__ import annotations
 
 import unittest
 
 from utils.consumption_report_validator import analyze_consumption_report
 from utils.task_brief_validator import inject_idempotent_tag, validate_task_brief
-
 
 GOOD_BRIEF = """
 Skill: spec-driven-idempotency

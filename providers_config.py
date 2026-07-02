@@ -6,9 +6,7 @@ from __future__ import annotations
 import os
 import sys
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -16,13 +14,14 @@ import yaml
 @dataclass
 class ProviderConfig:
     """Configuration for a telemetry provider."""
+
     name: str
     env_enabled: str
     data_dir: str
-    rtk_cwd: Optional[str]
-    env_home: Optional[str]
+    rtk_cwd: str | None
+    env_home: str | None
     label: str
-    env_stats: Optional[str] = None
+    env_stats: str | None = None
 
 
 _config_cache: dict[str, ProviderConfig] | None = None

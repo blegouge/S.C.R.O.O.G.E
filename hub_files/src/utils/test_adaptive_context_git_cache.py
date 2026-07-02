@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for Git pre-flight BLOCK_2 cache."""
+
 from __future__ import annotations
 
 import json

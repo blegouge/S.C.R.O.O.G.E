@@ -2,16 +2,17 @@
 """
 Flash KV summarizer: lightweight LLM extraction with heuristic fallback.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import os
 import re
 import sys
 import urllib.error
 import urllib.request
-from typing import Callable
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from utils.adaptive_context_manager import StateDict, local_kv_summarizer
 
@@ -142,7 +143,9 @@ def _call_ollama(text: str, max_items: int, config: FlashSummarizerConfig) -> St
         ],
         "options": {"temperature": 0.1, "num_predict": 512},
     }
-    response = _http_post_json(url, payload, headers={"Content-Type": "application/json"}, timeout_sec=config.timeout_sec)
+    response = _http_post_json(
+        url, payload, headers={"Content-Type": "application/json"}, timeout_sec=config.timeout_sec
+    )
     message = response.get("message")
     content = message.get("content") if isinstance(message, dict) else ""
     if not isinstance(content, str):
@@ -216,7 +219,9 @@ def _call_anthropic(text: str, max_items: int, config: FlashSummarizerConfig) ->
     return _extract_json_object("\n".join(text_parts))
 
 
-def flash_kv_summarize(text: str, max_items: int = 12, config: FlashSummarizerConfig | None = None) -> StateDict:
+def flash_kv_summarize(
+    text: str, max_items: int = 12, config: FlashSummarizerConfig | None = None
+) -> StateDict:
     """Call a flash/local model and return normalized KV state (may be empty)."""
     runtime = config or FlashSummarizerConfig(
         provider=_env("FLASH_SUMMARIZER_PROVIDER"),
@@ -249,7 +254,9 @@ def flash_kv_summarize(text: str, max_items: int = 12, config: FlashSummarizerCo
     return _normalize_state(state, max_items=max_items)
 
 
-def hybrid_kv_summarizer(text: str, max_items: int = 12, config: FlashSummarizerConfig | None = None) -> StateDict:
+def hybrid_kv_summarizer(
+    text: str, max_items: int = 12, config: FlashSummarizerConfig | None = None
+) -> StateDict:
     """Try flash summarization first, then fallback to local heuristic summarizer."""
     flash_state = flash_kv_summarize(text, max_items=max_items, config=config)
     if flash_state:
@@ -281,9 +288,10 @@ def create_summarizer(mode: str | None = None) -> SummarizerFn:
     if selected == "heuristic":
         return local_kv_summarizer
     if selected == "flash":
-        return lambda text, max_items=12: flash_kv_summarize(
-            text, max_items=max_items, config=runtime_config
-        ) or local_kv_summarizer(text, max_items=max_items)
+        return lambda text, max_items=12: (
+            flash_kv_summarize(text, max_items=max_items, config=runtime_config)
+            or local_kv_summarizer(text, max_items=max_items)
+        )
     # auto (default)
     return lambda text, max_items=12: hybrid_kv_summarizer(
         text, max_items=max_items, config=runtime_config

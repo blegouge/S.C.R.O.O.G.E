@@ -33,7 +33,7 @@ Faites défiler vers le bas pour suivre chaque session de sous-agent, analyser l
    - Enregistre les métriques de manière asynchrone dans un fichier local `events.jsonl`, puis les synchronise de façon incrémentale dans une base SQLite centrale (`telemetry.db`).
    - Les endpoints de requêtes interrogent directement la base SQLite indexée pour des recherches rapides en O(log N).
    - S'exécute aussi comme une **App macOS Desktop native** (via PyInstaller) pour une expérience autonome sans navigateur.
-   
+
 2. **🗜️ Compression de contexte & Optimisations**
    - **RTK Gain** : S'intègre avec les économies de commandes shell (jusqu'à 98% d'économie sur les exécutions de commandes).
    - **Protocole Diff-Only** : Applique des correctifs de type SEARCH/REPLACE pour éviter de réécrire des fichiers entiers, économisant jusqu'à 95% des tokens de sortie.

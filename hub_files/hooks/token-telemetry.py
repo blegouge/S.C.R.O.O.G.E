@@ -5,13 +5,13 @@ and LOC / Tab metrics (afterFileEdit / afterTabFileEdit).
 
 Cursor does not expose billed tokens or Composer diff reject counts in hooks.
 """
+
 from __future__ import annotations
 
 import datetime as _dt
 import difflib
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -29,6 +29,7 @@ for _path in (_TOKEN_TELEMETRY_DIR, _SRC_DIR):
         sys.path.insert(0, str(_path))
 
 from telemetry_common import (  # pylint: disable=import-error
+    LOG_FILE,
     append_event,
     correlation_fields,
     enrich_correlation,
@@ -36,9 +37,10 @@ from telemetry_common import (  # pylint: disable=import-error
     extract_tool_label,
     int_field,
     tool_output_text,
-    LOG_FILE,
 )
-from utils.consumption_report_validator import analyze_consumption_report  # pylint: disable=import-error
+from utils.consumption_report_validator import (
+    analyze_consumption_report,  # pylint: disable=import-error
+)
 
 
 def _string_chars(obj: object) -> int:
@@ -224,7 +226,7 @@ def _calculate_programmatic_consumption() -> dict[str, object]:
     subagents_launched = 0
     git_cache_hit_count = 0
     tool_names: list[str] = []
-    
+
     if LOG_FILE.is_file():
         try:
             with LOG_FILE.open("r", encoding="utf-8", errors="replace") as f:
@@ -237,12 +239,12 @@ def _calculate_programmatic_consumption() -> dict[str, object]:
                         row = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    
+
                     ev = row.get("event")
                     if ev == "afterAgentResponse":
                         # We hit the previous response event, so stop backtracking
                         break
-                    
+
                     if ev == "postToolUse":
                         tool_name = str(row.get("tool") or "")
                         if tool_name == "Task":
@@ -252,7 +254,10 @@ def _calculate_programmatic_consumption() -> dict[str, object]:
                             tool_names.append(tool_name)
                     elif ev in {"subagentLaunch", "preToolUseCompression"}:
                         subagents_launched += 1
-                        if row.get("compression_git_cache_hit") is True or row.get("git_cache_hit") is True:
+                        if (
+                            row.get("compression_git_cache_hit") is True
+                            or row.get("git_cache_hit") is True
+                        ):
                             git_cache_hit_count += 1
         except OSError:
             pass
@@ -371,9 +376,7 @@ def _build_row(
     approx = (max(text_chars, raw_chars) + 3) // 4
 
     row: dict[str, object] = {
-        "ts": _dt.datetime.now(_dt.timezone.utc)
-        .isoformat(timespec="seconds")
-        .replace("+00:00", "Z"),
+        "ts": _dt.datetime.now(_dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "event": event,
         "approx_tokens": approx,
         "text_chars": text_chars,
@@ -427,7 +430,11 @@ def _build_row(
         _populate_subagent_stop_row(row, data=data, raw=raw, source="hook")
     elif event == "postToolUse" and _tool_label(data) == "Task":
         _populate_subagent_stop_row(row, data=data, raw=raw, source="postToolUse_fallback")
-        row.update(enrich_correlation(data, data.get("tool_input") if isinstance(data.get("tool_input"), dict) else None))
+        row.update(
+            enrich_correlation(
+                data, data.get("tool_input") if isinstance(data.get("tool_input"), dict) else None
+            )
+        )
 
     return row
 

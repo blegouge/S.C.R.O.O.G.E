@@ -6,7 +6,6 @@ from __future__ import annotations
 import os
 import pathlib
 import sys
-from typing import Any
 
 # Ensure path utilities are loaded first to configure base environment
 import telemetry_paths

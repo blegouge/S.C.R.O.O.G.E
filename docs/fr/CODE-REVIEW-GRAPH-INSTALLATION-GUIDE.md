@@ -1,6 +1,6 @@
 # Code Review Graph — Installation Guide (Antigravity, global mode)
 
-> Structure inspired by [RTK - Installation Guide](https://voyageprive.atlassian.net/wiki/spaces/companydepartment/pages/2444099649/RTK+-+Installation+Guide) (VPG Confluence).  
+> Structure inspired by [RTK - Installation Guide](https://voyageprive.atlassian.net/wiki/spaces/companydepartment/pages/2444099649/RTK+-+Installation+Guide) (VPG Confluence).
 > Upstream project: [tirth8205/code-review-graph](https://github.com/tirth8205/code-review-graph).
 
 ---
@@ -42,8 +42,8 @@ code-review-graph detect-changes
 | `code-review-graph` (CLI) | CLI + pipx MCP variant | Installed via `pipx` or `uv tool`; separate from `uvx` as the server launcher |
 | Antigravity | MCP | Access to **Settings → Tools & MCP** |
 
-> **Two binaries, two roles**  
-> - **`code-review-graph`**: manual commands / hooks (`build`, `status`, `detect-changes`).  
+> **Two binaries, two roles**
+> - **`code-review-graph`**: manual commands / hooks (`build`, `status`, `detect-changes`).
 > - **`uvx`**: **launcher** Antigravity uses to start the **MCP server** (`uvx code-review-graph serve`). Having the pipx CLI alone is not enough if `mcp.json` points at `uvx` and `uv` is not installed.
 
 ---
@@ -359,11 +359,11 @@ code-review-graph visualize --format obsidian  # → .code-review-graph/obsidian
 
 ## New repository onboarding (checklist)
 
-1. `cd` to the Git clone root  
-2. `code-review-graph register "$PWD" --alias "$(basename "$PWD")"`  
-3. `code-review-graph build` (first time: a few minutes depending on size)  
-4. `code-review-graph status` → nodes > 0  
-5. Open the project in Antigravity → verify **code-review-graph** MCP (global)  
+1. `cd` to the Git clone root
+2. `code-review-graph register "$PWD" --alias "$(basename "$PWD")"`
+3. `code-review-graph build` (first time: a few minutes depending on size)
+4. `code-review-graph status` → nodes > 0
+5. Open the project in Antigravity → verify **code-review-graph** MCP (global)
 6. (Optional) Ensure `.code-review-graph/` is in `.gitignore` if missing:
 
    ```bash
@@ -446,8 +446,8 @@ Local data remains in each repo (`.code-review-graph/`) and in `~/.code-review-g
 
 ## References
 
-- [RTK - Installation Guide](https://voyageprive.atlassian.net/wiki/spaces/companydepartment/pages/2444099649/RTK+-+Installation+Guide) — VPG structure template  
-- [code-review-graph (GitHub)](https://github.com/tirth8205/code-review-graph) — upstream documentation  
+- [RTK - Installation Guide](https://voyageprive.atlassian.net/wiki/spaces/companydepartment/pages/2444099649/RTK+-+Installation+Guide) — VPG structure template
+- [code-review-graph (GitHub)](https://github.com/tirth8205/code-review-graph) — upstream documentation
 - Internal hub: `~/.gemini/antigravity/docs/fr/ANTIGRAVITY-IA-OPTIMISATION.md` (graph + token stack section)
 
 ---

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Quick smoke test for flash/heuristic summarizers."""
+
 from __future__ import annotations
 
 import json

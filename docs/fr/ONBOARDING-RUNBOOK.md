@@ -1,7 +1,7 @@
 # Runbook onboarding — plateforme Antigravity IA (hub `~/.gemini/antigravity`)
 
-**Public :** développeurs qui veulent le même niveau de configuration agent (rules, hooks, MCP, télémétrie, compression).  
-**Plateforme cible :** macOS + zsh (Linux possible avec adaptations mineures).  
+**Public :** développeurs qui veulent le même niveau de configuration agent (rules, hooks, MCP, télémétrie, compression).
+**Plateforme cible :** macOS + zsh (Linux possible avec adaptations mineures).
 **Durée estimée :** 2–4 h première installation · 30 min si le hub est déjà versionné.
 
 **Documents liés :**

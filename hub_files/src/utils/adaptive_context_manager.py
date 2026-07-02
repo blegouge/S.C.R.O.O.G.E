@@ -4,18 +4,19 @@ Adaptive context management for cache-friendly LLM request assembly.
 
 Includes an LLM-free Git pre-flight cache for BLOCK_2 semi-static KV state.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
 import json
 import os
 import re
 import subprocess
-from datetime import datetime, timezone
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
-
+from typing import Any
 
 Message = dict[str, Any]
 StateDict = dict[str, str]
@@ -280,8 +281,7 @@ class GitPreflightCache:
             "summarizer_mode": entry.summarizer_mode,
             "global_state_kv": entry.global_state_kv,
             "block_2_content": entry.block_2_content,
-            "created_at": entry.created_at
-            or datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            "created_at": entry.created_at or datetime.now(UTC).replace(microsecond=0).isoformat(),
         }
         try:
             path.write_text(
@@ -315,7 +315,9 @@ def _extract_kv_pairs(text: str, max_items: int) -> StateDict:
         normalized_key = re.sub(r"[^A-Za-z0-9_]+", "_", key.strip()).strip("_")
         normalized_value = value.strip()
         if normalized_key.lower() in {"user", "assistant", "system"}:
-            normalized_key = "Last_User_Turn" if normalized_key.lower() == "user" else "Last_Assistant_Turn"
+            normalized_key = (
+                "Last_User_Turn" if normalized_key.lower() == "user" else "Last_Assistant_Turn"
+            )
         if not normalized_key or not normalized_value:
             continue
         if normalized_key in kv:
@@ -419,7 +421,9 @@ class AdaptiveContextManager:
         git_signature = compute_git_signature(snapshot)
         meta["git_signature"] = git_signature
         mode = summarizer_mode or self.config.summarizer_mode
-        fingerprint = self.history_fingerprint(history_messages, previous_state, summarizer_mode=mode)
+        fingerprint = self.history_fingerprint(
+            history_messages, previous_state, summarizer_mode=mode
+        )
 
         entry = self.git_cache.load(
             git_signature,
@@ -464,7 +468,9 @@ class AdaptiveContextManager:
 
         git_signature = compute_git_signature(snapshot)
         mode = summarizer_mode or self.config.summarizer_mode
-        fingerprint = self.history_fingerprint(history_messages, previous_state, summarizer_mode=mode)
+        fingerprint = self.history_fingerprint(
+            history_messages, previous_state, summarizer_mode=mode
+        )
         entry = Block2CacheEntry(
             global_state_kv=dict(merged_state),
             history_fingerprint=fingerprint,
@@ -502,11 +508,15 @@ class AdaptiveContextManager:
 
         token_count = estimate_messages_tokens(history_messages)
         if not self.should_compact(history_messages):
-            return history_messages, previous_state, {
-                "compacted": False,
-                "tokens": token_count,
-                "messages": len(history_messages),
-            }
+            return (
+                history_messages,
+                previous_state,
+                {
+                    "compacted": False,
+                    "tokens": token_count,
+                    "messages": len(history_messages),
+                },
+            )
 
         split_index = max(0, len(history_messages) - self.config.keep_recent_messages)
         stale_messages = history_messages[:split_index]

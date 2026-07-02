@@ -2,13 +2,13 @@
 """
 Reusable middleware to compress large prompt payloads before LLM calls.
 """
+
 from __future__ import annotations
 
-from copy import deepcopy
-from typing import Any
-
-from pathlib import Path
 import sys
+from copy import deepcopy
+from pathlib import Path
+from typing import Any
 
 # Add parent directory to sys.path to resolve root-level modules (like token_compactor)
 _ROOT = Path(__file__).resolve().parent.parent
@@ -26,8 +26,11 @@ from utils.adaptive_context_manager import (  # pylint: disable=import-error
     AdaptiveContextConfig,
     AdaptiveContextManager,
 )
-from utils.summarizer_factory import resolve_summarizer, resolve_summarizer_mode  # pylint: disable=import-error
 from utils.static_prompt_registry import build_global_static_block  # pylint: disable=import-error
+from utils.summarizer_factory import (  # pylint: disable=import-error
+    resolve_summarizer,
+    resolve_summarizer_mode,
+)
 
 
 class PromptCompressionMiddleware:
@@ -71,7 +74,9 @@ class PromptCompressionMiddleware:
         history_messages: list[dict[str, Any]],
         latest_message: dict[str, Any],
     ) -> None:
-        static_block = self._merge_system_blocks(payload_copy["messages"]) or self.global_static_block
+        static_block = (
+            self._merge_system_blocks(payload_copy["messages"]) or self.global_static_block
+        )
         latest_text = self._as_text(latest_message.get("content"))
         state = payload_copy.get("global_state")
         state_dict = state if isinstance(state, dict) else {}

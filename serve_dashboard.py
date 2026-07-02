@@ -6,20 +6,19 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-
 import re
 import shutil
 import subprocess
 import sys
+from typing import Any
+
 try:
-    from http.server import ThreadingHTTPServer as HTTPServer, SimpleHTTPRequestHandler
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer as HTTPServer
 except ImportError:
     from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-import telemetry_paths
 from providers_config import get_data_dir, get_enabled_providers, get_rtk_cwd
-from telemetry_metrics import summarize_report, summarize_layer_kpis
-from telemetry_paths import resolve_data_dir
+from telemetry_metrics import summarize_layer_kpis, summarize_report
 
 
 def package_root() -> pathlib.Path:
@@ -205,7 +204,9 @@ def _load_dashboard_layout(layout_path: pathlib.Path) -> dict[str, object]:
     }
 
 
-def _save_dashboard_layout(layout_path: pathlib.Path, payload: dict[str, object]) -> dict[str, object]:
+def _save_dashboard_layout(
+    layout_path: pathlib.Path, payload: dict[str, object]
+) -> dict[str, object]:
     order = payload.get("order")
     collapsed = payload.get("collapsed")
     clean: dict[str, object] = {
@@ -223,6 +224,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         import urllib.parse
+
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
@@ -230,7 +232,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         log_path, layout_path = get_paths(source)
 
-        from telemetry_db import sync_source, fetch_events_from_db
+        from telemetry_db import fetch_events_from_db, sync_source
+
         try:
             sync_source(source, log_path)
         except Exception as e:
@@ -350,6 +353,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         import urllib.parse
+
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)

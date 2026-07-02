@@ -25,4 +25,3 @@ if [[ -x "${PYTHON_BIN}" ]]; then
 fi
 
 exec python3 "${HOOK_SCRIPT}"
-

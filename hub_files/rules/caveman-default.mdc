@@ -26,7 +26,7 @@ For those: **prioritize correctness and readability** — normal paragraphs, hea
 
 ## Overrides — explicit phrases (immediate mode switch)
 
-Expand for the **whole reply** whenever the user **clearly asks** for detail,  
+Expand for the **whole reply** whenever the user **clearly asks** for detail,
 e.g.: *détaillé*, *en détail*, *soigné*, *formel*, *long*, *complet*, *rapport structuré*, *comme pour un PO/QA*, *style blog*, *ne reste pas télégraphique*.
 
 ## Precedence vs other rules

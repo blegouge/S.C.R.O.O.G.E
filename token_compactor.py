@@ -2,6 +2,7 @@
 """
 LLMLingua prompt compaction utility for large prompt/context payloads.
 """
+
 from __future__ import annotations
 
 import os
@@ -157,17 +158,24 @@ def compress_prompt_context(prompt: str, rate: float = 0.6) -> tuple[str, bool]:
     bounded_rate = min(max(rate, 0.1), 1.0)
     try:
         from telemetry_config import config
+
         blocking_init = config.llmlingua_blocking_init
         if _COMPRESSOR is None:
             if not blocking_init:
                 warmup_compressor()
-                print("[LLMLingua] Model not ready and blocking init is disabled, skipping compression for this turn.", file=sys.stderr)
+                print(
+                    "[LLMLingua] Model not ready and blocking init is disabled, skipping compression for this turn.",
+                    file=sys.stderr,
+                )
                 return prompt, False
             compressor = _init_compressor(blocking=True)
         else:
             compressor = _COMPRESSOR
     except Exception as exc:
-        print(f"[LLMLingua] Initialization failed, fallback to original prompt: {exc}", file=sys.stderr)
+        print(
+            f"[LLMLingua] Initialization failed, fallback to original prompt: {exc}",
+            file=sys.stderr,
+        )
         return prompt, False
 
     compressed_parts: list[str] = []
@@ -206,7 +214,10 @@ def compress_prompt_context(prompt: str, rate: float = 0.6) -> tuple[str, bool]:
                 original_tokens = None
                 compressed_tokens = None
         except Exception as exc:
-            print(f"[LLMLingua] Compression failed on chunk, keep original chunk: {exc}", file=sys.stderr)
+            print(
+                f"[LLMLingua] Compression failed on chunk, keep original chunk: {exc}",
+                file=sys.stderr,
+            )
             compressed_chunk = chunk
             original_tokens = None
             compressed_tokens = None

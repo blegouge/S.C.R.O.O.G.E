@@ -2,6 +2,7 @@
 """
 preToolUse hook: block Write on existing files — enforce StrReplace / Diff-Only.
 """
+
 from __future__ import annotations
 
 import json
@@ -75,7 +76,9 @@ def _extract_target_path(tool_input: dict[str, Any]) -> str:
     return ""
 
 
-def _resolve_target_file(data: dict[str, Any], tool_input: dict[str, Any], rel_path: str) -> Path | None:
+def _resolve_target_file(
+    data: dict[str, Any], tool_input: dict[str, Any], rel_path: str
+) -> Path | None:
     cleaned = rel_path.replace("file://", "").strip()
     candidate = Path(cleaned).expanduser()
     if candidate.is_absolute() and candidate.is_file():
@@ -104,12 +107,19 @@ def _respond(payload: dict[str, Any]) -> None:
 
 from telemetry_common import hook_fail_safe
 
+
 @hook_fail_safe(fallback_json='{"permission": "allow"}')
 def main() -> None:
-    if any(os.environ.get(k, "").strip().lower() in {"1", "true", "yes"} for k in (DISABLE_ENV, _LEGACY_DISABLE)):
+    if any(
+        os.environ.get(k, "").strip().lower() in {"1", "true", "yes"}
+        for k in (DISABLE_ENV, _LEGACY_DISABLE)
+    ):
         _respond({"permission": "allow"})
         return
-    if any(os.environ.get(k, "").strip().lower() in {"1", "true", "yes"} for k in (ALLOW_WRITE_ENV, _LEGACY_ALLOW)):
+    if any(
+        os.environ.get(k, "").strip().lower() in {"1", "true", "yes"}
+        for k in (ALLOW_WRITE_ENV, _LEGACY_ALLOW)
+    ):
         _respond({"permission": "allow"})
         return
 

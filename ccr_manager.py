@@ -4,12 +4,14 @@ CCR (Compress-Cache-Retrieve) Manager.
 Caches large text blocks to ~/.cursor/projects/ccr_cache/<sha256>.txt
 and replaces them with an instruction placeholder.
 """
+
+import hashlib
 import os
 import re
-import hashlib
+import sys
 import time
 from pathlib import Path
-import sys
+
 
 def get_ccr_cache_dir() -> Path:
     home_dir = os.getenv("CURSOR_HOME") or os.getenv("ANTIGRAVITY_HOME")
@@ -17,9 +19,10 @@ def get_ccr_cache_dir() -> Path:
         home_path = Path(home_dir).resolve()
     else:
         home_path = Path.home() / ".cursor"
-    
+
     cache_dir = home_path / "projects" / "ccr_cache"
     return cache_dir
+
 
 def clean_old_cache(ttl_hours: float = 24.0) -> int:
     """Cleans files in ccr_cache older than ttl_hours. Returns count of deleted files."""
@@ -40,6 +43,7 @@ def clean_old_cache(ttl_hours: float = 24.0) -> int:
                 sys.stderr.write(f"[ccr] Error cleaning {item}: {e}\n")
     return deleted
 
+
 def ccr_compress(text: str, threshold_chars: int | None = None) -> tuple[str, bool]:
     """
     Scans the text for large code/log blocks, saves them to cache,
@@ -51,11 +55,12 @@ def ccr_compress(text: str, threshold_chars: int | None = None) -> tuple[str, bo
 
     if threshold_chars is None:
         from telemetry_config import config
+
         threshold_chars = config.ccr_threshold_chars
 
     cache_dir = get_ccr_cache_dir()
     cache_dir.mkdir(parents=True, exist_ok=True)
-    
+
     try:
         clean_old_cache()
     except Exception as e:
@@ -66,20 +71,20 @@ def ccr_compress(text: str, threshold_chars: int | None = None) -> tuple[str, bo
     def replacer(match: re.Match) -> str:
         nonlocal applied
         content = match.group(2)
-        
+
         if len(content) < threshold_chars:
             return match.group(0)
-            
+
         if "ccr_retrieve.py" in content and "[CCR_BLOCK:" in content:
             return match.group(0)
 
         sha256_val = hashlib.sha256(content.encode("utf-8")).hexdigest()
         cache_file = cache_dir / f"{sha256_val}.txt"
-        
+
         try:
             cache_file.write_text(content, encoding="utf-8")
             applied = True
-            
+
             retrieve_path = "~/.cursor/bin/ccr_retrieve.py"
             return f"[CCR_BLOCK: {sha256_val} (Collapsed logs). To retrieve the original, run the command: python3 {retrieve_path} {sha256_val}]"
         except Exception as exc:
@@ -87,5 +92,5 @@ def ccr_compress(text: str, threshold_chars: int | None = None) -> tuple[str, bo
             return match.group(0)
 
     processed_text = re.sub(r"```([a-zA-Z0-9_-]*)\n(.*?)\n```", replacer, text, flags=re.DOTALL)
-    
+
     return processed_text, applied

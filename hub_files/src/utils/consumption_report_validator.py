@@ -2,11 +2,11 @@
 """
 Detect Consumption report blocks in agent responses (EN + FR headings).
 """
+
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-
 
 _CONSUMPTION_HEADING_RE = re.compile(
     r"(?im)"
@@ -17,9 +17,7 @@ _CONSUMPTION_HEADING_RE = re.compile(
 )
 
 _FIELD_PATTERNS: dict[str, re.Pattern[str]] = {
-    "work_mode": re.compile(
-        r"(?im)^\s*[-*]\s*\*\*(?:Work mode|Mode(?: de travail)?)\*\*:\s*(.+)$"
-    ),
+    "work_mode": re.compile(r"(?im)^\s*[-*]\s*\*\*(?:Work mode|Mode(?: de travail)?)\*\*:\s*(.+)$"),
     "tool_activity": re.compile(
         r"(?im)^\s*[-*]\s*\*\*(?:Tool activity|Activité outils?)\*\*:\s*(.+)$"
     ),
