@@ -10,6 +10,11 @@ from typing import Any
 from pathlib import Path
 import sys
 
+# Add parent directory to sys.path to resolve root-level modules (like token_compactor)
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 from token_compactor import compress_prompt_context
 
 CURSOR_HOME = Path.home() / ".cursor"

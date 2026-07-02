@@ -387,8 +387,10 @@ class DashboardCacheTests(unittest.TestCase):
         handler.headers = {}
         handler.wfile = io.BytesIO()
 
+        mock_events = [{"event": "postToolUse", "tool": "Shell", "approx_tokens": 100}]
         with patch("serve_dashboard.get_paths", return_value=(tmp_path, tmp_path)), \
-             patch("serve_dashboard.load_rtk_gain", return_value={"ok": True, "summary": {"total_saved": 42}}):
+             patch("serve_dashboard.load_rtk_gain", return_value={"ok": True, "summary": {"total_saved": 42}}), \
+             patch("telemetry_db.fetch_events_from_db", return_value=mock_events):
             serve_dashboard.DashboardHandler.do_GET(handler)
 
         handler.send_response.assert_called_with(200)

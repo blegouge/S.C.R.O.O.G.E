@@ -6,8 +6,13 @@ import json
 import sys
 from pathlib import Path
 
-SRC_DIR = Path.home() / ".cursor" / "src"
-sys.path.insert(0, str(SRC_DIR))
+# Add local src directory or fall back to home directory Cursor src
+_LOCAL_SRC = Path(__file__).resolve().parent.parent / "hub_files" / "src"
+if _LOCAL_SRC.is_dir():
+    sys.path.insert(0, str(_LOCAL_SRC))
+else:
+    SRC_DIR = Path.home() / ".cursor" / "src"
+    sys.path.insert(0, str(SRC_DIR))
 
 from utils.flash_kv_summarizer import create_summarizer  # noqa: E402
 
