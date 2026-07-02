@@ -10,8 +10,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-TELEMETRY_DIR = Path.home() / ".cursor" / "token-telemetry"
-SRC_DIR = Path.home() / ".cursor" / "src"
+CURSOR_HOME = Path(os.environ.get("CURSOR_HOME", Path.home() / ".cursor"))
+TELEMETRY_DIR = CURSOR_HOME / "token-telemetry"
+SRC_DIR = CURSOR_HOME / "src"
 for path in (TELEMETRY_DIR, SRC_DIR):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
@@ -37,7 +38,7 @@ class TelemetryCommonTests(unittest.TestCase):
 
 class TokenTelemetrySubagentStopTests(unittest.TestCase):
     def test_post_tool_use_task_emits_subagent_stop_fallback(self) -> None:
-        hooks_dir = Path.home() / ".cursor" / "hooks"
+        hooks_dir = CURSOR_HOME / "hooks"
         sys.path.insert(0, str(hooks_dir))
         # Import module under test by path
         import importlib.util

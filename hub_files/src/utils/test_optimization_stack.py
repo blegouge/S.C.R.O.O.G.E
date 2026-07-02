@@ -64,6 +64,16 @@ def _compression_env() -> dict[str, str]:
         _TEST_LOG_PATH = Path(_TEST_LOG_DIR.name) / "events.jsonl"
     env = os.environ.copy()
     env["CURSOR_TOKEN_TELEMETRY_LOG"] = str(_TEST_LOG_PATH)
+
+    # Inject PYTHONPATH so subprocess hooks can find telemetry_common and utils
+    root_dir = Path(__file__).resolve().parent.parent.parent.parent
+    src_dir = root_dir / "hub_files" / "src"
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    new_pythonpath = [str(root_dir), str(src_dir)]
+    if existing_pythonpath:
+        new_pythonpath.append(existing_pythonpath)
+    env["PYTHONPATH"] = os.path.pathsep.join(new_pythonpath)
+
     env_path = CURSOR_HOME / "compression.env"
     if env_path.is_file():
         for raw_line in env_path.read_text(encoding="utf-8").splitlines():
