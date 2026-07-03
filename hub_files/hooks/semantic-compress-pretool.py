@@ -24,20 +24,23 @@ def _debug_log(msg: str, **kwargs) -> None:
     except Exception:
         pass
 
-# Reuse the LLMLingua utility built in this workspace hub.
 # Resolve home directory dynamically based on environment or script path
-_HOME_DIR = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+_HOME_DIR = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME") or os.getenv("CLAUDE_HOME")
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
 else:
     _HOME_PATH = Path(__file__).resolve().parent.parent
 
+# Add module paths
 TOKEN_TELEMETRY_DIR = _HOME_PATH / "token-telemetry"
 if str(TOKEN_TELEMETRY_DIR) not in sys.path:
     sys.path.insert(0, str(TOKEN_TELEMETRY_DIR))
 SRC_DIR = _HOME_PATH / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
+PROVIDERS_DIR = _HOME_PATH / "providers"
+if str(PROVIDERS_DIR.parent) not in sys.path:
+    sys.path.insert(0, str(PROVIDERS_DIR.parent))
 
 from utils.adaptive_context_manager import (  # pylint: disable=import-error
     AdaptiveContextConfig,
@@ -60,6 +63,10 @@ from telemetry_common import (  # pylint: disable=import-error
     enrich_correlation,
     extract_skill_hint,
 )
+from providers import detect_provider  # pylint: disable=import-error
+
+# Detect active provider once at module load
+_PROVIDER = detect_provider()
 
 
 from telemetry_config import config
@@ -84,54 +91,16 @@ _BLOCK2_SECTION = re.compile(
 )
 
 
-def _is_claude_code() -> bool:
-    """Detect if running under Claude Code (vs Cursor/Antigravity).
-
-    Priority: explicit env vars > fallback to path detection.
-    If CURSOR_TT_EVENT or ANTIGRAVITY_TT_EVENT is set, we're NOT in Claude Code.
-    """
-    # Explicit non-Claude markers take precedence
-    if os.environ.get("CURSOR_TT_EVENT") or os.environ.get("ANTIGRAVITY_TT_EVENT"):
-        return False
-    # Explicit Claude markers
-    if os.environ.get("CLAUDE_TT_EVENT") or os.environ.get("CLAUDE_HOME"):
-        return True
-    # Fallback: check if script is in .claude directory
-    return "/.claude/" in str(_HOME_PATH)
-
-
 def _respond(payload: dict[str, Any]) -> None:
-    """Respond with format appropriate for the IDE (Claude Code vs Cursor)."""
-    if _is_claude_code():
-        # Claude Code format
-        permission = payload.get("permission", "allow")
-        if permission == "deny":
-            cc_payload = {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": payload.get("agent_message", payload.get("user_message", "Blocked by hook")),
-                }
-            }
-        elif "updated_input" in payload:
-            cc_payload = {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "allow",
-                    "updatedInput": payload["updated_input"],
-                }
-            }
-        else:
-            cc_payload = {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "allow",
-                }
-            }
-        sys.stdout.write(json.dumps(cc_payload, ensure_ascii=False))
-    else:
-        # Cursor format (original)
-        sys.stdout.write(json.dumps(payload, ensure_ascii=False))
+    """Respond with format appropriate for the active IDE provider."""
+    permission = payload.get("permission", "allow")
+    response = _PROVIDER.format_hook_response(
+        permission,
+        reason=payload.get("agent_message", ""),
+        updated_input=payload.get("updated_input"),
+        user_message=payload.get("user_message", ""),
+    )
+    sys.stdout.write(response)
     sys.stdout.flush()
 
 
@@ -193,10 +162,9 @@ def _append_telemetry(
     )
     idempotent_injected = _IDEMPOTENT_TAG in prompt
 
-    source = "claude" if _is_claude_code() else "cursor"
     row: dict[str, Any] = {
         "event": "subagentLaunch",
-        "source": source,
+        "source": _PROVIDER.name,
         "tool": "Task",
         "approx_tokens": after_tokens,
         "text_chars": after_chars,

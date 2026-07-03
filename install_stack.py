@@ -13,7 +13,6 @@ import os
 import shutil
 import subprocess
 import sys
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -21,75 +20,74 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent
 HUB_FILES = REPO_ROOT / "hub_files"
 
+# Add hub_files to sys.path for providers module
+if str(HUB_FILES) not in sys.path:
+    sys.path.insert(0, str(HUB_FILES))
+
 # =============================================================================
-# Claude Code hooks format transformation
-# Cursor/Gemini use hooks.json, Claude Code uses settings.json with different structure
+# Provider-based hooks transformation
 # =============================================================================
 
-# Events supported by Claude Code (others will be skipped)
-CLAUDE_SUPPORTED_EVENTS = {
-    "PreToolUse",
-    "PostToolUse",
-    "Stop",
-    "SubagentStart",
-    "SubagentStop",
-    "SessionStart",
-}
+def _get_provider(target_name: str):
+    """Get provider instance for the given target IDE name.
 
-# Event name mapping: Cursor (camelCase) -> Claude Code (PascalCase)
-CLAUDE_EVENT_MAPPING = {
-    "preToolUse": "PreToolUse",
-    "postToolUse": "PostToolUse",
-    "stop": "Stop",
-    "subagentStop": "SubagentStop",
-    "sessionStart": "SessionStart",
-    "subagentStart": "SubagentStart",
-    # These events are NOT supported by Claude Code (will be skipped):
-    # "afterAgentResponse", "afterFileEdit", "afterTabFileEdit", "beforeShellExecution"
-}
-
-# Tool/matcher name mapping: Cursor -> Claude Code
-CLAUDE_TOOL_MAPPING = {
-    "Shell": "Bash",
-    "shell": "Bash",
-}
+    Falls back to legacy transformation functions if providers module is unavailable.
+    """
+    try:
+        from providers import get_provider
+        return get_provider(target_name)
+    except (ImportError, KeyError, Exception):
+        # If providers module is unavailable, return None to trigger fallback
+        return None
 
 
 def transform_hooks_cursor_to_claude(hooks_data: dict[str, Any]) -> dict[str, Any]:
     """Transform Cursor/Gemini hooks.json format to Claude Code settings.json format.
 
-    Cursor format:
-        {"version": 1, "hooks": {"preToolUse": [{"command": "...", "matcher": "Shell"}]}}
-
-    Claude Code format:
-        {"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "..."}]}]}}
+    This is a legacy fallback function. New code should use ClaudeProvider.transform_hooks_config().
     """
+    provider = _get_provider("claude")
+    if provider is not None:
+        # Extract the hooks dict from the full structure ({"version": 1, "hooks": {...}})
+        cursor_hooks = hooks_data.get("hooks", {})
+        transformed = provider.transform_hooks_config(cursor_hooks)
+        # Wrap back in the expected structure for Claude
+        return {"hooks": transformed}
+
+    # Fallback to inline implementation if providers module unavailable
+    from collections import defaultdict
+
+    # Events supported by Claude Code (others will be skipped)
+    CLAUDE_SUPPORTED_EVENTS = {
+        "PreToolUse", "PostToolUse", "Stop", "SubagentStart", "SubagentStop", "SessionStart",
+    }
+
+    # Event name mapping: Cursor (camelCase) -> Claude Code (PascalCase)
+    CLAUDE_EVENT_MAPPING = {
+        "preToolUse": "PreToolUse", "postToolUse": "PostToolUse", "stop": "Stop",
+        "subagentStop": "SubagentStop", "sessionStart": "SessionStart", "subagentStart": "SubagentStart",
+    }
+
+    # Tool/matcher name mapping: Cursor -> Claude Code
+    CLAUDE_TOOL_MAPPING = {"Shell": "Bash", "shell": "Bash"}
+
     result: dict[str, Any] = {"hooks": {}}
     source_hooks = hooks_data.get("hooks", {})
 
     for event_name, items in source_hooks.items():
-        # Map event name (preToolUse -> PreToolUse)
         claude_event = CLAUDE_EVENT_MAPPING.get(event_name)
         if claude_event is None:
-            # Fallback: capitalize first letter
             claude_event = event_name[0].upper() + event_name[1:]
-
-        # Skip events not supported by Claude Code
         if claude_event not in CLAUDE_SUPPORTED_EVENTS:
             continue
 
-        # Group hooks by matcher
         by_matcher: dict[str, list[dict[str, str]]] = defaultdict(list)
-
         for item in items:
             matcher = item.get("matcher", "*")
-            # Map tool names (Shell -> Bash)
             matcher = CLAUDE_TOOL_MAPPING.get(matcher, matcher)
-            # Build Claude Code hook entry
             hook_entry = {"type": "command", "command": item["command"]}
             by_matcher[matcher].append(hook_entry)
 
-        # Build the grouped structure
         result["hooks"][claude_event] = [
             {"matcher": matcher, "hooks": hooks_list}
             for matcher, hooks_list in by_matcher.items()
@@ -101,18 +99,36 @@ def transform_hooks_cursor_to_claude(hooks_data: dict[str, Any]) -> dict[str, An
 def merge_hooks_claude(existing: dict[str, Any], new_hooks: dict[str, Any]) -> dict[str, Any]:
     """Merge new hooks into existing Claude Code settings.json without duplicates.
 
-    Preserves existing hooks and adds new ones (matched by command path).
+    This is a legacy fallback function. New code should use ClaudeProvider.merge_hooks_config().
+
+    Args:
+        existing: Full settings.json content (e.g., {"hooks": {...}})
+        new_hooks: Full hooks structure (e.g., {"hooks": {...}})
+
+    Returns:
+        Full settings.json content with merged hooks
     """
+    provider = _get_provider("claude")
+    if provider is not None:
+        # Extract hooks dicts from the full structures
+        existing_hooks = existing.get("hooks", {})
+        new_hooks_dict = new_hooks.get("hooks", {})
+
+        # Merge using provider
+        merged_hooks = provider.merge_hooks_config(existing_hooks, new_hooks_dict)
+
+        # Wrap back in full structure
+        return {"hooks": merged_hooks}
+
+    # Fallback to inline implementation if providers module unavailable
     result: dict[str, Any] = {"hooks": {}}
 
-    # Copy existing hooks
     for event, groups in existing.get("hooks", {}).items():
         result["hooks"][event] = [
             {"matcher": g["matcher"], "hooks": list(g.get("hooks", []))}
             for g in groups
         ]
 
-    # Merge new hooks
     for event, groups in new_hooks.get("hooks", {}).items():
         if event not in result["hooks"]:
             result["hooks"][event] = []
@@ -122,7 +138,6 @@ def merge_hooks_claude(existing: dict[str, Any], new_hooks: dict[str, Any]) -> d
         for new_group in groups:
             new_matcher = new_group["matcher"]
 
-            # Find existing group with same matcher
             target_group = None
             for eg in existing_groups:
                 if eg["matcher"] == new_matcher:
@@ -130,13 +145,11 @@ def merge_hooks_claude(existing: dict[str, Any], new_hooks: dict[str, Any]) -> d
                     break
 
             if target_group is None:
-                # Add new matcher group
                 existing_groups.append({
                     "matcher": new_matcher,
                     "hooks": list(new_group.get("hooks", []))
                 })
             else:
-                # Merge hooks into existing group (avoid duplicates by command)
                 existing_commands = {h["command"] for h in target_group.get("hooks", [])}
                 for hook in new_group.get("hooks", []):
                     if hook["command"] not in existing_commands:
