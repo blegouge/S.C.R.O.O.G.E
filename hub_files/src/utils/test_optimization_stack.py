@@ -20,13 +20,16 @@ CURSOR_HOME = Path(os.environ.get("CURSOR_HOME", Path.home() / ".cursor"))
 SRC_DIR = CURSOR_HOME / "src"
 TELEMETRY_DIR = CURSOR_HOME / "token-telemetry"
 HOOKS_DIR = CURSOR_HOME / "hooks"
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 _TEST_LOG_DIR: tempfile.TemporaryDirectory[str] | None = None
 _TEST_LOG_PATH: Path | None = None
 
-for path in (SRC_DIR, TELEMETRY_DIR):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+for path in (TELEMETRY_DIR, SRC_DIR, REPO_ROOT):
+    path_str = str(path)
+    if path_str in sys.path:
+        sys.path.remove(path_str)
+    sys.path.insert(0, path_str)
 
 from utils.static_prompt_registry import (  # noqa: E402
     PromptRegistryPaths,
@@ -37,6 +40,8 @@ from telemetry_metrics import (  # noqa: E402
     hook_overhead_tokens,
     hook_saved_tokens,
     is_subagent_launch,
+    rtk_hook_saved_tokens,
+    summarize_layer_kpis,
 )
 
 GOOD_BRIEF = """
@@ -144,6 +149,34 @@ class HooksJsonTests(unittest.TestCase):
         write_cmds = [h["command"] for h in pre if h.get("matcher") == "Write"]
         self.assertTrue(any("diff-only-pretool-write" in c for c in write_cmds))
 
+    def test_codex_hooks_json_has_token_reducers(self) -> None:
+        hub_files = Path(__file__).resolve().parents[2]
+        hooks = json.loads((hub_files / "codex" / "hooks.json").read_text(encoding="utf-8"))
+        codex_hooks = hooks.get("hooks", {})
+        pre = codex_hooks.get("PreToolUse", [])
+        matcher_to_commands: dict[str, list[str]] = {}
+        for group in pre:
+            matcher = str(group.get("matcher") or "")
+            commands = [
+                str(handler.get("command") or "")
+                for handler in group.get("hooks", [])
+                if isinstance(handler, dict)
+            ]
+            matcher_to_commands[matcher] = commands
+
+        self.assertTrue(
+            any("codex-rtk-pretool-bash" in cmd for cmd in matcher_to_commands.get("^Bash$", [])),
+            "Codex Bash PreToolUse must run RTK rewrite hook",
+        )
+        self.assertTrue(
+            any("semantic-compress-pretool" in cmd for cmd in matcher_to_commands.get("^Task$", [])),
+            "Codex Task PreToolUse must run subagent prompt compression",
+        )
+        self.assertIn("UserPromptSubmit", codex_hooks)
+        self.assertIn("SubagentStart", codex_hooks)
+        self.assertIn("PreCompact", codex_hooks)
+        self.assertIn("PostCompact", codex_hooks)
+
 
 class StaticRegistryTests(unittest.TestCase):
     def test_block_is_deterministic(self) -> None:
@@ -188,6 +221,27 @@ class TelemetryMetricsStackTests(unittest.TestCase):
 
     def test_subagent_launch_event_set(self) -> None:
         self.assertTrue(is_subagent_launch({"event": "subagentLaunch"}))
+
+    def test_rtk_shell_rewrite_counts_codex_bash(self) -> None:
+        rows = [
+            {
+                "event": "postToolUse",
+                "tool": "Bash",
+                "approx_tokens": 100,
+            },
+            {
+                "event": "rtkShellRewrite",
+                "tool": "Bash",
+                "rtk_before_tokens": 30,
+                "rtk_after_tokens": 10,
+            },
+        ]
+        self.assertEqual(rtk_hook_saved_tokens(rows[1]), 20)
+        layers = summarize_layer_kpis(rows, rtk_gain={"ok": False})
+        rtk = layers["layers"]["rtk_shell"]
+        self.assertEqual(rtk["observed_tokens"], 100)
+        self.assertEqual(rtk["savings_tokens"], 20)
+        self.assertTrue(rtk["available"])
 
 
 class SemanticCompressHookTests(unittest.TestCase):

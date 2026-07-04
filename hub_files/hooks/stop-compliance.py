@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 # Resolve home directory dynamically based on environment or script path
-_HOME_DIR = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
 else:
@@ -31,7 +31,13 @@ from utils.consumption_report_validator import (  # pylint: disable=import-error
 from utils.diff_applier import extract_response_text  # pylint: disable=import-error
 from telemetry_common import append_event  # pylint: disable=import-error
 
-DISABLE_ENV = "ANTIGRAVITY_CONSUMPTION_ENFORCE_DISABLE" if os.getenv("ANTIGRAVITY_CONSUMPTION_ENFORCE_DISABLE") else "CURSOR_CONSUMPTION_ENFORCE_DISABLE"
+DISABLE_ENV = (
+    "CODEX_CONSUMPTION_ENFORCE_DISABLE"
+    if os.getenv("CODEX_CONSUMPTION_ENFORCE_DISABLE")
+    else "ANTIGRAVITY_CONSUMPTION_ENFORCE_DISABLE"
+    if os.getenv("ANTIGRAVITY_CONSUMPTION_ENFORCE_DISABLE")
+    else "CURSOR_CONSUMPTION_ENFORCE_DISABLE"
+)
 LAST_TEXT_CACHE = TOKEN_TELEMETRY_DIR / "diff-only-last-text.txt"
 MAX_LOOPS = int(os.getenv("CONSUMPTION_REPORT_MAX_LOOPS", "2"))
 

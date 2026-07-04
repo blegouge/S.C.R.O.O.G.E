@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 # Resolve home directory dynamically based on environment or script path
-_HOME_DIR = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
 else:
@@ -440,7 +440,11 @@ def main() -> None:
     except json.JSONDecodeError:
         data = {"_parse_error": True, "_raw_len": len(raw)}
 
-    event = (os.environ.get("ANTIGRAVITY_TT_EVENT") or os.environ.get("CURSOR_TT_EVENT", "unknown")).strip()
+    event = (
+        os.environ.get("CODEX_TT_EVENT")
+        or os.environ.get("ANTIGRAVITY_TT_EVENT")
+        or os.environ.get("CURSOR_TT_EVENT", "unknown")
+    ).strip()
     row = _build_row(event, raw, data)
 
     append_event(row)

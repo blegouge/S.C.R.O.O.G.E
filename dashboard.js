@@ -2679,7 +2679,8 @@ const TRANSLATIONS = {
         <p>${t("noProvidersMessage")}</p>
         <pre><code># .env
 TELEMETRY_CLAUDE_ENABLED=1
-TELEMETRY_CURSOR_ENABLED=1</code></pre>
+TELEMETRY_CURSOR_ENABLED=1
+TELEMETRY_CODEX_ENABLED=1</code></pre>
       `;
 
       // Add styles

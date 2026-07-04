@@ -35,7 +35,7 @@ def main() -> None:
     p.add_argument(
         "--source",
         type=str,
-        choices=["cursor", "antigravity", "claude", "gemini", "hermes"],
+        choices=["cursor", "antigravity", "claude", "gemini", "hermes", "codex"],
         default="cursor",
         help="Telemetry data source",
     )
@@ -61,6 +61,13 @@ def main() -> None:
                 base = pathlib.Path(home)
             else:
                 base = pathlib.Path.home() / ".claude"
+            args.file = base / "token-telemetry" / "events.jsonl"
+        elif args.source == "codex":
+            home = os.getenv("CODEX_HOME")
+            if home:
+                base = pathlib.Path(home)
+            else:
+                base = pathlib.Path.home() / ".codex"
             args.file = base / "token-telemetry" / "events.jsonl"
         else:
             args.file = resolve_log_file(source=args.source)

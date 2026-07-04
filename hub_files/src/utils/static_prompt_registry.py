@@ -15,7 +15,7 @@ from typing import Iterable
 class PromptRegistryPaths:
     """Filesystem locations used to build the static cache block."""
 
-    cursor_home: Path = Path(os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME") or Path.home() / ".cursor")
+    cursor_home: Path = Path(os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME") or Path.home() / ".cursor")
 
     @property
     def rules_dir(self) -> Path:

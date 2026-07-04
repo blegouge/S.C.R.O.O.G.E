@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 import os
-CURSOR_HOME = Path(os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME") or Path.home() / ".cursor")
+CURSOR_HOME = Path(os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME") or Path.home() / ".cursor")
 
 SSOT_PAIRS = [
     ("token-budget-guardrail.mdc", "skills/token-budget-guardrail/SKILL.md"),

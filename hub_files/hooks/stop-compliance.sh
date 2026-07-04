@@ -11,5 +11,5 @@ fi
 
 export ANTIGRAVITY_COMPLIANCE_HOOK_EVENT=stop
 export CURSOR_COMPLIANCE_HOOK_EVENT=stop
+export CODEX_COMPLIANCE_HOOK_EVENT=stop
 exec python3 "${SCRIPT_DIR}/stop-compliance.py"
-
