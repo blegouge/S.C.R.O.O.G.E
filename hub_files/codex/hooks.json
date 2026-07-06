@@ -1,0 +1,153 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/codex-rtk-pretool-bash.sh",
+            "statusMessage": "Rewriting shell command with RTK",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "^Task$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/semantic-compress-pretool.sh",
+            "statusMessage": "Compressing subagent task prompt",
+            "timeout": 60
+          }
+        ]
+      },
+      {
+        "matcher": "^apply_patch$|^Edit$|^Write$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/diff-only-pretool-write.sh",
+            "statusMessage": "Checking diff-only write policy",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/tt-user-prompt-submit.sh",
+            "statusMessage": "Recording prompt telemetry",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/tt-posttool.sh",
+            "statusMessage": "Recording tool telemetry",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/tt-subagent-start.sh",
+            "statusMessage": "Recording subagent start telemetry",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/diff-only-subagent-stop.sh",
+            "statusMessage": "Applying diff-only subagent output",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/tt-subagent-stop.sh",
+            "statusMessage": "Recording subagent telemetry",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/tt-precompact.sh",
+            "statusMessage": "Recording pre-compaction telemetry",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/tt-postcompact.sh",
+            "statusMessage": "Recording post-compaction telemetry",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/tt-after-response.sh",
+            "statusMessage": "Recording response telemetry",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/stop-compliance.sh",
+            "statusMessage": "Checking consumption report",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HUB}}/hooks/crg-session-start.sh",
+            "statusMessage": "Refreshing code review graph context",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

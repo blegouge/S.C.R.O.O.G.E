@@ -2,7 +2,7 @@
 """install_stack.py - Automated, interactive, and idempotent installation of the Token Optimization Stack.
 
 This script runs with the standard library only. It copies the reference files from
-hub_files/ to all selected target HUBs (~/.cursor or ~/.gemini/antigravity), prompts the user
+hub_files/ to all selected target HUBs (~/.cursor, ~/.gemini/antigravity, ~/.codex, etc.), prompts the user
 for required MCP tokens once, rewrites configuration paths, updates rule/skill references
 dynamically for the target IDE, sets up the Python venv, and runs the sanity check verification.
 """
@@ -19,6 +19,40 @@ from typing import Any
 # Repository root (where this script is located)
 REPO_ROOT = Path(__file__).resolve().parent
 HUB_FILES = REPO_ROOT / "hub_files"
+CODEX_FILES = HUB_FILES / "codex"
+
+DASHBOARD_RUNTIME_FILES = {
+    ".env",
+    ".env.example",
+    "dashboard.html",
+    "dashboard.css",
+    "dashboard.js",
+    "dashboard_app.py",
+    "providers_config.py",
+    "providers_config.yaml",
+    "report.py",
+    "requirements-desktop.txt",
+    "rtk_resolver.py",
+    "serve_dashboard.py",
+    "telemetry_common.py",
+    "telemetry_config.py",
+    "telemetry_db.py",
+    "telemetry_metrics.py",
+    "telemetry_paths.py",
+}
+
+TOKEN_TELEMETRY_PRESERVE_NAMES = {
+    ".venv-desktop",
+    "dashboard-layout.json",
+    "dashboard.log",
+    "dashboard.pid",
+    "events.jsonl",
+    "icon.jpg",
+    "telemetry.db",
+    "telemetry.db-shm",
+    "telemetry.db-wal",
+    "__pycache__",
+}
 
 # Add hub_files to sys.path for providers module
 if str(HUB_FILES) not in sys.path:
@@ -212,6 +246,55 @@ def save_env_file(path: Path, data: dict[str, str], comment_header: str = "") ->
             f.write(f"{k}={v}\n")
 
 
+def hook_item_commands(item: dict) -> set[str]:
+    """Return command identities from Cursor-style or Codex-style hook entries."""
+    commands: set[str] = set()
+    command = item.get("command")
+    if isinstance(command, str) and command:
+        commands.add(command)
+    nested = item.get("hooks")
+    if isinstance(nested, list):
+        for handler in nested:
+            if isinstance(handler, dict):
+                nested_cmd = handler.get("command")
+                if isinstance(nested_cmd, str) and nested_cmd:
+                    commands.add(nested_cmd)
+    return commands
+
+
+def merge_hook_lists(existing_list: list, template_list: list) -> int:
+    """Merge hook groups while preserving custom user hooks."""
+    added = 0
+    for h_item in template_list:
+        if not isinstance(h_item, dict):
+            if h_item not in existing_list:
+                existing_list.append(h_item)
+                added += 1
+            continue
+
+        h_matcher = h_item.get("matcher")
+        h_cmds = hook_item_commands(h_item)
+        is_present = False
+        for ext_item in existing_list:
+            if ext_item == h_item:
+                is_present = True
+                break
+            if not isinstance(ext_item, dict):
+                continue
+            same_matcher = ext_item.get("matcher") == h_matcher
+            ext_cmds = hook_item_commands(ext_item)
+            if h_cmds and same_matcher and h_cmds.issubset(ext_cmds):
+                is_present = True
+                break
+            if h_cmds and ext_cmds and h_cmds == ext_cmds:
+                is_present = True
+                break
+        if not is_present:
+            existing_list.append(h_item)
+            added += 1
+    return added
+
+
 def copy_tree_idempotent(src: Path, dst: Path, ignore=None, overwrite: bool = True) -> None:
     """Copy directory src to dst, creating parent directories and overwriting existing files (if overwrite is True).
     Prevents infinite recursion if dst is inside src.
@@ -255,12 +338,113 @@ def copy_tree_idempotent(src: Path, dst: Path, ignore=None, overwrite: bool = Tr
         else:
             if not overwrite and d.exists():
                 continue
+            if s.is_symlink() and not s.exists():
+                print(f"Skipping broken symlink: {s}")
+                continue
             try:
                 shutil.copy2(s, d)
             except shutil.SameFileError:
                 pass
             except Exception as e:
                 print(f"Warning: Could not copy file {s} to {d}: {e}")
+
+
+def deploy_token_telemetry_runtime(repo_root: Path, dst: Path) -> None:
+    """Deploy only dashboard/runtime files into <HUB>/token-telemetry."""
+    dst.mkdir(parents=True, exist_ok=True)
+    for name in DASHBOARD_RUNTIME_FILES:
+        src = repo_root / name
+        if src.is_file():
+            shutil.copy2(src, dst / name)
+
+    icon_src = repo_root / "docs" / "fr" / "assets" / "icon.jpg"
+    if icon_src.is_file():
+        shutil.copy2(icon_src, dst / "icon.jpg")
+    else:
+        print(f"Warning: dashboard icon source not found: {icon_src}")
+
+
+def prune_token_telemetry_runtime(dst: Path) -> None:
+    """Remove old repo-copy artifacts from <HUB>/token-telemetry while preserving runtime data."""
+    allowed = set(DASHBOARD_RUNTIME_FILES) | TOKEN_TELEMETRY_PRESERVE_NAMES
+    if not dst.exists():
+        return
+    for item in dst.iterdir():
+        if item.name in allowed:
+            continue
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+
+
+def detect_target_name(hub: Path) -> str:
+    """Return the target provider id from a hub path."""
+    hub_str = str(hub).lower()
+    if "cursor" in hub_str:
+        return "cursor"
+    if "antigravity" in hub_str:
+        return "antigravity"
+    if "claude" in hub_str:
+        return "claude"
+    if "hermes" in hub_str:
+        return "hermes"
+    if "codex" in hub_str:
+        return "codex"
+    if "gemini" in hub_str:
+        return "gemini"
+    return "antigravity"
+
+
+def json_to_toml_value(value: object) -> str:
+    """Serialize simple JSON-like values to TOML."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(json_to_toml_value(v) for v in value) + "]"
+    return json.dumps(str(value))
+
+
+def append_codex_mcp_config(config_path: Path, mcp_data: dict[str, object]) -> None:
+    """Append missing MCP servers to Codex config.toml without parsing user settings."""
+    existing = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    servers = mcp_data.get("mcpServers", {})
+    if not isinstance(servers, dict):
+        return
+
+    lines: list[str] = []
+    for server_name, server_config in servers.items():
+        marker = f"[mcp_servers.{server_name}]"
+        if marker in existing:
+            continue
+        if not isinstance(server_config, dict):
+            continue
+        lines.append("")
+        lines.append(marker)
+        for key in ("command", "args", "url", "cwd", "startup_timeout_sec", "tool_timeout_sec"):
+            if key in server_config:
+                lines.append(f"{key} = {json_to_toml_value(server_config[key])}")
+        env = server_config.get("env")
+        if isinstance(env, dict) and env:
+            lines.append(f"[mcp_servers.{server_name}.env]")
+            for env_key, env_value in env.items():
+                lines.append(f"{env_key} = {json_to_toml_value(env_value)}")
+
+    if not lines:
+        print(f"All Codex MCP servers from template already present in {config_path}.")
+        return
+
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    header = "\n# S.C.R.O.O.G.E. MCP servers (managed by install_stack.py)\n"
+    with config_path.open("a", encoding="utf-8") as f:
+        if existing and not existing.endswith("\n"):
+            f.write("\n")
+        f.write(header)
+        f.write("\n".join(lines).lstrip())
+        f.write("\n")
+    print(f"Added Codex MCP server configuration to {config_path}.")
 
 
 def main() -> int:
@@ -278,6 +462,7 @@ def main() -> int:
         home / ".gemini" / "antigravity",
         home / ".claude",
         home / ".hermes",
+        home / ".codex",
         home / ".gemini",
     ]
 
@@ -363,20 +548,23 @@ def main() -> int:
     
     # Save target homes & stats directories in repo's .env
     for HUB in hubs_to_install:
-        hub_str = str(HUB).lower()
-        if "cursor" in hub_str:
+        target_name = detect_target_name(HUB)
+        if target_name == "cursor":
             repo_env["CURSOR_HOME"] = str(HUB)
             repo_env["CURSOR_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif "antigravity" in hub_str:
+        elif target_name == "antigravity":
             repo_env["ANTIGRAVITY_HOME"] = str(HUB)
-            repo_env["GEMINI_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif "claude" in hub_str:
+            repo_env["ANTIGRAVITY_STATS_DIR"] = str(HUB / "token-telemetry")
+        elif target_name == "claude":
             repo_env["CLAUDE_HOME"] = str(HUB)
             repo_env["CLAUDE_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif "hermes" in hub_str:
+        elif target_name == "hermes":
             repo_env["HERMES_HOME"] = str(HUB)
             repo_env["HERMES_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif "gemini" in hub_str:
+        elif target_name == "codex":
+            repo_env["CODEX_HOME"] = str(HUB)
+            repo_env["CODEX_STATS_DIR"] = str(HUB / "token-telemetry")
+        elif target_name == "gemini":
             repo_env["GEMINI_HOME"] = str(HUB)
             repo_env["GEMINI_STATS_DIR"] = str(HUB / "token-telemetry")
 
@@ -408,10 +596,24 @@ def main() -> int:
         if (HUB_FILES / "AGENT.md").exists():
             shutil.copy2(HUB_FILES / "AGENT.md", HUB / "AGENT.md")
 
-        # Copy current telemetry repository contents to <HUB>/token-telemetry
-        print("Deploying local S.C.R.O.O.G.E. files...")
-        ignore_patterns = {".git", ".venv-build", ".venv-desktop", "build", "dist", "hub_files"}
-        copy_tree_idempotent(REPO_ROOT, HUB / "token-telemetry", ignore=ignore_patterns)
+        if detect_target_name(HUB) == "codex":
+            codex_agents = CODEX_FILES / "AGENTS.md"
+            target_agents = HUB / "AGENTS.md"
+            if codex_agents.exists() and not target_agents.exists():
+                shutil.copy2(codex_agents, target_agents)
+                print(f"Generated Codex global guidance at {target_agents}")
+            elif target_agents.exists():
+                print(f"Preserved existing Codex global guidance at {target_agents}")
+
+            codex_user_skills = home / ".agents" / "skills"
+            copy_tree_idempotent(HUB_FILES / "skills", codex_user_skills, ignore=["__pycache__"], overwrite=False)
+            print(f"Installed Codex user skills under {codex_user_skills}")
+
+        # Deploy only dashboard/runtime files to <HUB>/token-telemetry.
+        print("Deploying S.C.R.O.O.G.E. dashboard runtime files...")
+        token_telemetry_dir = HUB / "token-telemetry"
+        deploy_token_telemetry_runtime(REPO_ROOT, token_telemetry_dir)
+        prune_token_telemetry_runtime(token_telemetry_dir)
 
         # Initialize Télémétrie events.jsonl
         events_file = HUB / "token-telemetry" / "events.jsonl"
@@ -468,18 +670,7 @@ def main() -> int:
             print(f"Warning: Failed to set permissions on secrets file: {exc}")
 
         # Determine target name/type for replacements
-        target_name = "antigravity"
-        hub_str = str(HUB).lower()
-        if "cursor" in hub_str:
-            target_name = "cursor"
-        elif "antigravity" in hub_str:
-            target_name = "antigravity"
-        elif "claude" in hub_str:
-            target_name = "claude"
-        elif "hermes" in hub_str:
-            target_name = "hermes"
-        elif "gemini" in hub_str:
-            target_name = "gemini"
+        target_name = detect_target_name(HUB)
 
         def rewrite_config_content(content: str) -> str:
             # Replace template placeholders
@@ -492,6 +683,7 @@ def main() -> int:
             content = content.replace("/Users/blegouge/.cursor", str(HUB))
             content = content.replace("~/.cursor", str(HUB))
             content = content.replace("~/.gemini/antigravity", str(HUB))
+            content = content.replace("~/.codex", str(HUB))
             content = content.replace("/Users/blegouge/www", str(codebase_root_path))
             content = content.replace("/Users/blegouge", str(home))
             
@@ -515,6 +707,12 @@ def main() -> int:
                 content = content.replace("antigravity", "hermes")
                 content = content.replace("Cursor", "Hermes")
                 content = content.replace("cursor", "hermes")
+            elif target_name == "codex":
+                content = content.replace("Antigravity", "Codex")
+                content = content.replace("antigravity-ide", "codex")
+                content = content.replace("antigravity", "codex")
+                content = content.replace("Cursor", "Codex")
+                content = content.replace("cursor", "codex")
             elif target_name == "gemini":
                 content = content.replace("Antigravity", "Gemini CLI")
                 content = content.replace("antigravity-ide", "gemini")
@@ -562,8 +760,11 @@ def main() -> int:
                 mcp_out.write_text(json.dumps(tpl_data, indent=2), encoding="utf-8")
                 print(f"Generated {mcp_out}")
 
-        # 2) hooks.json (Cursor/Gemini) or settings.json (Claude Code)
-        hooks_tpl = HUB_FILES / "hooks.json"
+            if target_name == "codex":
+                append_codex_mcp_config(HUB / "config.toml", tpl_data)
+
+        # 2) hooks.json (Cursor/Gemini/Codex) or settings.json (Claude Code)
+        hooks_tpl = CODEX_FILES / "hooks.json" if target_name == "codex" and (CODEX_FILES / "hooks.json").exists() else HUB_FILES / "hooks.json"
         if hooks_tpl.exists():
             tpl_text = rewrite_config_content(hooks_tpl.read_text(encoding="utf-8"))
             try:
@@ -636,20 +837,7 @@ def main() -> int:
                             out_data["hooks"][hook_type] = []
 
                         existing_list = out_data["hooks"][hook_type]
-                        # We match a hook by its 'command' property, or check if the exact dict matches.
-                        for h_item in hook_list:
-                            is_present = False
-                            h_cmd = h_item.get("command")
-                            for ext_item in existing_list:
-                                if ext_item == h_item:
-                                    is_present = True
-                                    break
-                                if h_cmd and ext_item.get("command") == h_cmd:
-                                    is_present = True
-                                    break
-                            if not is_present:
-                                existing_list.append(h_item)
-                                added_count += 1
+                        added_count += merge_hook_lists(existing_list, hook_list)
 
                     if added_count > 0:
                         print(f"Added {added_count} new hooks to {hooks_out}.")
@@ -744,7 +932,13 @@ def main() -> int:
         if verify_script.exists():
             print(f"Verifying deployment at {HUB}...")
             try:
-                env = dict(os.environ, HUB=str(HUB), CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"))
+                env = dict(
+                    os.environ,
+                    HUB=str(HUB),
+                    SCROOGE_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"),
+                    CODEX_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"),
+                    CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"),
+                )
                 res = subprocess.run([sys.executable, str(verify_script)], capture_output=True, text=True, env=env)
                 print(res.stdout)
             except Exception as exc:
@@ -774,11 +968,17 @@ def main() -> int:
             try:
                 venv_python = venv_dir / "Scripts" / "python.exe"
                 cmd = [str(venv_python), str(first_hub / "token-telemetry" / "serve_dashboard.py")]
-                subprocess.Popen(
+                proc = subprocess.Popen(
                     cmd,
                     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
-                    env=dict(os.environ, CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"))
+                    env=dict(
+                        os.environ,
+                        SCROOGE_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                        CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                        CODEX_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                    )
                 )
+                pid_file.write_text(str(proc.pid), encoding="utf-8")
                 print("Dashboard started in background. Visit: http://127.0.0.1:8765/")
             except Exception as exc:
                 print(f"Failed to start dashboard: {exc}")
@@ -789,13 +989,19 @@ def main() -> int:
                 log_file.parent.mkdir(parents=True, exist_ok=True)
                 log_fh = open(log_file, "a", encoding="utf-8")
                 cmd = [str(venv_python), str(first_hub / "token-telemetry" / "serve_dashboard.py")]
-                subprocess.Popen(
+                proc = subprocess.Popen(
                     cmd,
                     stdout=log_fh,
                     stderr=subprocess.STDOUT,
                     start_new_session=True,
-                    env=dict(os.environ, CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"))
+                    env=dict(
+                        os.environ,
+                        SCROOGE_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                        CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                        CODEX_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                    )
                 )
+                pid_file.write_text(str(proc.pid), encoding="utf-8")
                 print("Dashboard started in background. Visit: http://127.0.0.1:8765/")
             except Exception as exc:
                 print(f"Failed to start dashboard: {exc}")

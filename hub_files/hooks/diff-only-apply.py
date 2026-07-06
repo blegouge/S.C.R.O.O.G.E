@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 # Resolve home directory dynamically based on environment or script path
-_HOME_DIR = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
 else:
@@ -38,7 +38,13 @@ from utils.diff_applier import (  # pylint: disable=import-error
     resolve_workspace_roots,
 )
 
-DISABLE_ENV = "ANTIGRAVITY_DIFF_ONLY_DISABLE" if os.environ.get("ANTIGRAVITY_DIFF_ONLY_DISABLE") else "CURSOR_DIFF_ONLY_DISABLE"
+DISABLE_ENV = (
+    "CODEX_DIFF_ONLY_DISABLE"
+    if os.environ.get("CODEX_DIFF_ONLY_DISABLE")
+    else "ANTIGRAVITY_DIFF_ONLY_DISABLE"
+    if os.environ.get("ANTIGRAVITY_DIFF_ONLY_DISABLE")
+    else "CURSOR_DIFF_ONLY_DISABLE"
+)
 LAST_TEXT_CACHE = _HOME_PATH / "token-telemetry" / "diff-only-last-text.txt"
 
 
@@ -54,7 +60,11 @@ def _load_stdin() -> dict[str, Any]:
 
 
 def _hook_event(data: dict[str, Any]) -> str:
-    env_event = (os.environ.get("ANTIGRAVITY_DIFF_HOOK_EVENT") or os.environ.get("CURSOR_DIFF_HOOK_EVENT", "")).strip()
+    env_event = (
+        os.environ.get("CODEX_DIFF_HOOK_EVENT")
+        or os.environ.get("ANTIGRAVITY_DIFF_HOOK_EVENT")
+        or os.environ.get("CURSOR_DIFF_HOOK_EVENT", "")
+    ).strip()
     if env_event:
         return env_event
     name = data.get("hook_event_name")

@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 from .cursor import CursorProvider
 from .claude import ClaudeProvider
+from .codex import CodexProvider
 from .antigravity import AntigravityProvider
 from .gemini import GeminiProvider
 from .hermes import HermesProvider
@@ -36,6 +37,7 @@ from .hermes import HermesProvider
 _PROVIDERS: dict[str, type[BaseProvider]] = {
     "cursor": CursorProvider,
     "claude": ClaudeProvider,
+    "codex": CodexProvider,
     "antigravity": AntigravityProvider,
     "gemini": GeminiProvider,
     "hermes": HermesProvider,
@@ -47,13 +49,16 @@ def detect_provider() -> BaseProvider:
 
     Detection order (first match wins):
     1. CLAUDE_TT_EVENT or CLAUDE_HOME → Claude Code
-    2. ANTIGRAVITY_TT_EVENT or ANTIGRAVITY_HOME → Antigravity
-    3. GEMINI_TT_EVENT or GEMINI_HOME → Gemini CLI
-    4. HERMES_TT_EVENT or HERMES_HOME → Hermes
-    5. Default → Cursor
+    2. CODEX_TT_EVENT or CODEX_HOME → Codex
+    3. ANTIGRAVITY_TT_EVENT or ANTIGRAVITY_HOME → Antigravity
+    4. GEMINI_TT_EVENT or GEMINI_HOME → Gemini CLI
+    5. HERMES_TT_EVENT or HERMES_HOME → Hermes
+    6. Default → Cursor
     """
     if os.environ.get("CLAUDE_TT_EVENT") or os.environ.get("CLAUDE_HOME"):
         return ClaudeProvider()
+    if os.environ.get("CODEX_TT_EVENT") or os.environ.get("CODEX_HOME"):
+        return CodexProvider()
     if os.environ.get("ANTIGRAVITY_TT_EVENT") or os.environ.get("ANTIGRAVITY_HOME"):
         return AntigravityProvider()
     if os.environ.get("GEMINI_TT_EVENT") or os.environ.get("GEMINI_HOME"):
@@ -68,7 +73,7 @@ def get_provider(name: str) -> BaseProvider:
     """Get a provider instance by name.
 
     Args:
-        name: Provider identifier (cursor, claude, antigravity, gemini, hermes)
+        name: Provider identifier (cursor, claude, codex, antigravity, gemini, hermes)
 
     Returns:
         Provider instance
@@ -100,6 +105,7 @@ __all__ = [
     "BaseProvider",
     "CursorProvider",
     "ClaudeProvider",
+    "CodexProvider",
     "AntigravityProvider",
     "GeminiProvider",
     "HermesProvider",

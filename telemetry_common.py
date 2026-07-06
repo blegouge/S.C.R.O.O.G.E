@@ -43,8 +43,12 @@ def _detect_source() -> str:
 
 
 def resolve_log_file() -> Path:
-    """Telemetry log path (auto-detects source from environment)."""
-    override = os.environ.get("CURSOR_TOKEN_TELEMETRY_LOG", "").strip()
+    """Telemetry log path (override with *_TOKEN_TELEMETRY_LOG for tests)."""
+    override = (
+        os.environ.get("SCROOGE_TOKEN_TELEMETRY_LOG", "").strip()
+        or os.environ.get("CODEX_TOKEN_TELEMETRY_LOG", "").strip()
+        or os.environ.get("CURSOR_TOKEN_TELEMETRY_LOG", "").strip()
+    )
     if override:
         return Path(override).expanduser()
     return _path_log_file(source=_detect_source())
@@ -57,6 +61,12 @@ def resolve_skills_dir() -> Path:
     hub = os.environ.get("HUB", "").strip()
     if hub:
         return Path(hub).expanduser() / "skills"
+    codex_home = os.environ.get("CODEX_HOME", "").strip()
+    if codex_home:
+        return Path(codex_home).expanduser() / "skills"
+    ag_home = os.environ.get("ANTIGRAVITY_HOME", "").strip()
+    if ag_home:
+        return Path(ag_home).expanduser() / "skills"
     c_home = os.environ.get("CURSOR_HOME", "").strip()
     if c_home:
         return Path(c_home).expanduser() / "skills"

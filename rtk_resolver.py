@@ -21,6 +21,7 @@ def _compression_env_paths() -> list[pathlib.Path]:
     return [
         home / ".cursor" / "compression.env",
         home / ".gemini" / "antigravity" / "compression.env",
+        home / ".codex" / "compression.env",
     ]
 
 
@@ -177,8 +178,8 @@ def diagnose_rtk(*, cwd: str | None = None, frozen: bool | None = None) -> dict[
         "ok": cmd is not None,
         "attempts": attempts[:12],
         "hint": (
-            "Set RTK_BIN=/chemin/vers/rtk in ~/.cursor/compression.env "
-            "then reopen S.C.R.O.O.G.E.app"
+            "Install RTK on PATH, or set RTK_BIN=/path/to/rtk in ~/.codex/compression.env "
+            "(or the matching hub compression.env), then restart S.C.R.O.O.G.E."
             if not cmd
             else None
         ),

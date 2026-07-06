@@ -41,24 +41,39 @@ def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
 
 DASH = package_root() / "dashboard.html"
 ICON = package_root() / "icon.jpg"  # app logo / favicon (JPEG)
+ICON_FALLBACK = package_root() / "docs" / "fr" / "assets" / "icon.jpg"
 JS = package_root() / "dashboard.js"
 CSS = package_root() / "dashboard.css"
 HOST = os.environ.get("TELEMETRY_HOST", "127.0.0.1")
 PORT = int(os.environ.get("TELEMETRY_PORT", 8765))
 
 
+def icon_path() -> pathlib.Path | None:
+    """Return the dashboard icon path, supporting legacy and docs asset layouts."""
+    for candidate in (ICON, ICON_FALLBACK):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def _rtk_cmd_candidates() -> list[list[str]]:
     candidates: list[list[str]] = []
     seen: set[str] = set()
-    which_rtk = shutil.which("rtk")
+    env = _patched_env()
+    which_rtk = shutil.which("rtk", path=env.get("PATH"))
+    env_rtk = os.environ.get("RTK_BIN", "").strip()
     common_paths = [
+        env_rtk,
         which_rtk,
         "/opt/homebrew/bin/rtk",
         "/usr/local/bin/rtk",
+        str(pathlib.Path.home() / ".local" / "bin" / "rtk"),
         "/usr/bin/rtk",
     ]
     for path in common_paths:
         if not path or path in seen:
+            continue
+        if pathlib.Path(path).is_absolute() and not pathlib.Path(path).is_file():
             continue
         seen.add(path)
         candidates.append([path])
@@ -318,8 +333,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if path in ("/icon.jpg", "/favicon.ico") and ICON.is_file():
-            data = ICON.read_bytes()
+        if path in ("/icon.jpg", "/favicon.ico", "/docs/fr/assets/icon.jpg"):
+            icon = icon_path()
+            if icon is None:
+                self.send_error(404, "Icon not found")
+                return
+            data = icon.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "image/jpeg")
             self.send_header("Cache-Control", "public, max-age=86400")

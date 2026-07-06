@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""verify_stack.py - Sanity check of the token optimization stack (~/.cursor).
+"""verify_stack.py - Sanity check of the token optimization stack.
 
 Auto-contenu : stdlib uniquement. Multi-OS (macOS/Linux/Windows).
 Returns a report [OK]/[FAIL] per block. Exit 0 if all OK, 1 otherwise.
@@ -17,7 +17,11 @@ from pathlib import Path
 HUB = Path(os.environ.get("HUB", Path.home() / ".cursor"))
 SRC_UTILS = HUB / "src" / "utils"
 PROJECTS = HUB / "projects"
-TT_DATA = Path(os.environ.get("CURSOR_TOKEN_TELEMETRY_DATA_DIR", HUB / "token-telemetry"))
+TT_DATA = Path(
+    os.environ.get("SCROOGE_TOKEN_TELEMETRY_DATA_DIR")
+    or os.environ.get("CURSOR_TOKEN_TELEMETRY_DATA_DIR")
+    or HUB / "token-telemetry"
+)
 
 results: list[tuple[str, bool, str]] = []
 
@@ -44,22 +48,40 @@ def check_hooks() -> None:
         data = json.loads(hooks_file.read_text(encoding="utf-8"))
         hooks = data.get("hooks", {})
 
-        pre = hooks.get("preToolUse", [])
-        shell_hook = next(
-            (h for h in pre if h.get("matcher") == "Shell" and "rtk" in h.get("command", "")),
-            None,
-        )
-        has_after = "afterAgentResponse" in hooks
-        has_subagent = "subagentStop" in hooks
+        if "PreToolUse" in hooks or "PostToolUse" in hooks:
+            pre = hooks.get("PreToolUse", [])
+            post = hooks.get("PostToolUse", [])
+            shell_hook = next((h for h in pre if h.get("matcher") == "^Bash$"), None)
+            task_hook = next((h for h in pre if h.get("matcher") == "^Task$"), None)
+            post_hook = next((h for h in post if h.get("matcher") in {"*", "^Bash$"}), None)
+            has_after = "Stop" in hooks
+            has_subagent = "SubagentStop" in hooks
+            fake_tool = "Bash"
+        else:
+            pre = hooks.get("preToolUse", [])
+            shell_hook = next(
+                (h for h in pre if h.get("matcher") == "Shell" and "rtk" in h.get("command", "")),
+                None,
+            )
+            task_hook = next(
+                (h for h in pre if h.get("matcher") == "Task" and "semantic-compress" in h.get("command", "")),
+                None,
+            )
+            post_hook = True
+            has_after = "afterAgentResponse" in hooks
+            has_subagent = "subagentStop" in hooks
+            fake_tool = "Shell"
 
         # Simulated interception of a dummy command: matching rule
         # "Shell" must apply to a terminal call of type "ls -la".
-        fake_tool = "Shell"
-        intercepted = shell_hook is not None and shell_hook.get("matcher") == fake_tool
+        intercepted = shell_hook is not None and shell_hook.get("matcher") in {fake_tool, "*", f"^{fake_tool}$"}
+        task_compression = task_hook is not None
+        post_telemetry = post_hook is not None
 
-        ok = bool(shell_hook) and has_after and has_subagent and intercepted
+        ok = bool(shell_hook) and task_compression and post_telemetry and has_after and has_subagent and intercepted
         detail = (
             f"shell_intercept={intercepted}, "
+            f"task_compression={task_compression}, post_telemetry={post_telemetry}, "
             f"afterAgentResponse={has_after}, subagentStop={has_subagent}"
         )
         record("Hooks (dummy command interception)", ok, detail)
@@ -174,7 +196,7 @@ def check_observability_and_governance() -> None:
 
 def main() -> int:
     print("=" * 64)
-    print(" verify_stack.py - Sanity check token stack (~/.cursor)")
+    print(f" verify_stack.py - Sanity check token stack ({HUB})")
     print(f" HUB = {HUB}")
     print("=" * 64)
 
