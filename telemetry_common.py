@@ -27,6 +27,7 @@ def _detect_source() -> str:
     """
     try:
         from providers import detect_provider
+
         return detect_provider().name
     except (ImportError, Exception):
         # Fallback to legacy detection if providers module is unavailable

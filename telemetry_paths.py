@@ -62,6 +62,7 @@ def load_telemetry_env() -> None:
 load_telemetry_env()
 
 from providers_config import get_data_dir
+
 DEFAULT_APP_DIR = Path(__file__).resolve().parent
 
 

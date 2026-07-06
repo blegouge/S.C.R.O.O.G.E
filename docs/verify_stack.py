@@ -65,7 +65,11 @@ def check_hooks() -> None:
                 None,
             )
             task_hook = next(
-                (h for h in pre if h.get("matcher") == "Task" and "semantic-compress" in h.get("command", "")),
+                (
+                    h
+                    for h in pre
+                    if h.get("matcher") == "Task" and "semantic-compress" in h.get("command", "")
+                ),
                 None,
             )
             post_hook = True
@@ -75,11 +79,22 @@ def check_hooks() -> None:
 
         # Simulated interception of a dummy command: matching rule
         # "Shell" must apply to a terminal call of type "ls -la".
-        intercepted = shell_hook is not None and shell_hook.get("matcher") in {fake_tool, "*", f"^{fake_tool}$"}
+        intercepted = shell_hook is not None and shell_hook.get("matcher") in {
+            fake_tool,
+            "*",
+            f"^{fake_tool}$",
+        }
         task_compression = task_hook is not None
         post_telemetry = post_hook is not None
 
-        ok = bool(shell_hook) and task_compression and post_telemetry and has_after and has_subagent and intercepted
+        ok = (
+            bool(shell_hook)
+            and task_compression
+            and post_telemetry
+            and has_after
+            and has_subagent
+            and intercepted
+        )
         detail = (
             f"shell_intercept={intercepted}, "
             f"task_compression={task_compression}, post_telemetry={post_telemetry}, "

@@ -63,6 +63,7 @@ if str(HUB_FILES) not in sys.path:
 # Provider-based hooks transformation
 # =============================================================================
 
+
 def _get_provider(target_name: str):
     """Get provider instance for the given target IDE name.
 
@@ -70,6 +71,7 @@ def _get_provider(target_name: str):
     """
     try:
         from providers import get_provider
+
         return get_provider(target_name)
     except (ImportError, KeyError, Exception):
         # If providers module is unavailable, return None to trigger fallback
@@ -94,13 +96,22 @@ def transform_hooks_cursor_to_claude(hooks_data: dict[str, Any]) -> dict[str, An
 
     # Events supported by Claude Code (others will be skipped)
     CLAUDE_SUPPORTED_EVENTS = {
-        "PreToolUse", "PostToolUse", "Stop", "SubagentStart", "SubagentStop", "SessionStart",
+        "PreToolUse",
+        "PostToolUse",
+        "Stop",
+        "SubagentStart",
+        "SubagentStop",
+        "SessionStart",
     }
 
     # Event name mapping: Cursor (camelCase) -> Claude Code (PascalCase)
     CLAUDE_EVENT_MAPPING = {
-        "preToolUse": "PreToolUse", "postToolUse": "PostToolUse", "stop": "Stop",
-        "subagentStop": "SubagentStop", "sessionStart": "SessionStart", "subagentStart": "SubagentStart",
+        "preToolUse": "PreToolUse",
+        "postToolUse": "PostToolUse",
+        "stop": "Stop",
+        "subagentStop": "SubagentStop",
+        "sessionStart": "SessionStart",
+        "subagentStart": "SubagentStart",
     }
 
     # Tool/matcher name mapping: Cursor -> Claude Code
@@ -124,8 +135,7 @@ def transform_hooks_cursor_to_claude(hooks_data: dict[str, Any]) -> dict[str, An
             by_matcher[matcher].append(hook_entry)
 
         result["hooks"][claude_event] = [
-            {"matcher": matcher, "hooks": hooks_list}
-            for matcher, hooks_list in by_matcher.items()
+            {"matcher": matcher, "hooks": hooks_list} for matcher, hooks_list in by_matcher.items()
         ]
 
     return result
@@ -160,8 +170,7 @@ def merge_hooks_claude(existing: dict[str, Any], new_hooks: dict[str, Any]) -> d
 
     for event, groups in existing.get("hooks", {}).items():
         result["hooks"][event] = [
-            {"matcher": g["matcher"], "hooks": list(g.get("hooks", []))}
-            for g in groups
+            {"matcher": g["matcher"], "hooks": list(g.get("hooks", []))} for g in groups
         ]
 
     for event, groups in new_hooks.get("hooks", {}).items():
@@ -180,10 +189,9 @@ def merge_hooks_claude(existing: dict[str, Any], new_hooks: dict[str, Any]) -> d
                     break
 
             if target_group is None:
-                existing_groups.append({
-                    "matcher": new_matcher,
-                    "hooks": list(new_group.get("hooks", []))
-                })
+                existing_groups.append(
+                    {"matcher": new_matcher, "hooks": list(new_group.get("hooks", []))}
+                )
             else:
                 existing_commands = {h["command"] for h in target_group.get("hooks", [])}
                 for hook in new_group.get("hooks", []):
@@ -615,7 +623,9 @@ def main() -> int:
                 print(f"Preserved existing Codex global guidance at {target_agents}")
 
             codex_user_skills = home / ".agents" / "skills"
-            copy_tree_idempotent(HUB_FILES / "skills", codex_user_skills, ignore=["__pycache__"], overwrite=False)
+            copy_tree_idempotent(
+                HUB_FILES / "skills", codex_user_skills, ignore=["__pycache__"], overwrite=False
+            )
             print(f"Installed Codex user skills under {codex_user_skills}")
 
         # Deploy only dashboard/runtime files to <HUB>/token-telemetry.
@@ -773,7 +783,11 @@ def main() -> int:
                 append_codex_mcp_config(HUB / "config.toml", tpl_data)
 
         # 2) hooks.json (Cursor/Gemini/Codex) or settings.json (Claude Code)
-        hooks_tpl = CODEX_FILES / "hooks.json" if target_name == "codex" and (CODEX_FILES / "hooks.json").exists() else HUB_FILES / "hooks.json"
+        hooks_tpl = (
+            CODEX_FILES / "hooks.json"
+            if target_name == "codex" and (CODEX_FILES / "hooks.json").exists()
+            else HUB_FILES / "hooks.json"
+        )
         if hooks_tpl.exists():
             tpl_text = rewrite_config_content(hooks_tpl.read_text(encoding="utf-8"))
             try:

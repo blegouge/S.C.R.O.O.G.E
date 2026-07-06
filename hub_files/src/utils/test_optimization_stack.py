@@ -183,7 +183,9 @@ class HooksJsonTests(unittest.TestCase):
             "Codex Bash PreToolUse must run RTK rewrite hook",
         )
         self.assertTrue(
-            any("semantic-compress-pretool" in cmd for cmd in matcher_to_commands.get("^Task$", [])),
+            any(
+                "semantic-compress-pretool" in cmd for cmd in matcher_to_commands.get("^Task$", [])
+            ),
             "Codex Task PreToolUse must run subagent prompt compression",
         )
         self.assertIn("UserPromptSubmit", codex_hooks)
