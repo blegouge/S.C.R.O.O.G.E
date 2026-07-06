@@ -2,20 +2,26 @@
 """
 Deterministic static prompt block assembler for global rules and skills.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import os
 import re
-from typing import Iterable
+from collections.abc import Iterable
+from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True, slots=True)
 class PromptRegistryPaths:
     """Filesystem locations used to build the static cache block."""
 
-    cursor_home: Path = Path(os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME") or Path.home() / ".cursor")
+    cursor_home: Path = Path(
+        os.getenv("CODEX_HOME")
+        or os.getenv("ANTIGRAVITY_HOME")
+        or os.getenv("CURSOR_HOME")
+        or Path.home() / ".cursor"
+    )
 
     @property
     def rules_dir(self) -> Path:

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Factory helpers for adaptive context summarizers."""
+
 from __future__ import annotations
 
 import os

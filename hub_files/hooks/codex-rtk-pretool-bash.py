@@ -5,6 +5,7 @@ The hook is intentionally fail-open. If RTK is missing, returns an unexpected
 payload, or declines a rewrite, Codex receives permission to run the original
 command.
 """
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -15,7 +16,6 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
-
 
 _HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
 if _HOME_DIR:
@@ -30,10 +30,13 @@ for _path in (_HOME_PATH / "token-telemetry", _HOME_PATH / "src"):
 try:
     from telemetry_common import append_event, enrich_correlation, hook_fail_safe
 except Exception:  # pragma: no cover - last-ditch fail-open when runtime is incomplete
+
     def append_event(row: dict[str, Any]) -> None:
         return None
 
-    def enrich_correlation(hook_data: dict[str, Any], tool_input: dict[str, Any] | None = None) -> dict[str, str]:
+    def enrich_correlation(
+        hook_data: dict[str, Any], tool_input: dict[str, Any] | None = None
+    ) -> dict[str, str]:
         return {}
 
     def hook_fail_safe(fallback_json: str = '{"permission": "allow"}'):
@@ -43,7 +46,9 @@ except Exception:  # pragma: no cover - last-ditch fail-open when runtime is inc
                     return func(*args, **kwargs)
                 except Exception:
                     sys.stdout.write(fallback_json)
+
             return wrapper
+
         return decorator
 
 
@@ -136,7 +141,7 @@ def _append_row(
     before = (len(original) + 3) // 4
     after = (len(rewritten) + 3) // 4
     row: dict[str, Any] = {
-        "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "ts": _dt.datetime.now(_dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "event": "rtkShellRewrite",
         "tool": "Bash",
         "rtk_rewrite_status": status,

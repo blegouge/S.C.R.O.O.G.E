@@ -3,6 +3,7 @@
 Deterministic upstream token-budget guardrail report (no LLM).
 Injected after BLOCK_1_STATIC in the Task compression pipeline.
 """
+
 from __future__ import annotations
 
 import re
@@ -44,7 +45,9 @@ def _prompt_signals(prompt: str, description: str) -> dict[str, bool]:
         "mentions_large_read": bool(
             re.search(r"\b(read|open|load)\b.{0,40}\b(file|entire|whole)\b", blob)
         ),
-        "mentions_test_retry": bool(re.search(r"\b(pytest|jest|cargo test|npm test|retry)\b", blob)),
+        "mentions_test_retry": bool(
+            re.search(r"\b(pytest|jest|cargo test|npm test|retry)\b", blob)
+        ),
         "mentions_diff_only": "diff-only" in blob or "search/replace" in blob,
         "has_file_paths": bool(re.search(r"[\w./-]+\.(py|ts|tsx|js|go|rs|java|mdc|md)\b", blob)),
     }

@@ -29,7 +29,7 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
    - Logs metrics asynchronously to a local, append-only `events.jsonl` file, and syncs them incrementally into a central SQLite database (`telemetry.db`).
    - Query endpoints utilize the indexed SQLite database for fast O(log N) searches.
    - Compiles into a native **macOS Desktop App** (`.app` bundle via PyInstaller) for a standalone window dashboard.
-   
+
 2. **🗜️ Context Compression & Optimizations**
    - **RTK Gain**: Integrates with shell command savings (saves up to 98% on command runs).
    - **Diff-Only Protocol**: Applies SEARCH/REPLACE delta patching to avoid rewriting large source files, saving up to 95% of output tokens.

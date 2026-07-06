@@ -1,520 +1,916 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S.C.R.O.O.G.E.</title>
-  <link rel="icon" type="image/jpeg" href="icon.jpg" sizes="512x512" />
-  <link rel="icon" href="favicon.ico" />
-  <link rel="apple-touch-icon" href="icon.jpg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@450;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>S.C.R.O.O.G.E.</title>
+    <link rel="icon" type="image/jpeg" href="icon.jpg" sizes="512x512" />
+    <link rel="icon" href="favicon.ico" />
+    <link rel="apple-touch-icon" href="icon.jpg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@450;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="dashboard.css" />
-
-</head>
-<body>
-  <div class="app" style="opacity: 0; transition: opacity 0.2s;">
-    <header class="nav-glass">
-      <div class="brand">
-        <img class="brand-icon" src="icon.jpg" alt="" width="42" height="42" decoding="async" fetchpriority="high" />
-        <div>
-          <h1 data-i18n="brandTitle">S.C.R.O.O.G.E.</h1>
-          <span data-i18n="brandSub">Proxy consumption &amp; applied edits</span>
-        </div>
-      </div>
-      <div class="nav-meta">
-        <time id="navPeriod" class="nav-period" datetime="">—</time>
-        <button type="button" class="nav-info-btn" id="btnNavInfo" aria-describedby="navInfoTip">
-          i
-          <span class="nav-info-tip" id="navInfoTip" role="tooltip" data-i18n="navInfoTip">
-            Local telemetry — the chart compares observed consumption (billed by Cursor when available)
-            to an estimate without optimizations (real + RTK savings, Task compression, Diff-Only).
-          </span>
-        </button>
-      </div>
-      <div class="nav-actions">
-        <input type="file" id="fileIn" accept=".jsonl,.json,text/plain" hidden />
-        <select id="langSelect" class="select-glass-flag" title="Language / Langue">
-          <option value="en">🇬🇧</option>
-          <option value="fr">🇫🇷</option>
-        </select>
-        <div class="refresh-split" id="refreshSplit">
-          <button type="button" class="refresh-split-btn refresh-split-main" id="btnRefreshNow" title="Refresh from server now" data-i18n-title="refreshNowTitle">
-            <svg class="refresh-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-              <path d="M21 21v-5h-5" />
-            </svg>
-            <span data-i18n="refreshLabel">Refresh</span>
-          </button>
-          <button type="button" class="refresh-split-btn refresh-split-caret" id="btnRefreshMenu" aria-expanded="false" aria-controls="refreshDropdown" aria-haspopup="true" title="Auto-refresh interval" data-i18n-title="refreshMenuTitle">
-            <span id="refreshIntervalLabel">Disabled</span>
-            <svg class="caret-ico" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M3 4.5L6 8l3-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <select id="sourceSelect" class="refresh-split-btn refresh-split-select" title="Telemetry data source" data-i18n-title="sourceSelectTitle" aria-label="Telemetry data source">
-            <option value="antigravity">Antigravity</option>
-            <option value="cursor">Cursor</option>
-            <option value="claude">Claude Code</option>
-            <option value="gemini">Gemini CLI</option>
-            <option value="hermes">Hermes</option>
-            <option value="codex">Codex</option>
-          </select>
-          <ul class="refresh-dropdown" id="refreshDropdown" role="menu" hidden>
-            <li role="none"><button type="button" role="menuitemradio" data-interval-ms="0" data-short-en="Disabled" data-short-fr="Désactivé" data-i18n="disabled">Disabled</button></li>
-            <li role="none"><button type="button" role="menuitemradio" data-interval-ms="300000" data-short-en="5 min" data-short-fr="5 min" data-i18n="fiveMin">5 minutes</button></li>
-            <li role="none"><button type="button" role="menuitemradio" data-interval-ms="1800000" data-short-en="30 min" data-short-fr="30 min" data-i18n="thirtyMin">30 minutes</button></li>
-            <li role="none"><button type="button" role="menuitemradio" data-interval-ms="3600000" data-short-en="1 h" data-short-fr="1 h" data-i18n="oneHour">1 hour</button></li>
-          </ul>
-        </div>
-        <button type="button" class="btn" id="btnTheme" data-i18n="toggleTheme">Toggle theme</button>
-        <button type="button" class="btn btn-primary" id="btnReload" data-i18n="loadFile">Load file</button>
-      </div>
-    </header>
-
-    <div id="dashboardSections" class="dashboard-sections">
-
-    <div class="dash-section" data-section-id="kpi-summary">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-summary" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_kpi_summary">Summary</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-kpi-summary">
-    <section class="glass-strip" aria-label="Summary">
-      <article class="metric-chip">
-        <label data-i18n="events">Events</label>
-        <div class="big" id="kpiEvents">—</div>
-        <div class="sub" data-i18n="validLines">Valid lines in log</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="tokensProxy">Tokens (proxy)</label>
-        <div class="big" id="kpiTokens">—</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="textChars">Text characters</label>
-        <div class="big" id="kpiChars">—</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="consoReports">Conso reports</label>
-        <div class="big" id="kpiConso">—</div>
-        <div class="sub" id="kpiConsoSub" data-i18n="completeFiveFields">complete · 5 fields</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="rtkGainSaved">RTK gain (saved)</label>
-        <div class="big" id="kpiRtkSaved">—</div>
-        <div class="sub" id="kpiRtkSub" data-i18n="globalProject">global / project</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="hookGainSaved">Hook gain (saved)</label>
-        <div class="big" id="kpiHookSaved">—</div>
-        <div class="sub" id="kpiHookSub" data-i18n="clawLlmTask">Claw / LLMLingua · Task</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="globalGains">Global gains</label>
-        <div class="big" id="kpiTotalSaved">—</div>
-        <div class="sub" id="kpiTotalSub" data-i18n="rtkHook">RTK + hook</div>
-      </article>
-    </section>
-      </div>
-    </div>
-
-    <div class="dash-section" data-section-id="kpi-savings">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-savings" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_kpi_savings">Optimizations comparison</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-kpi-savings">
-    <section class="glass-strip savings-strip" aria-label="Comparatif optimisations">
-      <article class="metric-chip">
-        <label data-i18n="consumedObserved">Consumed (observed)</label>
-        <div class="big" id="kpiObserved">—</div>
-        <div class="sub" id="kpiObservedSub" data-i18n="logPeriod">log period</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="withoutOptimizations">Without optimizations (estimated)</label>
-        <div class="big" id="kpiCounterfactual">—</div>
-        <div class="sub" id="kpiCounterfactualSub" data-i18n="observedSavings">observed + savings</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="savingsEstimated">Savings (estimated)</label>
-        <div class="big" id="kpiOptSaved">—</div>
-        <div class="sub" id="kpiOptSavedSub" data-i18n="rtkCompressionDiff">RTK + compression + diff-only</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="globalGainPct">Global gain</label>
-        <div class="big" id="kpiOptPct">—</div>
-        <div class="sub" id="kpiOptPctSub" data-i18n="pctOfCounterfactual">% of counterfactual</div>
-      </article>
-    </section>
-      </div>
-    </div>
-
-
-    <div class="dash-section" data-section-id="kpi-layers">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-layers" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_kpi_layers">Score per layer</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-kpi-layers">
-    <section class="glass-strip layers-strip" aria-label="Score par couche">
-      <p class="hint" id="kpiLayersHint" style="margin:0 0 0.75rem;font-size:0.82rem;opacity:0.85;" data-i18n="honestMeasurement">
-        Honest measurement: parent chat excluded from blend. Legacy = old KPI (often &lt;1%).
-      </p>
-      <div id="kpiLayersTable" class="layers-table" role="table"></div>
-    </section>
-      </div>
-    </div>
-
-    <div class="dash-section" data-section-id="kpi-editing">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-editing" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_kpi_editing">Editing</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-kpi-editing">
-    <section class="glass-strip editing-strip" aria-label="Editing">
-      <article class="metric-chip">
-        <label data-i18n="agentAdd">Agent ΔL+</label>
-        <div class="big" id="kpiAgentAdd">—</div>
-        <div class="sub" data-i18n="afterFileEdit">afterFileEdit</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="agentRem">Agent ΔL−</label>
-        <div class="big" id="kpiAgentRem">—</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="agentPasses">Agent passes</label>
-        <div class="big" id="kpiAgentPass">—</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="tabsAccepted">Tabs accepted</label>
-        <div class="big" id="kpiTabN">—</div>
-        <div class="sub" data-i18n="afterTabFileEdit">afterTabFileEdit</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="tabLines">ΔL+ Tab</label>
-        <div class="big" id="kpiTabLines">—</div>
-      </article>
-    </section>
-      </div>
-    </div>
-
-    <div class="dash-section" data-section-id="kpi-subagents">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-subagents" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_kpi_subagents">Subagents (KPI)</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-kpi-subagents">
-    <section class="glass-strip subagent-strip" aria-label="Subagents">
-      <article class="metric-chip">
-        <label data-i18n="launchesTotal">Launches (total)</label>
-        <div class="big" id="kpiSubLaunch">—</div>
-        <div class="sub" id="kpiSubLaunchSub" data-i18n="alignedReport">aligned with report.py</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="completedTotal">Completed (total)</label>
-        <div class="big" id="kpiSubStop">—</div>
-        <div class="sub" id="kpiSubStopSub" data-i18n="subagentStop">subagentStop</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="parentBilled">Parent billed</label>
-        <div class="big" id="kpiParentBilled">—</div>
-        <div class="sub" id="kpiParentBilledSub" data-i18n="averageSum">average · sum</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="subPromptProxy">Sub prompt (proxy)</label>
-        <div class="big" id="kpiSubPromptTok">—</div>
-        <div class="sub" id="kpiSubPromptSub" data-i18n="afterCompression">after compression</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="subOutProxy">Sub output (proxy)</label>
-        <div class="big" id="kpiSubOutTok">—</div>
-        <div class="sub" id="kpiSubOutSub" data-i18n="summaryTranscript">summary + transcript</div>
-      </article>
-    </section>
-      </div>
-    </div>
-
-    <div class="dash-section" data-section-id="kpi-stack">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-stack" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_kpi_stack">Stack optimizations</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-kpi-stack">
-    <section class="glass-strip stack-strip" aria-label="Stack optimisations">
-      <article class="metric-chip">
-        <label data-i18n="gitCacheHit">Git Cache Hit</label>
-        <div class="big" id="kpiGitCacheHits">—</div>
-        <div class="sub" id="kpiGitCacheSub" data-i18n="block2Reused">BLOCK_2 reused</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="guardrailCircuit">Guardrail circuit breaker</label>
-        <div class="big" id="kpiGuardrailIntercepts">—</div>
-        <div class="sub" id="kpiGuardrailSub" data-i18n="interceptsHalts">intercepts · halts</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="avoidedCost">Avoided cost</label>
-        <div class="big" id="kpiGuardrailAvoided">—</div>
-        <div class="sub" id="kpiGuardrailAvoidedSub" data-i18n="blockedLoopsExplore">blocked loops / explore</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="idempotence">Idempotence</label>
-        <div class="big" id="kpiIdempotent">—</div>
-        <div class="sub" id="kpiIdempotentSub" data-i18n="idempotentContext">[IDEMPOTENT_CONTEXT_INJECTED]</div>
-      </article>
-    </section>
-      </div>
-    </div>
-
-    <div class="dash-section" data-section-id="kpi-compliance">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-kpi-compliance" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_kpi_compliance">Compliance hooks (KPI)</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-kpi-compliance">
-    <section class="glass-strip compliance-strip" aria-label="Compliance hooks">
-      <article class="metric-chip" id="chipConsoComplete">
-        <label data-i18n="consoComplete">Conso — complete (5 fields)</label>
-        <div class="big" id="kpiConsoComplete">—</div>
-        <div class="sub" id="kpiConsoCompleteSub" data-i18n="consoCompleteSub">afterAgentResponse · hook stop</div>
-      </article>
-      <article class="metric-chip" id="chipConsoPresent">
-        <label data-i18n="consoPresent">Conso — present</label>
-        <div class="big" id="kpiConsoPresent">—</div>
-        <div class="sub" id="kpiConsoPresentSub" data-i18n="blockDetected">block detected (partial OK)</div>
-      </article>
-      <article class="metric-chip" id="chipConsoHook">
-        <label data-i18n="hookStopRetries">Hook stop — retries</label>
-        <div class="big" id="kpiConsoHookFollowups">—</div>
-        <div class="sub" id="kpiConsoHookSub" data-i18n="followupGiveup">followup_message · giveup</div>
-      </article>
-      <article class="metric-chip" id="chipBriefPass">
-        <label data-i18n="taskBriefPass">Task brief — pass</label>
-        <div class="big" id="kpiBriefPass">—</div>
-        <div class="sub" id="kpiBriefPassSub" data-i18n="launchesAttempts">launches / attempts</div>
-      </article>
-      <article class="metric-chip" id="chipBriefDenied">
-        <label data-i18n="taskBriefBlocked">Task brief — blocked</label>
-        <div class="big" id="kpiBriefDenied">—</div>
-        <div class="sub" id="kpiBriefDeniedSub" data-i18n="permissionDenyHook">permission deny · hook Task</div>
-      </article>
-    </section>
-      </div>
-    </div>
-
-    <div class="dash-section" data-section-id="table-subagents">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-table-subagents" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_table_subagents">Recent subagents</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-table-subagents">
-    <section class="tables-row">
-      <div class="glass-panel" style="grid-column: 1 / -1;">
-        <div class="panel-head section-title">
-          <h2 data-i18n="recentSubagentsTurn">Recent subagents (current turn)</h2>
-        </div>
-        <div id="subagentHead" class="feed-cols subagent-row-cols subagent-head-cols" hidden>
-          <div data-i18n="date">Date</div>
-          <div data-i18n="type">Type</div>
-          <div data-i18n="skill">Skill</div>
-          <div data-i18n="description">Description</div>
-          <div data-i18n="badges">Badges</div>
-          <div data-i18n="compression">Compression</div>
-          <div data-i18n="prompt">Prompt</div>
-          <div data-i18n="output">Output</div>
-          <div data-i18n="status">Status</div>
-        </div>
-        <div id="subagentList" class="feed-list" hidden></div>
-        <div class="empty-state" id="emptySubagents" data-i18n="noSubagentTurn">No subagent on the current turn</div>
-      </div>
-    </section>
-      </div>
-    </div>
-
-    <div class="dash-section" data-section-id="table-compliance">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-table-compliance" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_table_compliance">Compliance hooks (recent)</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-table-compliance">
-    <section class="tables-row">
-      <div class="glass-panel" style="grid-column: 1 / -1;">
-        <div class="panel-head section-title">
-          <h2 data-i18n="recentCompliance">Compliance hooks (recent)</h2>
-        </div>
-        <div id="complianceHead" class="feed-cols compliance-row-cols compliance-head-cols" hidden>
-          <div data-i18n="date">Date</div>
-          <div data-i18n="event">Event</div>
-          <div data-i18n="detail">Detail</div>
-          <div data-i18n="status">Status</div>
-        </div>
-        <div id="complianceList" class="feed-list" hidden></div>
-        <div class="empty-state" id="emptyCompliance" data-i18n="noComplianceEvents">No compliance events (brief / consumption)</div>
-      </div>
-    </section>
-      </div>
-    </div>
-
-    <div class="dash-section" data-section-id="table-crg">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-table-crg" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_table_crg">Commits (Code Review Graph)</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-table-crg">
-    <section class="glass-strip crg-strip" aria-label="Git Commits Metrics">
-      <article class="metric-chip">
-        <label data-i18n="commitChecks">Commit Checks</label>
-        <div class="big" id="kpiCrgRuns">—</div>
-        <div class="sub" data-i18n="preCommitHook">pre-commit hook</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="savedTokens">Saved Tokens</label>
-        <div class="big" id="kpiCrgSaved">—</div>
-        <div class="sub" id="kpiCrgSavedSub" data-i18n="viaContextReduction">via context reduction</div>
-      </article>
-      <article class="metric-chip">
-        <label data-i18n="avgRiskScore">Average Risk Score</label>
-        <div class="big" id="kpiCrgRisk">—</div>
-        <div class="sub" data-i18n="acrossAllCommits">across all commits</div>
-      </article>
-    </section>
-
-    <section class="tables-row">
-      <div class="glass-panel" style="grid-column: 1 / -1;">
-        <div class="panel-head section-title">
-          <h2 data-i18n="recentCommitReports">Recent commit reports (Code Review Graph)</h2>
-        </div>
-        <div id="crgHead" class="feed-cols crg-row-cols crg-head-cols" hidden>
-          <div data-i18n="dateUtc">Date (UTC)</div>
-          <div data-i18n="project">Project</div>
-          <div data-i18n="branch">Branch</div>
-          <div data-i18n="filesFns">Files / Fns</div>
-          <div data-i18n="testGaps">Test Gaps</div>
-          <div data-i18n="contextSaved">Context Saved</div>
-          <div data-i18n="riskScore">Risk Score</div>
-        </div>
-        <div id="crgList" class="feed-list" hidden></div>
-        <div class="empty-state" id="emptyCrg" data-i18n="noCommitReports">No commit reports (pre-commit)</div>
-      </div>
-    </section>
-      </div>
-    </div>
-
-    <div class="dash-section" data-section-id="charts">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-charts" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_charts">Charts</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-charts">
-    <section class="charts-row">
-      <div class="glass-panel">
-        <div class="panel-head">
-          <h2 class="panel-title" data-i18n="gainPerDayTitle">Estimated gain per day</h2>
-        </div>
-        <canvas id="gainPctChart" class="chart-canvas" height="280"></canvas>
-        <p class="edit-footnote chart-footnote" role="note" data-i18n="gainPerDayFootnote">
-          % = savings ÷ (observed + savings), aggregated per day (RTK + Task compression + Diff-Only).
-          Readable even when Cursor billing reaches several million tokens.
-        </p>
-      </div>
-      <div class="glass-panel">
-        <div class="panel-head">
-          <h2 class="panel-title" data-i18n="observedVsOptTitle">Observed vs without optimizations</h2>
-          <div class="panel-select-wrap">
-            <select id="bucketSelect" class="select-glass" aria-label="Time aggregation" data-i18n-aria-label="timeAggregation">
-              <option value="hour" data-i18n="hourly">Hourly</option>
-              <option value="day" data-i18n="daily">Daily</option>
-            </select>
+  </head>
+  <body>
+    <div class="app" style="opacity: 0; transition: opacity 0.2s">
+      <header class="nav-glass">
+        <div class="brand">
+          <img
+            class="brand-icon"
+            src="icon.jpg"
+            alt=""
+            width="42"
+            height="42"
+            decoding="async"
+            fetchpriority="high"
+          />
+          <div>
+            <h1 data-i18n="brandTitle">S.C.R.O.O.G.E.</h1>
+            <span data-i18n="brandSub">Proxy consumption &amp; applied edits</span>
           </div>
         </div>
-        <canvas id="trendChart" class="chart-canvas" height="280"></canvas>
-        <p class="edit-footnote chart-footnote" role="note" data-i18n-html="observedVsOptFootnote">
-          Observed: <code>billed_total_tokens</code> (agent responses), tool/subagent proxies, compressed prompt.
-          Savings: <code>rtk gain -d</code> (per day), Task compression, Diff-Only chars ÷ 4.
-          In hourly mode, the daily RTK gain is distributed across active hours.
-        </p>
-      </div>
-    </section>
-
-    <section class="charts-row-secondary" aria-label="Event distribution">
-      <div class="glass-panel donut-panel">
-        <div class="panel-head">
-          <h2 class="panel-title" data-i18n="distributionTitle">Distribution (proxy)</h2>
+        <div class="nav-meta">
+          <time id="navPeriod" class="nav-period" datetime="">—</time>
+          <button type="button" class="nav-info-btn" id="btnNavInfo" aria-describedby="navInfoTip">
+            i
+            <span class="nav-info-tip" id="navInfoTip" role="tooltip" data-i18n="navInfoTip">
+              Local telemetry — the chart compares observed consumption (billed by Cursor when
+              available) to an estimate without optimizations (real + RTK savings, Task compression,
+              Diff-Only).
+            </span>
+          </button>
         </div>
-        <canvas id="donutChart" class="chart-canvas" height="240"></canvas>
-      </div>
-    </section>
+        <div class="nav-actions">
+          <input type="file" id="fileIn" accept=".jsonl,.json,text/plain" hidden />
+          <select id="langSelect" class="select-glass-flag" title="Language / Langue">
+            <option value="en">🇬🇧</option>
+            <option value="fr">🇫🇷</option>
+          </select>
+          <div class="refresh-split" id="refreshSplit">
+            <button
+              type="button"
+              class="refresh-split-btn refresh-split-main"
+              id="btnRefreshNow"
+              title="Refresh from server now"
+              data-i18n-title="refreshNowTitle"
+            >
+              <svg
+                class="refresh-ico"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M21 21v-5h-5" />
+              </svg>
+              <span data-i18n="refreshLabel">Refresh</span>
+            </button>
+            <button
+              type="button"
+              class="refresh-split-btn refresh-split-caret"
+              id="btnRefreshMenu"
+              aria-expanded="false"
+              aria-controls="refreshDropdown"
+              aria-haspopup="true"
+              title="Auto-refresh interval"
+              data-i18n-title="refreshMenuTitle"
+            >
+              <span id="refreshIntervalLabel">Disabled</span>
+              <svg class="caret-ico" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M3 4.5L6 8l3-3.5"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <select
+              id="sourceSelect"
+              class="refresh-split-btn refresh-split-select"
+              title="Telemetry data source"
+              data-i18n-title="sourceSelectTitle"
+              aria-label="Telemetry data source"
+            >
+              <option value="antigravity">Antigravity</option>
+              <option value="cursor">Cursor</option>
+              <option value="claude">Claude Code</option>
+              <option value="gemini">Gemini CLI</option>
+              <option value="hermes">Hermes</option>
+              <option value="codex">Codex</option>
+            </select>
+            <ul class="refresh-dropdown" id="refreshDropdown" role="menu" hidden>
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  data-interval-ms="0"
+                  data-short-en="Disabled"
+                  data-short-fr="Désactivé"
+                  data-i18n="disabled"
+                >
+                  Disabled
+                </button>
+              </li>
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  data-interval-ms="300000"
+                  data-short-en="5 min"
+                  data-short-fr="5 min"
+                  data-i18n="fiveMin"
+                >
+                  5 minutes
+                </button>
+              </li>
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  data-interval-ms="1800000"
+                  data-short-en="30 min"
+                  data-short-fr="30 min"
+                  data-i18n="thirtyMin"
+                >
+                  30 minutes
+                </button>
+              </li>
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  data-interval-ms="3600000"
+                  data-short-en="1 h"
+                  data-short-fr="1 h"
+                  data-i18n="oneHour"
+                >
+                  1 hour
+                </button>
+              </li>
+            </ul>
+          </div>
+          <button type="button" class="btn" id="btnTheme" data-i18n="toggleTheme">
+            Toggle theme
+          </button>
+          <button type="button" class="btn btn-primary" id="btnReload" data-i18n="loadFile">
+            Load file
+          </button>
+        </div>
+      </header>
+
+      <div id="dashboardSections" class="dashboard-sections">
+        <div class="dash-section" data-section-id="kpi-summary">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-kpi-summary"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_kpi_summary">Summary</h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-kpi-summary">
+            <section class="glass-strip" aria-label="Summary">
+              <article class="metric-chip">
+                <label data-i18n="events">Events</label>
+                <div class="big" id="kpiEvents">—</div>
+                <div class="sub" data-i18n="validLines">Valid lines in log</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="tokensProxy">Tokens (proxy)</label>
+                <div class="big" id="kpiTokens">—</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="textChars">Text characters</label>
+                <div class="big" id="kpiChars">—</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="consoReports">Conso reports</label>
+                <div class="big" id="kpiConso">—</div>
+                <div class="sub" id="kpiConsoSub" data-i18n="completeFiveFields">
+                  complete · 5 fields
+                </div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="rtkGainSaved">RTK gain (saved)</label>
+                <div class="big" id="kpiRtkSaved">—</div>
+                <div class="sub" id="kpiRtkSub" data-i18n="globalProject">global / project</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="hookGainSaved">Hook gain (saved)</label>
+                <div class="big" id="kpiHookSaved">—</div>
+                <div class="sub" id="kpiHookSub" data-i18n="clawLlmTask">
+                  Claw / LLMLingua · Task
+                </div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="globalGains">Global gains</label>
+                <div class="big" id="kpiTotalSaved">—</div>
+                <div class="sub" id="kpiTotalSub" data-i18n="rtkHook">RTK + hook</div>
+              </article>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="kpi-savings">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-kpi-savings"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_kpi_savings">
+              Optimizations comparison
+            </h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-kpi-savings">
+            <section class="glass-strip savings-strip" aria-label="Comparatif optimisations">
+              <article class="metric-chip">
+                <label data-i18n="consumedObserved">Consumed (observed)</label>
+                <div class="big" id="kpiObserved">—</div>
+                <div class="sub" id="kpiObservedSub" data-i18n="logPeriod">log period</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="withoutOptimizations">Without optimizations (estimated)</label>
+                <div class="big" id="kpiCounterfactual">—</div>
+                <div class="sub" id="kpiCounterfactualSub" data-i18n="observedSavings">
+                  observed + savings
+                </div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="savingsEstimated">Savings (estimated)</label>
+                <div class="big" id="kpiOptSaved">—</div>
+                <div class="sub" id="kpiOptSavedSub" data-i18n="rtkCompressionDiff">
+                  RTK + compression + diff-only
+                </div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="globalGainPct">Global gain</label>
+                <div class="big" id="kpiOptPct">—</div>
+                <div class="sub" id="kpiOptPctSub" data-i18n="pctOfCounterfactual">
+                  % of counterfactual
+                </div>
+              </article>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="kpi-layers">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-kpi-layers"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_kpi_layers">Score per layer</h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-kpi-layers">
+            <section class="glass-strip layers-strip" aria-label="Score par couche">
+              <p
+                class="hint"
+                id="kpiLayersHint"
+                style="margin: 0 0 0.75rem; font-size: 0.82rem; opacity: 0.85"
+                data-i18n="honestMeasurement"
+              >
+                Honest measurement: parent chat excluded from blend. Legacy = old KPI (often
+                &lt;1%).
+              </p>
+              <div id="kpiLayersTable" class="layers-table" role="table"></div>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="kpi-editing">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-kpi-editing"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_kpi_editing">Editing</h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-kpi-editing">
+            <section class="glass-strip editing-strip" aria-label="Editing">
+              <article class="metric-chip">
+                <label data-i18n="agentAdd">Agent ΔL+</label>
+                <div class="big" id="kpiAgentAdd">—</div>
+                <div class="sub" data-i18n="afterFileEdit">afterFileEdit</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="agentRem">Agent ΔL−</label>
+                <div class="big" id="kpiAgentRem">—</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="agentPasses">Agent passes</label>
+                <div class="big" id="kpiAgentPass">—</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="tabsAccepted">Tabs accepted</label>
+                <div class="big" id="kpiTabN">—</div>
+                <div class="sub" data-i18n="afterTabFileEdit">afterTabFileEdit</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="tabLines">ΔL+ Tab</label>
+                <div class="big" id="kpiTabLines">—</div>
+              </article>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="kpi-subagents">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-kpi-subagents"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_kpi_subagents">Subagents (KPI)</h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-kpi-subagents">
+            <section class="glass-strip subagent-strip" aria-label="Subagents">
+              <article class="metric-chip">
+                <label data-i18n="launchesTotal">Launches (total)</label>
+                <div class="big" id="kpiSubLaunch">—</div>
+                <div class="sub" id="kpiSubLaunchSub" data-i18n="alignedReport">
+                  aligned with report.py
+                </div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="completedTotal">Completed (total)</label>
+                <div class="big" id="kpiSubStop">—</div>
+                <div class="sub" id="kpiSubStopSub" data-i18n="subagentStop">subagentStop</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="parentBilled">Parent billed</label>
+                <div class="big" id="kpiParentBilled">—</div>
+                <div class="sub" id="kpiParentBilledSub" data-i18n="averageSum">average · sum</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="subPromptProxy">Sub prompt (proxy)</label>
+                <div class="big" id="kpiSubPromptTok">—</div>
+                <div class="sub" id="kpiSubPromptSub" data-i18n="afterCompression">
+                  after compression
+                </div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="subOutProxy">Sub output (proxy)</label>
+                <div class="big" id="kpiSubOutTok">—</div>
+                <div class="sub" id="kpiSubOutSub" data-i18n="summaryTranscript">
+                  summary + transcript
+                </div>
+              </article>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="kpi-stack">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-kpi-stack"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_kpi_stack">Stack optimizations</h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-kpi-stack">
+            <section class="glass-strip stack-strip" aria-label="Stack optimisations">
+              <article class="metric-chip">
+                <label data-i18n="gitCacheHit">Git Cache Hit</label>
+                <div class="big" id="kpiGitCacheHits">—</div>
+                <div class="sub" id="kpiGitCacheSub" data-i18n="block2Reused">BLOCK_2 reused</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="guardrailCircuit">Guardrail circuit breaker</label>
+                <div class="big" id="kpiGuardrailIntercepts">—</div>
+                <div class="sub" id="kpiGuardrailSub" data-i18n="interceptsHalts">
+                  intercepts · halts
+                </div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="avoidedCost">Avoided cost</label>
+                <div class="big" id="kpiGuardrailAvoided">—</div>
+                <div class="sub" id="kpiGuardrailAvoidedSub" data-i18n="blockedLoopsExplore">
+                  blocked loops / explore
+                </div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="idempotence">Idempotence</label>
+                <div class="big" id="kpiIdempotent">—</div>
+                <div class="sub" id="kpiIdempotentSub" data-i18n="idempotentContext">
+                  [IDEMPOTENT_CONTEXT_INJECTED]
+                </div>
+              </article>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="kpi-compliance">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-kpi-compliance"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_kpi_compliance">
+              Compliance hooks (KPI)
+            </h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-kpi-compliance">
+            <section class="glass-strip compliance-strip" aria-label="Compliance hooks">
+              <article class="metric-chip" id="chipConsoComplete">
+                <label data-i18n="consoComplete">Conso — complete (5 fields)</label>
+                <div class="big" id="kpiConsoComplete">—</div>
+                <div class="sub" id="kpiConsoCompleteSub" data-i18n="consoCompleteSub">
+                  afterAgentResponse · hook stop
+                </div>
+              </article>
+              <article class="metric-chip" id="chipConsoPresent">
+                <label data-i18n="consoPresent">Conso — present</label>
+                <div class="big" id="kpiConsoPresent">—</div>
+                <div class="sub" id="kpiConsoPresentSub" data-i18n="blockDetected">
+                  block detected (partial OK)
+                </div>
+              </article>
+              <article class="metric-chip" id="chipConsoHook">
+                <label data-i18n="hookStopRetries">Hook stop — retries</label>
+                <div class="big" id="kpiConsoHookFollowups">—</div>
+                <div class="sub" id="kpiConsoHookSub" data-i18n="followupGiveup">
+                  followup_message · giveup
+                </div>
+              </article>
+              <article class="metric-chip" id="chipBriefPass">
+                <label data-i18n="taskBriefPass">Task brief — pass</label>
+                <div class="big" id="kpiBriefPass">—</div>
+                <div class="sub" id="kpiBriefPassSub" data-i18n="launchesAttempts">
+                  launches / attempts
+                </div>
+              </article>
+              <article class="metric-chip" id="chipBriefDenied">
+                <label data-i18n="taskBriefBlocked">Task brief — blocked</label>
+                <div class="big" id="kpiBriefDenied">—</div>
+                <div class="sub" id="kpiBriefDeniedSub" data-i18n="permissionDenyHook">
+                  permission deny · hook Task
+                </div>
+              </article>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="table-subagents">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-table-subagents"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_table_subagents">Recent subagents</h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-table-subagents">
+            <section class="tables-row">
+              <div class="glass-panel" style="grid-column: 1 / -1">
+                <div class="panel-head section-title">
+                  <h2 data-i18n="recentSubagentsTurn">Recent subagents (current turn)</h2>
+                </div>
+                <div
+                  id="subagentHead"
+                  class="feed-cols subagent-row-cols subagent-head-cols"
+                  hidden
+                >
+                  <div data-i18n="date">Date</div>
+                  <div data-i18n="type">Type</div>
+                  <div data-i18n="skill">Skill</div>
+                  <div data-i18n="description">Description</div>
+                  <div data-i18n="badges">Badges</div>
+                  <div data-i18n="compression">Compression</div>
+                  <div data-i18n="prompt">Prompt</div>
+                  <div data-i18n="output">Output</div>
+                  <div data-i18n="status">Status</div>
+                </div>
+                <div id="subagentList" class="feed-list" hidden></div>
+                <div class="empty-state" id="emptySubagents" data-i18n="noSubagentTurn">
+                  No subagent on the current turn
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="table-compliance">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-table-compliance"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_table_compliance">
+              Compliance hooks (recent)
+            </h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-table-compliance">
+            <section class="tables-row">
+              <div class="glass-panel" style="grid-column: 1 / -1">
+                <div class="panel-head section-title">
+                  <h2 data-i18n="recentCompliance">Compliance hooks (recent)</h2>
+                </div>
+                <div
+                  id="complianceHead"
+                  class="feed-cols compliance-row-cols compliance-head-cols"
+                  hidden
+                >
+                  <div data-i18n="date">Date</div>
+                  <div data-i18n="event">Event</div>
+                  <div data-i18n="detail">Detail</div>
+                  <div data-i18n="status">Status</div>
+                </div>
+                <div id="complianceList" class="feed-list" hidden></div>
+                <div class="empty-state" id="emptyCompliance" data-i18n="noComplianceEvents">
+                  No compliance events (brief / consumption)
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="table-crg">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-table-crg"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_table_crg">
+              Commits (Code Review Graph)
+            </h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-table-crg">
+            <section class="glass-strip crg-strip" aria-label="Git Commits Metrics">
+              <article class="metric-chip">
+                <label data-i18n="commitChecks">Commit Checks</label>
+                <div class="big" id="kpiCrgRuns">—</div>
+                <div class="sub" data-i18n="preCommitHook">pre-commit hook</div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="savedTokens">Saved Tokens</label>
+                <div class="big" id="kpiCrgSaved">—</div>
+                <div class="sub" id="kpiCrgSavedSub" data-i18n="viaContextReduction">
+                  via context reduction
+                </div>
+              </article>
+              <article class="metric-chip">
+                <label data-i18n="avgRiskScore">Average Risk Score</label>
+                <div class="big" id="kpiCrgRisk">—</div>
+                <div class="sub" data-i18n="acrossAllCommits">across all commits</div>
+              </article>
+            </section>
+
+            <section class="tables-row">
+              <div class="glass-panel" style="grid-column: 1 / -1">
+                <div class="panel-head section-title">
+                  <h2 data-i18n="recentCommitReports">Recent commit reports (Code Review Graph)</h2>
+                </div>
+                <div id="crgHead" class="feed-cols crg-row-cols crg-head-cols" hidden>
+                  <div data-i18n="dateUtc">Date (UTC)</div>
+                  <div data-i18n="project">Project</div>
+                  <div data-i18n="branch">Branch</div>
+                  <div data-i18n="filesFns">Files / Fns</div>
+                  <div data-i18n="testGaps">Test Gaps</div>
+                  <div data-i18n="contextSaved">Context Saved</div>
+                  <div data-i18n="riskScore">Risk Score</div>
+                </div>
+                <div id="crgList" class="feed-list" hidden></div>
+                <div class="empty-state" id="emptyCrg" data-i18n="noCommitReports">
+                  No commit reports (pre-commit)
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="charts">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-charts"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_charts">Charts</h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-charts">
+            <section class="charts-row">
+              <div class="glass-panel">
+                <div class="panel-head">
+                  <h2 class="panel-title" data-i18n="gainPerDayTitle">Estimated gain per day</h2>
+                </div>
+                <canvas id="gainPctChart" class="chart-canvas" height="280"></canvas>
+                <p class="edit-footnote chart-footnote" role="note" data-i18n="gainPerDayFootnote">
+                  % = savings ÷ (observed + savings), aggregated per day (RTK + Task compression +
+                  Diff-Only). Readable even when Cursor billing reaches several million tokens.
+                </p>
+              </div>
+              <div class="glass-panel">
+                <div class="panel-head">
+                  <h2 class="panel-title" data-i18n="observedVsOptTitle">
+                    Observed vs without optimizations
+                  </h2>
+                  <div class="panel-select-wrap">
+                    <select
+                      id="bucketSelect"
+                      class="select-glass"
+                      aria-label="Time aggregation"
+                      data-i18n-aria-label="timeAggregation"
+                    >
+                      <option value="hour" data-i18n="hourly">Hourly</option>
+                      <option value="day" data-i18n="daily">Daily</option>
+                    </select>
+                  </div>
+                </div>
+                <canvas id="trendChart" class="chart-canvas" height="280"></canvas>
+                <p
+                  class="edit-footnote chart-footnote"
+                  role="note"
+                  data-i18n-html="observedVsOptFootnote"
+                >
+                  Observed: <code>billed_total_tokens</code> (agent responses), tool/subagent
+                  proxies, compressed prompt. Savings: <code>rtk gain -d</code> (per day), Task
+                  compression, Diff-Only chars ÷ 4. In hourly mode, the daily RTK gain is
+                  distributed across active hours.
+                </p>
+              </div>
+            </section>
+
+            <section class="charts-row-secondary" aria-label="Event distribution">
+              <div class="glass-panel donut-panel">
+                <div class="panel-head">
+                  <h2 class="panel-title" data-i18n="distributionTitle">Distribution (proxy)</h2>
+                </div>
+                <canvas id="donutChart" class="chart-canvas" height="240"></canvas>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="dash-section" data-section-id="tables-lists">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-tables-lists"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_tables_lists">
+              Lists &amp; activity
+            </h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-tables-lists">
+            <section class="tables-row">
+              <div class="glass-panel">
+                <div class="panel-head section-title">
+                  <h2 data-i18n="topTools">Top tools (postToolUse)</h2>
+                </div>
+                <div id="toolList" class="feed-list" hidden></div>
+                <div class="empty-state" id="emptyTools" data-i18n="noToolData">No tool data</div>
+              </div>
+              <div class="glass-panel">
+                <div class="panel-head section-title">
+                  <h2 data-i18n="recentActivity50">Recent activity (50)</h2>
+                </div>
+                <div id="recentList" class="feed-list" hidden></div>
+                <div class="empty-state" id="emptyLines" data-i18n="noEventsYet">No events yet</div>
+              </div>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="dash-section" data-section-id="tables-lists">
-      <div class="dash-section-header">
-        <button type="button" class="dash-section-toggle" aria-expanded="true" aria-controls="dash-body-tables-lists" title="Show or hide section">
-          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5L8 6l-4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <span class="dash-section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-        <h2 class="dash-section-title" data-i18n="section_tables_lists">Lists &amp; activity</h2>
-      </div>
-      <div class="dash-section-body" id="dash-body-tables-lists">
-    <section class="tables-row">
-      <div class="glass-panel">
-        <div class="panel-head section-title">
-          <h2 data-i18n="topTools">Top tools (postToolUse)</h2>
-        </div>
-        <div id="toolList" class="feed-list" hidden></div>
-        <div class="empty-state" id="emptyTools" data-i18n="noToolData">No tool data</div>
-      </div>
-      <div class="glass-panel">
-        <div class="panel-head section-title">
-          <h2 data-i18n="recentActivity50">Recent activity (50)</h2>
-        </div>
-        <div id="recentList" class="feed-list" hidden></div>
-        <div class="empty-state" id="emptyLines" data-i18n="noEventsYet">No events yet</div>
-      </div>
-    </section>
-      </div>
-    </div>
-
-    </div>
-  </div>
 
     <script src="dashboard.js"></script>
-
-</body>
+  </body>
 </html>

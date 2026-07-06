@@ -22,4 +22,3 @@ Always append this exact structure at the very end of your response:
 ```
 
 Ensure the colon (`:`) is placed immediately after the closing double asterisks (`**`) of each key, without spaces before it.
-

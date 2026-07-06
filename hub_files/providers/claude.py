@@ -9,7 +9,6 @@ from typing import Any
 
 from .base import BaseProvider
 
-
 # Event name mapping: Cursor (camelCase) → Claude Code (PascalCase)
 _EVENT_MAPPING = {
     "preToolUse": "PreToolUse",
@@ -159,10 +158,12 @@ class ClaudeProvider(BaseProvider):
                 if matcher not in by_matcher:
                     by_matcher[matcher] = []
 
-                by_matcher[matcher].append({
-                    "type": "command",
-                    "command": command,
-                })
+                by_matcher[matcher].append(
+                    {
+                        "type": "command",
+                        "command": command,
+                    }
+                )
 
             # Build Claude format
             if by_matcher:
@@ -201,9 +202,7 @@ class ClaudeProvider(BaseProvider):
                 if matcher in existing_matchers:
                     # Merge into existing matcher group
                     existing_group = existing_matchers[matcher]
-                    existing_commands = {
-                        h.get("command") for h in existing_group.get("hooks", [])
-                    }
+                    existing_commands = {h.get("command") for h in existing_group.get("hooks", [])}
 
                     for hook in new_hooks_list:
                         if hook.get("command") not in existing_commands:

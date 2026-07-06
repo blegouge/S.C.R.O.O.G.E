@@ -17,21 +17,22 @@ def load_telemetry_env() -> None:
     search_paths = []
     if app_override:
         search_paths.append(Path(app_override).expanduser())
-    
+
     # 2. Add current file's directory and all its parents
     this_dir = Path(__file__).resolve().parent
     search_paths.append(this_dir)
     search_paths.extend(this_dir.parents)
     search_paths.append(Path.cwd())
     search_paths.extend(Path.cwd().parents)
-    
+
     # 3. If frozen, also add executable's directory and all its parents
     import sys
+
     if getattr(sys, "frozen", False):
         exec_dir = Path(sys.executable).resolve().parent
         search_paths.append(exec_dir)
         search_paths.extend(exec_dir.parents)
-    
+
     # 4. Add default app directory and default home paths
     search_paths.append(Path.home() / ".cursor")
     search_paths.append(Path.home() / ".gemini" / "antigravity")
@@ -61,6 +62,7 @@ def load_telemetry_env() -> None:
 load_telemetry_env()
 
 from providers_config import get_data_dir
+
 DEFAULT_APP_DIR = Path(__file__).resolve().parent
 
 

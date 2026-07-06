@@ -1,0 +1,19 @@
+{
+  "name": "telemetry-token-dashboard",
+  "version": "1.0.0",
+  "description": "SCROOGE Dashboard Frontend Tools",
+  "private": true,
+  "scripts": {
+    "lint:js": "eslint dashboard.js",
+    "lint:css": "stylelint dashboard.css",
+    "format:check": "prettier --check \"dashboard.js\" \"dashboard.css\" \"dashboard.html\"",
+    "format:write": "prettier --write \"dashboard.js\" \"dashboard.css\" \"dashboard.html\"",
+    "lint": "npm run lint:js && npm run lint:css && npm run format:check"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "stylelint": "^16.2.1",
+    "stylelint-config-standard": "^36.0.0"
+  }
+}

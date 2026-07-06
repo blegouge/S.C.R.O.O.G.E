@@ -2,6 +2,7 @@
 """
 Example integration showing prompt interception before OpenAI/Anthropic calls.
 """
+
 from __future__ import annotations
 
 from compression_middleware import PromptCompressionMiddleware

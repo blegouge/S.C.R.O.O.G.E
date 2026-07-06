@@ -2,6 +2,7 @@
 """
 Stop hook: enforce Consumption report on completed agent turns.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,12 +25,12 @@ for path in (SRC_DIR, TOKEN_TELEMETRY_DIR):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+from telemetry_common import append_event  # pylint: disable=import-error
 from utils.consumption_report_validator import (  # pylint: disable=import-error
     analyze_consumption_report,
     build_consumption_followup,
 )
 from utils.diff_applier import extract_response_text  # pylint: disable=import-error
-from telemetry_common import append_event  # pylint: disable=import-error
 
 DISABLE_ENV = (
     "CODEX_CONSUMPTION_ENFORCE_DISABLE"
@@ -85,7 +86,8 @@ def _log_compliance(*, present: bool, complete: bool, loop_count: int, enforced:
 
 from telemetry_common import hook_fail_safe
 
-@hook_fail_safe(fallback_json='{}')
+
+@hook_fail_safe(fallback_json="{}")
 def main() -> int:
     if os.environ.get(DISABLE_ENV, "").strip().lower() in {"1", "true", "yes"}:
         _log_compliance(present=True, complete=True, loop_count=0, enforced=False)
@@ -108,7 +110,9 @@ def main() -> int:
         return 0
 
     if loop_count >= MAX_LOOPS:
-        _log_compliance(present=status.present, complete=False, loop_count=loop_count, enforced=False)
+        _log_compliance(
+            present=status.present, complete=False, loop_count=loop_count, enforced=False
+        )
         sys.stderr.write(
             "[consumption-report] WARN: incomplete after "
             f"{loop_count} loops — giving up enforcement.\n"

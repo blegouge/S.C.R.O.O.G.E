@@ -4,6 +4,7 @@ Global Cursor hook: compress Task/subagent prompts before tool execution.
 
 This script is designed for `preToolUse` and returns JSON to stdout.
 """
+
 from __future__ import annotations
 
 import json
@@ -13,6 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+
 # Debug logging (no-op in production, enable by setting DEBUG_COMPRESS_HOOK=1)
 def _debug_log(msg: str, **kwargs) -> None:
     if not os.environ.get("DEBUG_COMPRESS_HOOK"):
@@ -20,11 +22,22 @@ def _debug_log(msg: str, **kwargs) -> None:
     try:
         debug_file = Path.home() / ".claude" / "token-telemetry" / "debug-compress-hook.jsonl"
         with open(debug_file, "a") as f:
-            f.write(json.dumps({"ts": __import__("datetime").datetime.now().isoformat(), "msg": msg, **kwargs}) + "\n")
+            f.write(
+                json.dumps(
+                    {"ts": __import__("datetime").datetime.now().isoformat(), "msg": msg, **kwargs}
+                )
+                + "\n"
+            )
     except Exception:
         pass
 
-_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME") or os.getenv("CLAUDE_HOME")
+
+_HOME_DIR = (
+    os.getenv("CODEX_HOME")
+    or os.getenv("ANTIGRAVITY_HOME")
+    or os.getenv("CURSOR_HOME")
+    or os.getenv("CLAUDE_HOME")
+)
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
 else:
@@ -41,12 +54,21 @@ PROVIDERS_DIR = _HOME_PATH / "providers"
 if str(PROVIDERS_DIR.parent) not in sys.path:
     sys.path.insert(0, str(PROVIDERS_DIR.parent))
 
+from providers import detect_provider  # pylint: disable=import-error
+
+from telemetry_common import (  # pylint: disable=import-error
+    append_event,
+    enrich_correlation,
+    extract_skill_hint,
+)
+from telemetry_config import config
 from utils.adaptive_context_manager import (  # pylint: disable=import-error
     AdaptiveContextConfig,
     AdaptiveContextManager,
 )
-from utils.summarizer_factory import resolve_summarizer  # pylint: disable=import-error
+from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
 from utils.static_prompt_registry import build_global_static_block  # pylint: disable=import-error
+from utils.summarizer_factory import resolve_summarizer  # pylint: disable=import-error
 from utils.task_brief_validator import (  # pylint: disable=import-error
     build_deny_message,
     inject_idempotent_tag,
@@ -56,19 +78,9 @@ from utils.token_budget_guardrail import (  # pylint: disable=import-error
     analyze_guardrail_launch,
     build_upstream_guardrail_report,
 )
-from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
-from telemetry_common import (  # pylint: disable=import-error
-    append_event,
-    enrich_correlation,
-    extract_skill_hint,
-)
-from providers import detect_provider  # pylint: disable=import-error
 
 # Detect active provider once at module load
 _PROVIDER = detect_provider()
-
-
-from telemetry_config import config
 
 _debug_log("imports_ok", home_path=str(_HOME_PATH), tt_dir=str(TOKEN_TELEMETRY_DIR))
 
@@ -487,6 +499,7 @@ def _build_structured_prompt(
 
 from telemetry_common import hook_fail_safe
 
+
 @hook_fail_safe(fallback_json='{"permission": "allow"}')
 def main() -> None:
     _debug_log("main_start")
@@ -560,11 +573,19 @@ def main() -> None:
 
     rate = min(max(_safe_float(tool_input.get("compression_rate"), DEFAULT_RATE), 0.1), 1.0)
     min_chars = max(200, _safe_int(tool_input.get("min_chars_to_compress"), DEFAULT_MIN_CHARS))
-    message_threshold = max(2, _safe_int(tool_input.get("message_threshold"), DEFAULT_MESSAGE_THRESHOLD))
-    token_threshold = max(300, _safe_int(tool_input.get("token_threshold"), DEFAULT_TOKEN_THRESHOLD))
-    recent_window = max(1, _safe_int(tool_input.get("recent_history_window"), DEFAULT_RECENT_WINDOW))
+    message_threshold = max(
+        2, _safe_int(tool_input.get("message_threshold"), DEFAULT_MESSAGE_THRESHOLD)
+    )
+    token_threshold = max(
+        300, _safe_int(tool_input.get("token_threshold"), DEFAULT_TOKEN_THRESHOLD)
+    )
+    recent_window = max(
+        1, _safe_int(tool_input.get("recent_history_window"), DEFAULT_RECENT_WINDOW)
+    )
 
-    summarizer_mode = str(tool_input.get("summarizer_mode", DEFAULT_SUMMARIZER_MODE)).strip().lower()
+    summarizer_mode = (
+        str(tool_input.get("summarizer_mode", DEFAULT_SUMMARIZER_MODE)).strip().lower()
+    )
     if summarizer_mode not in {"heuristic", "flash", "auto"}:
         summarizer_mode = DEFAULT_SUMMARIZER_MODE
 
@@ -652,7 +673,12 @@ def main() -> None:
     updated_input["prompt"] = compressed_prompt
     after_chars = len(compressed_prompt)
     after_tokens = (after_chars + 3) // 4
-    _debug_log("before_telemetry", input_tokens=input_tokens, after_tokens=after_tokens, mode=compression_mode)
+    _debug_log(
+        "before_telemetry",
+        input_tokens=input_tokens,
+        after_tokens=after_tokens,
+        mode=compression_mode,
+    )
     try:
         _append_telemetry(
             hook_data=data,

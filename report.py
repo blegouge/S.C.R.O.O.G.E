@@ -5,13 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import json as _json
 import os
 import pathlib
 
-from telemetry_metrics import summarize_layer_kpis, summarize_report, summarize_stack_kpis
 from rtk_resolver import resolve_rtk_command
-import subprocess
-import json as _json
+from telemetry_metrics import summarize_layer_kpis, summarize_report, summarize_stack_kpis
 from telemetry_paths import resolve_log_file
 
 
@@ -88,7 +87,10 @@ def main() -> None:
     base, _ = resolve_rtk_command()
     if base:
         import subprocess as _sp
-        proc = _sp.run([base[0], "gain", "-d", "--format", "json"], capture_output=True, text=True, timeout=8)
+
+        proc = _sp.run(
+            [base[0], "gain", "-d", "--format", "json"], capture_output=True, text=True, timeout=8
+        )
         if proc.returncode == 0:
             try:
                 rtk_gain = _json.loads(proc.stdout)
@@ -98,8 +100,11 @@ def main() -> None:
     layers = summarize_layer_kpis(rows, rtk_gain=rtk_gain)
     blend = layers.get("blended", {})
     legacy = layers.get("legacy_global", {})
-    print("Score per layer (blend excluding chat):", f"saved≈{blend.get('savings_tokens',0)} observed≈{blend.get('observed_tokens',0)} pct={blend.get('pct',0)}%")
-    print("Legacy global (including chat):", f"pct={legacy.get('pct',0)}%")
+    print(
+        "Score per layer (blend excluding chat):",
+        f"saved≈{blend.get('savings_tokens', 0)} observed≈{blend.get('observed_tokens', 0)} pct={blend.get('pct', 0)}%",
+    )
+    print("Legacy global (including chat):", f"pct={legacy.get('pct', 0)}%")
     for key, label in [
         ("rtk_shell", "RTK"),
         ("task_compression", "Task compression"),
@@ -107,7 +112,7 @@ def main() -> None:
         ("guardrail_task", "Guardrail Task"),
     ]:
         L = layers.get("layers", {}).get(key, {})
-        print(f"  {label}: saved≈{L.get('savings_tokens',0)} pct={L.get('pct',0)}%")
+        print(f"  {label}: saved≈{L.get('savings_tokens', 0)} pct={L.get('pct', 0)}%")
 
     stack = summarize_stack_kpis(rows)
     edit = s["edit"]
@@ -188,8 +193,7 @@ def main() -> None:
         f"passes={edit['passes']}"
     )
     print(
-        f"  afterTabFileEdit  accepted={edit['tab_accepted']}  "
-        f"ΔL+ (Tab)≈{edit['tab_lines_added']}"
+        f"  afterTabFileEdit  accepted={edit['tab_accepted']}  ΔL+ (Tab)≈{edit['tab_lines_added']}"
     )
 
 

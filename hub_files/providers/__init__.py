@@ -27,10 +27,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .base import BaseProvider
 
-from .cursor import CursorProvider
+from .antigravity import AntigravityProvider
 from .claude import ClaudeProvider
 from .codex import CodexProvider
-from .antigravity import AntigravityProvider
+from .cursor import CursorProvider
 from .gemini import GeminiProvider
 from .hermes import HermesProvider
 
@@ -94,7 +94,7 @@ def get_all_providers() -> list[BaseProvider]:
 def get_enabled_providers() -> list[BaseProvider]:
     """Get providers that are enabled via environment variables."""
     enabled = []
-    for name, cls in _PROVIDERS.items():
+    for cls in _PROVIDERS.values():
         provider = cls()
         if provider.is_enabled:
             enabled.append(provider)

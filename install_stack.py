@@ -6,6 +6,7 @@ hub_files/ to all selected target HUBs (~/.cursor, ~/.gemini/antigravity, ~/.cod
 for required MCP tokens once, rewrites configuration paths, updates rule/skill references
 dynamically for the target IDE, sets up the Python venv, and runs the sanity check verification.
 """
+
 from __future__ import annotations
 
 import json
@@ -62,6 +63,7 @@ if str(HUB_FILES) not in sys.path:
 # Provider-based hooks transformation
 # =============================================================================
 
+
 def _get_provider(target_name: str):
     """Get provider instance for the given target IDE name.
 
@@ -69,6 +71,7 @@ def _get_provider(target_name: str):
     """
     try:
         from providers import get_provider
+
         return get_provider(target_name)
     except (ImportError, KeyError, Exception):
         # If providers module is unavailable, return None to trigger fallback
@@ -93,13 +96,22 @@ def transform_hooks_cursor_to_claude(hooks_data: dict[str, Any]) -> dict[str, An
 
     # Events supported by Claude Code (others will be skipped)
     CLAUDE_SUPPORTED_EVENTS = {
-        "PreToolUse", "PostToolUse", "Stop", "SubagentStart", "SubagentStop", "SessionStart",
+        "PreToolUse",
+        "PostToolUse",
+        "Stop",
+        "SubagentStart",
+        "SubagentStop",
+        "SessionStart",
     }
 
     # Event name mapping: Cursor (camelCase) -> Claude Code (PascalCase)
     CLAUDE_EVENT_MAPPING = {
-        "preToolUse": "PreToolUse", "postToolUse": "PostToolUse", "stop": "Stop",
-        "subagentStop": "SubagentStop", "sessionStart": "SessionStart", "subagentStart": "SubagentStart",
+        "preToolUse": "PreToolUse",
+        "postToolUse": "PostToolUse",
+        "stop": "Stop",
+        "subagentStop": "SubagentStop",
+        "sessionStart": "SessionStart",
+        "subagentStart": "SubagentStart",
     }
 
     # Tool/matcher name mapping: Cursor -> Claude Code
@@ -123,8 +135,7 @@ def transform_hooks_cursor_to_claude(hooks_data: dict[str, Any]) -> dict[str, An
             by_matcher[matcher].append(hook_entry)
 
         result["hooks"][claude_event] = [
-            {"matcher": matcher, "hooks": hooks_list}
-            for matcher, hooks_list in by_matcher.items()
+            {"matcher": matcher, "hooks": hooks_list} for matcher, hooks_list in by_matcher.items()
         ]
 
     return result
@@ -159,8 +170,7 @@ def merge_hooks_claude(existing: dict[str, Any], new_hooks: dict[str, Any]) -> d
 
     for event, groups in existing.get("hooks", {}).items():
         result["hooks"][event] = [
-            {"matcher": g["matcher"], "hooks": list(g.get("hooks", []))}
-            for g in groups
+            {"matcher": g["matcher"], "hooks": list(g.get("hooks", []))} for g in groups
         ]
 
     for event, groups in new_hooks.get("hooks", {}).items():
@@ -179,10 +189,9 @@ def merge_hooks_claude(existing: dict[str, Any], new_hooks: dict[str, Any]) -> d
                     break
 
             if target_group is None:
-                existing_groups.append({
-                    "matcher": new_matcher,
-                    "hooks": list(new_group.get("hooks", []))
-                })
+                existing_groups.append(
+                    {"matcher": new_matcher, "hooks": list(new_group.get("hooks", []))}
+                )
             else:
                 existing_commands = {h["command"] for h in target_group.get("hooks", [])}
                 for hook in new_group.get("hooks", []):
@@ -472,17 +481,21 @@ def main() -> int:
     if not detected_targets:
         hub_choice = prompt_input(
             "No active AI directories detected. Enter custom target directory",
-            default=str(possible_targets[0])
+            default=str(possible_targets[0]),
         )
         hubs_to_install.append(Path(os.path.expanduser(hub_choice)).resolve())
     else:
         print("\nDetected AI directories:")
         for idx, t in enumerate(detected_targets, 1):
             print(f"  [{idx}] {t}")
-            
-        choices = ["All detected directories"] + [str(t) for t in detected_targets] + ["Custom directory"]
-        selection = prompt_choice("Choose installation target:", choices, default="All detected directories")
-        
+
+        choices = (
+            ["All detected directories"] + [str(t) for t in detected_targets] + ["Custom directory"]
+        )
+        selection = prompt_choice(
+            "Choose installation target:", choices, default="All detected directories"
+        )
+
         if selection == "All detected directories":
             hubs_to_install = detected_targets
         elif selection == "Custom directory":
@@ -497,7 +510,7 @@ def main() -> int:
     default_codebase = repo_env.get("CODEBASE_ROOT") or str(home / "www")
     codebase_root = prompt_input(
         "Enter the absolute path to your active codebases directory (used by code-explorer MCP)",
-        default=default_codebase
+        default=default_codebase,
     )
     codebase_root_path = Path(os.path.expanduser(codebase_root)).resolve()
 
@@ -506,7 +519,7 @@ def main() -> int:
     chosen_backend = prompt_choice(
         "Choose the context compression backend:",
         ["claw", "headroom", "both", "off"],
-        default=current_backend
+        default=current_backend,
     )
 
     # 4. Configure interactive secrets (mcp.secrets.env) - Ask once
@@ -530,12 +543,14 @@ def main() -> int:
     ]
 
     new_secrets = {}
-    print("Please enter the credentials for each integration (press Enter to skip or keep existing):")
+    print(
+        "Please enter the credentials for each integration (press Enter to skip or keep existing):"
+    )
     for var_name, description in secret_vars:
         prev_val = existing_secrets.get(var_name, "")
         masked_prev = f"{prev_val[:4]}...{prev_val[-4:]}" if len(prev_val) > 8 else prev_val
         prompt_desc = f"{description} ({var_name})"
-        
+
         user_val = input(f"  {prompt_desc} [{masked_prev if prev_val else 'empty'}]: ").strip()
         if not user_val:
             new_secrets[var_name] = prev_val
@@ -545,7 +560,7 @@ def main() -> int:
     # Persist configurations back to the repository's `.env`
     repo_env["CODEBASE_ROOT"] = codebase_root
     repo_env["COMPRESSION_BACKEND"] = chosen_backend
-    
+
     # Save target homes & stats directories in repo's .env
     for HUB in hubs_to_install:
         target_name = detect_target_name(HUB)
@@ -571,7 +586,7 @@ def main() -> int:
     save_env_file(
         repo_env_file,
         repo_env,
-        comment_header="# S.C.R.O.O.G.E. Config (Autogenerated / Updated by install_stack.py)"
+        comment_header="# S.C.R.O.O.G.E. Config (Autogenerated / Updated by install_stack.py)",
     )
     print(f"Updated repository environment configuration at {repo_env_file}")
 
@@ -588,7 +603,9 @@ def main() -> int:
         print("Copying hub files from repository templates...")
         for folder in ["bin", "hooks", "rules", "skills", "src"]:
             overwrite = False if folder == "skills" else True
-            copy_tree_idempotent(HUB_FILES / folder, HUB / folder, ignore=["__pycache__"], overwrite=overwrite)
+            copy_tree_idempotent(
+                HUB_FILES / folder, HUB / folder, ignore=["__pycache__"], overwrite=overwrite
+            )
 
         # Copy docs from the repository root
         copy_tree_idempotent(REPO_ROOT / "docs", HUB / "docs")
@@ -606,7 +623,9 @@ def main() -> int:
                 print(f"Preserved existing Codex global guidance at {target_agents}")
 
             codex_user_skills = home / ".agents" / "skills"
-            copy_tree_idempotent(HUB_FILES / "skills", codex_user_skills, ignore=["__pycache__"], overwrite=False)
+            copy_tree_idempotent(
+                HUB_FILES / "skills", codex_user_skills, ignore=["__pycache__"], overwrite=False
+            )
             print(f"Installed Codex user skills under {codex_user_skills}")
 
         # Deploy only dashboard/runtime files to <HUB>/token-telemetry.
@@ -624,7 +643,7 @@ def main() -> int:
         # Initialize compression.env
         comp_env_template = HUB_FILES / "compression.env.example"
         comp_env_file = HUB / "compression.env"
-        
+
         comp_data = {}
         if comp_env_file.exists():
             comp_data = load_env_file(comp_env_file)
@@ -632,7 +651,7 @@ def main() -> int:
             comp_data = load_env_file(comp_env_template)
 
         comp_data["COMPRESSION_BACKEND"] = chosen_backend
-        
+
         # Ensure default thresholds are present
         defaults = {
             "TASK_BRIEF_ENFORCE": "deny",
@@ -653,7 +672,7 @@ def main() -> int:
         save_env_file(
             comp_env_file,
             comp_data,
-            comment_header="# Token optimization context compression configuration"
+            comment_header="# Token optimization context compression configuration",
         )
 
         # Write secrets to target hub
@@ -661,7 +680,7 @@ def main() -> int:
         save_env_file(
             secrets_file,
             new_secrets,
-            comment_header="# Loaded by bin/mcp-env-exec.sh before starting MCP servers"
+            comment_header="# Loaded by bin/mcp-env-exec.sh before starting MCP servers",
         )
         try:
             secrets_file.chmod(0o600)
@@ -686,7 +705,7 @@ def main() -> int:
             content = content.replace("~/.codex", str(HUB))
             content = content.replace("/Users/blegouge/www", str(codebase_root_path))
             content = content.replace("/Users/blegouge", str(home))
-            
+
             # Context-sensitive replacements for IDE/Agent name
             if target_name == "cursor":
                 content = content.replace("Antigravity", "Cursor")
@@ -764,7 +783,11 @@ def main() -> int:
                 append_codex_mcp_config(HUB / "config.toml", tpl_data)
 
         # 2) hooks.json (Cursor/Gemini/Codex) or settings.json (Claude Code)
-        hooks_tpl = CODEX_FILES / "hooks.json" if target_name == "codex" and (CODEX_FILES / "hooks.json").exists() else HUB_FILES / "hooks.json"
+        hooks_tpl = (
+            CODEX_FILES / "hooks.json"
+            if target_name == "codex" and (CODEX_FILES / "hooks.json").exists()
+            else HUB_FILES / "hooks.json"
+        )
         if hooks_tpl.exists():
             tpl_text = rewrite_config_content(hooks_tpl.read_text(encoding="utf-8"))
             try:
@@ -873,8 +896,10 @@ def main() -> int:
             python_bin = "python3"
             if shutil.which("python3.12"):
                 python_bin = "python3.12"
-            
-            subprocess.run([python_bin, "-m", "venv", str(venv_dir)], check=True, stdout=subprocess.DEVNULL)
+
+            subprocess.run(
+                [python_bin, "-m", "venv", str(venv_dir)], check=True, stdout=subprocess.DEVNULL
+            )
             print("Virtual environment created.")
 
             if sys.platform == "win32":
@@ -882,22 +907,29 @@ def main() -> int:
             else:
                 venv_python = venv_dir / "bin" / "python"
 
-            subprocess.run([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True, stdout=subprocess.DEVNULL)
+            subprocess.run(
+                [str(venv_python), "-m", "pip", "install", "--upgrade", "pip"],
+                check=True,
+                stdout=subprocess.DEVNULL,
+            )
 
             if req_file.exists():
                 print(f"Installing dependencies from {req_file} (this might take a few moments)...")
-                subprocess.run([str(venv_python), "-m", "pip", "install", "-r", str(req_file)], check=True, stdout=subprocess.DEVNULL)
+                subprocess.run(
+                    [str(venv_python), "-m", "pip", "install", "-r", str(req_file)],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                )
                 print("Dependencies successfully installed.")
 
             # Create claw-compactor global symlink or wrapper
             claw_bin_dir = HUB / "bin"
             claw_bin_dir.mkdir(parents=True, exist_ok=True)
-            
+
             if sys.platform == "win32":
                 wrapper = claw_bin_dir / "claw-compactor.cmd"
                 wrapper.write_text(
-                    f'@echo off\n"{venv_dir}\\Scripts\\claw-compactor.exe" %*\n',
-                    encoding="ascii"
+                    f'@echo off\n"{venv_dir}\\Scripts\\claw-compactor.exe" %*\n', encoding="ascii"
                 )
             else:
                 target_symlink = claw_bin_dir / "claw-compactor"
@@ -908,8 +940,7 @@ def main() -> int:
                     target_symlink.symlink_to(source_binary)
                 else:
                     target_symlink.write_text(
-                        f'#!/bin/sh\nexec "{venv_dir}/bin/claw-compactor" "$@"\n',
-                        encoding="utf-8"
+                        f'#!/bin/sh\nexec "{venv_dir}/bin/claw-compactor" "$@"\n', encoding="utf-8"
                     )
                     target_symlink.chmod(0o755)
 
@@ -939,20 +970,24 @@ def main() -> int:
                     CODEX_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"),
                     CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"),
                 )
-                res = subprocess.run([sys.executable, str(verify_script)], capture_output=True, text=True, env=env)
+                res = subprocess.run(
+                    [sys.executable, str(verify_script)], capture_output=True, text=True, env=env
+                )
                 print(res.stdout)
             except Exception as exc:
                 print(f"Verification failed: {exc}")
 
     # 11. Optional Daemon Launch for serve_dashboard.py (outside the loop, single launch)
     print_header("Dashboard Service")
-    run_db = prompt_input("Would you like to start the S.C.R.O.O.G.E. dashboard in the background? (y/n)", default="y")
+    run_db = prompt_input(
+        "Would you like to start the S.C.R.O.O.G.E. dashboard in the background? (y/n)", default="y"
+    )
     if run_db.lower().startswith("y") and hubs_to_install:
         first_hub = hubs_to_install[0]
         venv_dir = first_hub / "token-telemetry" / ".venv-desktop"
         pid_file = first_hub / "token-telemetry" / "dashboard.pid"
         log_file = first_hub / "token-telemetry" / "dashboard.log"
-        
+
         # Stop existing dashboard daemon if running
         if pid_file.exists():
             try:
@@ -976,7 +1011,7 @@ def main() -> int:
                         SCROOGE_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
                         CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
                         CODEX_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
-                    )
+                    ),
                 )
                 pid_file.write_text(str(proc.pid), encoding="utf-8")
                 print("Dashboard started in background. Visit: http://127.0.0.1:8765/")
@@ -999,7 +1034,7 @@ def main() -> int:
                         SCROOGE_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
                         CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
                         CODEX_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
-                    )
+                    ),
                 )
                 pid_file.write_text(str(proc.pid), encoding="utf-8")
                 print("Dashboard started in background. Visit: http://127.0.0.1:8765/")

@@ -115,10 +115,7 @@ class BaseProvider(ABC):
     @property
     def is_active(self) -> bool:
         """Check if this provider is currently active (detected from env)."""
-        return bool(
-            os.environ.get(self.env_event_var)
-            or os.environ.get(self.env_home_var)
-        )
+        return bool(os.environ.get(self.env_event_var) or os.environ.get(self.env_home_var))
 
     # === Hook Response Formatting ===
 

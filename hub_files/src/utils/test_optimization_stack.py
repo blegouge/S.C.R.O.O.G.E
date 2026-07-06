@@ -6,6 +6,7 @@ Run:
   PYTHONPATH=src:token-telemetry python3 -m unittest src.utils.test_optimization_stack -v
   ~/.cursor/bin/test-optimization-stack.sh
 """
+
 from __future__ import annotations
 
 import json
@@ -31,17 +32,16 @@ for path in (TELEMETRY_DIR, SRC_DIR, REPO_ROOT):
         sys.path.remove(path_str)
     sys.path.insert(0, path_str)
 
-from utils.static_prompt_registry import (  # noqa: E402
-    PromptRegistryPaths,
-    build_global_static_block,
-)
-from utils.task_brief_validator import validate_task_brief  # noqa: E402
 from telemetry_metrics import (  # noqa: E402
     hook_overhead_tokens,
     hook_saved_tokens,
     is_subagent_launch,
     rtk_hook_saved_tokens,
     summarize_layer_kpis,
+)
+from utils.static_prompt_registry import (  # noqa: E402
+    PromptRegistryPaths,
+    build_global_static_block,
 )
 
 GOOD_BRIEF = """
@@ -64,6 +64,16 @@ def _compression_env() -> dict[str, str]:
         _TEST_LOG_PATH = Path(_TEST_LOG_DIR.name) / "events.jsonl"
     env = os.environ.copy()
     env["CURSOR_TOKEN_TELEMETRY_LOG"] = str(_TEST_LOG_PATH)
+
+    # Inject PYTHONPATH so subprocess hooks can find telemetry_common and utils
+    root_dir = Path(__file__).resolve().parent.parent.parent.parent
+    src_dir = root_dir / "hub_files" / "src"
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    new_pythonpath = [str(root_dir), str(src_dir)]
+    if existing_pythonpath:
+        new_pythonpath.append(existing_pythonpath)
+    env["PYTHONPATH"] = os.path.pathsep.join(new_pythonpath)
+
     env_path = CURSOR_HOME / "compression.env"
     if env_path.is_file():
         for raw_line in env_path.read_text(encoding="utf-8").splitlines():
@@ -76,7 +86,9 @@ def _compression_env() -> dict[str, str]:
     return env
 
 
-def _run_hook(script: str, payload: dict, *, env: dict[str, str] | None = None) -> tuple[dict, str, str, int]:
+def _run_hook(
+    script: str, payload: dict, *, env: dict[str, str] | None = None
+) -> tuple[dict, str, str, int]:
     merged = _compression_env()
     if env:
         merged.update(env)
@@ -102,7 +114,7 @@ class CompressionEnvConfigTests(unittest.TestCase):
         text = (CURSOR_HOME / "compression.env").read_text(encoding="utf-8")
         self.assertTrue(
             "COMPRESSION_BACKEND=claw" in text or "COMPRESSION_BACKEND=headroom" in text,
-            "COMPRESSION_BACKEND must be claw or headroom"
+            "COMPRESSION_BACKEND must be claw or headroom",
         )
         self.assertIn("ADAPTIVE_CTX_STRUCTURE_MIN_INPUT_TOKENS=2500", text)
         self.assertIn("LLMLINGUA_HOOK_MIN_CHARS=2500", text)
@@ -112,6 +124,7 @@ class CompressionEnvConfigTests(unittest.TestCase):
 class HeadroomLocalTests(unittest.TestCase):
     def test_smart_crusher_anomalies(self) -> None:
         from smart_crusher import SmartCrusher, SmartCrusherConfig
+
         config = SmartCrusherConfig(n=1, m=1)
         crusher = SmartCrusher(config)
         data = [
@@ -130,6 +143,7 @@ class HeadroomLocalTests(unittest.TestCase):
 
     def test_ccr_compress_flow(self) -> None:
         from ccr_manager import ccr_compress
+
         # Set low threshold
         os.environ["CCR_THRESHOLD_CHARS"] = "50"
         payload = "A" * 60
@@ -169,7 +183,9 @@ class HooksJsonTests(unittest.TestCase):
             "Codex Bash PreToolUse must run RTK rewrite hook",
         )
         self.assertTrue(
-            any("semantic-compress-pretool" in cmd for cmd in matcher_to_commands.get("^Task$", [])),
+            any(
+                "semantic-compress-pretool" in cmd for cmd in matcher_to_commands.get("^Task$", [])
+            ),
             "Codex Task PreToolUse must run subagent prompt compression",
         )
         self.assertIn("UserPromptSubmit", codex_hooks)
@@ -290,7 +306,9 @@ class SemanticCompressHookTests(unittest.TestCase):
             },
             "workspace_roots": [str(CURSOR_HOME)],
         }
-        out, _, _, rc = _run_hook("semantic-compress-pretool.py", payload)
+        out, _, _, rc = _run_hook(
+            "semantic-compress-pretool.py", payload, env={"TASK_BRIEF_ENFORCE": "deny"}
+        )
         self.assertEqual(rc, 0)
         self.assertEqual(out.get("permission"), "deny")
 
@@ -338,7 +356,7 @@ class DiffOnlyApplyHookTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             target = Path(tmpdir) / "sample.py"
             target.write_text("def foo():\n    return 1\n", encoding="utf-8")
-            text = f"""path: sample.py
+            text = """path: sample.py
 <<<<<<< SEARCH
 def foo():
     return 1
@@ -367,6 +385,7 @@ def foo():
 class TelemetryFileLockingTests(unittest.TestCase):
     def test_concurrent_append_event(self) -> None:
         import concurrent.futures
+
         import telemetry_common
 
         with tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False) as tmp:
@@ -376,6 +395,7 @@ class TelemetryFileLockingTests(unittest.TestCase):
         os.environ["CURSOR_TOKEN_TELEMETRY_LOG"] = str(tmp_path)
 
         try:
+
             def writer(idx: int) -> None:
                 for j in range(10):
                     telemetry_common.append_event({"writer": idx, "index": j})
@@ -411,7 +431,9 @@ class DashboardCacheTests(unittest.TestCase):
             self.assertTrue(res1.get("ok"))
             self.assertEqual(res1.get("summary", {}).get("total_saved"), 42)
 
-            serve_dashboard._rtk_cmd_candidates = lambda: [["echo", '{"summary": {"total_saved": 100}}']]
+            serve_dashboard._rtk_cmd_candidates = lambda: [
+                ["echo", '{"summary": {"total_saved": 100}}']
+            ]
 
             res2 = serve_dashboard.load_rtk_gain(project=False, source="cursor")
             self.assertEqual(res2.get("summary", {}).get("total_saved"), 42)
@@ -427,13 +449,14 @@ class DashboardCacheTests(unittest.TestCase):
     def test_layer_kpis_endpoint(self) -> None:
         import io
         from unittest.mock import MagicMock, patch
+
         import serve_dashboard
 
         with tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False) as tmp:
             tmp_path = Path(tmp.name)
             tmp_path.write_text(
                 json.dumps({"event": "postToolUse", "tool": "Shell", "approx_tokens": 100}) + "\n",
-                encoding="utf-8"
+                encoding="utf-8",
             )
 
         handler = MagicMock()
@@ -442,9 +465,14 @@ class DashboardCacheTests(unittest.TestCase):
         handler.wfile = io.BytesIO()
 
         mock_events = [{"event": "postToolUse", "tool": "Shell", "approx_tokens": 100}]
-        with patch("serve_dashboard.get_paths", return_value=(tmp_path, tmp_path)), \
-             patch("serve_dashboard.load_rtk_gain", return_value={"ok": True, "summary": {"total_saved": 42}}), \
-             patch("telemetry_db.fetch_events_from_db", return_value=mock_events):
+        with (
+            patch("serve_dashboard.get_paths", return_value=(tmp_path, tmp_path)),
+            patch(
+                "serve_dashboard.load_rtk_gain",
+                return_value={"ok": True, "summary": {"total_saved": 42}},
+            ),
+            patch("telemetry_db.fetch_events_from_db", return_value=mock_events),
+        ):
             serve_dashboard.DashboardHandler.do_GET(handler)
 
         handler.send_response.assert_called_with(200)
@@ -455,7 +483,6 @@ class DashboardCacheTests(unittest.TestCase):
         self.assertEqual(response_data["layers"]["rtk_shell"]["observed_tokens"], 100)
 
         tmp_path.unlink(missing_ok=True)
-
 
 
 if __name__ == "__main__":

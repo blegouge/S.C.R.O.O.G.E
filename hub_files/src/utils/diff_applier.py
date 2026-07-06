@@ -4,15 +4,16 @@ Parse and apply Diff-Only SEARCH/REPLACE blocks from agent text.
 
 Deterministic: no LLM round-trip. Raises DiffApplyError when SEARCH is missing or ambiguous.
 """
+
 from __future__ import annotations
 
 import json
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass, field
+from datetime import UTC
 from pathlib import Path
-from typing import Iterable
-
 
 MARKER_SEARCH = "<<<<<<< SEARCH"
 MARKER_SEP = "======="
@@ -255,9 +256,7 @@ def _resolve_file(path_str: str, roots: list[Path]) -> Path:
     if raw.is_absolute():
         return raw.resolve()
     if not roots:
-        raise WorkspaceNotFoundError(
-            f"No workspace root available for relative path '{path_str}'"
-        )
+        raise WorkspaceNotFoundError(f"No workspace root available for relative path '{path_str}'")
     for root in roots:
         candidate = (root / raw).resolve()
         if candidate.exists():
@@ -295,9 +294,7 @@ def _apply_one(
         return replace, False
 
     if not search and original:
-        raise DiffApplyError(
-            f"{file_path}: empty SEARCH on existing file — provide context lines"
-        )
+        raise DiffApplyError(f"{file_path}: empty SEARCH on existing file — provide context lines")
 
     if search in original:
         count = _count_occurrences(original, search)
@@ -319,9 +316,7 @@ def _apply_one(
         updated = norm_orig.replace(norm_search, norm_replace, 1)
         return updated, True
 
-    raise SearchNotFoundError(
-        f"{file_path}: SEARCH not found — verify verbatim copy from disk"
-    )
+    raise SearchNotFoundError(f"{file_path}: SEARCH not found — verify verbatim copy from disk")
 
 
 def apply_blocks(
@@ -368,13 +363,9 @@ def apply_blocks(
             touched_files.add(target)
             result.stats.blocks_applied += 1
         except SearchNotFoundError as exc:
-            result.errors.append(
-                f"{block.path} (line ~{block.line_number}): {exc}"
-            )
+            result.errors.append(f"{block.path} (line ~{block.line_number}): {exc}")
         except AmbiguousSearchError as exc:
-            result.errors.append(
-                f"{block.path} (line ~{block.line_number}): {exc}"
-            )
+            result.errors.append(f"{block.path} (line ~{block.line_number}): {exc}")
         except DiffApplyError as exc:
             result.errors.append(f"{block.path}: {exc}")
 
@@ -416,12 +407,10 @@ def log_savings(stats: ApplyStats, *, stream=None) -> None:
 
 def append_telemetry(stats: ApplyStats, event: str, errors: list[str]) -> None:
     """Append one row to token-telemetry events.jsonl."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     row = {
-        "ts": datetime.now(timezone.utc)
-        .isoformat(timespec="seconds")
-        .replace("+00:00", "Z"),
+        "ts": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "event": event,
         "diff_only": stats.to_log_dict(),
         "diff_errors": errors[:20],

@@ -1,0 +1,71 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "N",    # pep8-naming
+    "C4",   # flake8-comprehensions
+]
+ignore = [
+    "E501", # line too long (handled by line-length and formatter)
+    "E402", # module level import not at top of file (needed for env initialization setup)
+    "F841", # local variable assigned to but never used
+    "N806", # variable in function should be lowercase
+    "B023", # function definition does not bind loop variable
+    "UP038", # use isinstance union instead of tuple (tuple is faster and more backwards compatible)
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["utils", "telemetry_db", "telemetry_config", "telemetry_paths", "providers_config"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_unused_ignores = false
+warn_redundant_casts = false
+files = [
+    "serve_dashboard.py",
+    "telemetry_db.py",
+    "telemetry_config.py",
+    "telemetry_paths.py",
+    "providers_config.py",
+    "token_compactor.py",
+    "smart_crusher.py",
+    "report.py",
+    "claw_compactor_adapter.py",
+    "headroom_adapter.py",
+    "hub_files/src/utils/adaptive_context_manager.py",
+    "hub_files/src/utils/consumption_report_validator.py",
+    "hub_files/src/utils/diff_applier.py",
+    "hub_files/src/utils/static_prompt_registry.py",
+    "hub_files/src/utils/summarizer_factory.py",
+    "hub_files/src/utils/task_brief_validator.py",
+    "hub_files/src/utils/token_budget_guardrail.py"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["hub_files/src/utils"]
+pythonpath = ["hub_files/src", "."]
+python_files = ["test_*.py"]
+addopts = "--cov=hub_files/src/utils --cov-report=term-missing"
+
+[[tool.mypy.overrides]]
+module = [
+    "providers_config",
+    "telemetry_common",
+    "report",
+    "serve_dashboard",
+    "headroom_adapter",
+    "utils.*",
+    "hub_files.src.utils.*"
+]
+ignore_errors = true

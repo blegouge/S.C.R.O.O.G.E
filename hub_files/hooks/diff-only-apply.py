@@ -10,6 +10,7 @@ Events:
 Writes files on disk as a side effect. On subagentStop/stop failures, may return
 `followup_message` so the agent can fix SEARCH mismatches.
 """
+
 from __future__ import annotations
 
 import json

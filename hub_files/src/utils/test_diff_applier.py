@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Unit tests for diff_applier."""
+
 from __future__ import annotations
 
 import tempfile
@@ -7,9 +8,6 @@ import unittest
 from pathlib import Path
 
 from diff_applier import (
-    AmbiguousSearchError,
-    ApplyResult,
-    SearchNotFoundError,
     apply_blocks,
     apply_text,
     parse_blocks,

@@ -17,12 +17,12 @@ Perform the full MCP checklist **only when required** below. Goal: avoid repeati
 
 1. **Today’s calendar date**: use **`Today's date`** from user_info (canonical). Normalize to **`YYYY-MM-DD`** in local terms (same as the assistant’s authoritative date).
 
-2. **Stamp file**: read **`~/.gemini/antigravity/mcp-daily-stamp.txt`** (always the Antigravity **user config** directory, regardless of current Git/repo workspace).  
+2. **Stamp file**: read **`~/.gemini/antigravity/mcp-daily-stamp.txt`** (always the Antigravity **user config** directory, regardless of current Git/repo workspace).
    - If read fails or file is absent: stamp is invalid.
 
 3. **Decide**:
 
-   - If the file contents (trimmed) **equal exactly** today’s **`YYYY-MM-DD`**:  
+   - If the file contents (trimmed) **equal exactly** today’s **`YYYY-MM-DD`**:
      → **STOP** — do **not** read `mcp_config.json` for MCP listing, **do not** probe MCP servers, **do not** output any MCP status block. Continue with the user’s request normally.
 
    - Otherwise (wrong date / empty / unreadable): run **§ Full check**, then overwrite **`~/.gemini/antigravity/mcp-daily-stamp.txt`** with today’s **`YYYY-MM-DD`** (single line, no BOM). Optionally overwrite **`~/.gemini/antigravity/mcp-daily-status-cache.txt`** with one minimal status line (`OK`, or short failure summary—optional telemetry for the human).

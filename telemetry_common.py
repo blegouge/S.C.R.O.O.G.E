@@ -7,7 +7,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +27,7 @@ def _detect_source() -> str:
     """
     try:
         from providers import detect_provider
+
         return detect_provider().name
     except (ImportError, Exception):
         # Fallback to legacy detection if providers module is unavailable
@@ -81,7 +82,7 @@ _KNOWN_SKILLS: set[str] | None = None
 
 
 def utc_ts() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def append_event(row: dict[str, Any]) -> None:
@@ -93,11 +94,13 @@ def append_event(row: dict[str, Any]) -> None:
         pos = 0
         try:
             import fcntl
+
             fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
             locked = True
         except (ImportError, OSError):
             try:
                 import msvcrt
+
                 pos = fh.tell()
                 msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
                 locked = True
@@ -111,10 +114,12 @@ def append_event(row: dict[str, Any]) -> None:
             if locked:
                 try:
                     import fcntl
+
                     fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
                 except (ImportError, OSError):
                     try:
                         import msvcrt
+
                         fh.seek(pos)
                         msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
                     except (ImportError, OSError):
@@ -199,7 +204,9 @@ def infer_correlation_from_log(max_age_seconds: int = 300, tail_lines: int = 80)
     return {}
 
 
-def enrich_correlation(hook_data: dict[str, Any], tool_input: dict[str, Any] | None = None) -> dict[str, str]:
+def enrich_correlation(
+    hook_data: dict[str, Any], tool_input: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Merge hook stdin, tool_input, and recent log context for session correlation."""
     merged: dict[str, Any] = dict(hook_data)
     if tool_input:
@@ -272,8 +279,10 @@ def is_subagent_launch_event(event: str) -> bool:
 
 def fail_safe(fallback_value: Any = None):
     """Decorator to catch all exceptions in a function, log to stderr, and return fallback."""
+
     def decorator(func):
         import functools
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             try:
@@ -281,14 +290,18 @@ def fail_safe(fallback_value: Any = None):
             except Exception as exc:
                 sys.stderr.write(f"[telemetry-failsafe] Error in {func.__name__}: {exc}\n")
                 return fallback_value
+
         return wrapper
+
     return decorator
 
 
 def hook_fail_safe(fallback_json: str = '{"permission": "allow"}'):
     """Decorator for hook main() functions to output a safe JSON response and exit 0 on crash."""
+
     def decorator(func):
         import functools
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             try:
@@ -298,5 +311,7 @@ def hook_fail_safe(fallback_json: str = '{"permission": "allow"}'):
                 sys.stdout.write(fallback_json)
                 sys.stdout.flush()
                 return 0
+
         return wrapper
+
     return decorator

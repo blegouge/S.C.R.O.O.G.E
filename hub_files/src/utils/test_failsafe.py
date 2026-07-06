@@ -21,7 +21,7 @@ class FailsafeTests(unittest.TestCase):
         @fail_safe(fallback_value="fallback_ok")
         def crashing_function():
             raise RuntimeError("Dummy crash")
-            
+
         # Capture stderr to avoid polluting outputs
         original_stderr = sys.stderr
         sys.stderr = io.StringIO()
@@ -31,12 +31,12 @@ class FailsafeTests(unittest.TestCase):
             self.assertIn("[telemetry-failsafe]", sys.stderr.getvalue())
         finally:
             sys.stderr = original_stderr
-            
+
     def test_hook_fail_safe_decorator(self) -> None:
         @hook_fail_safe(fallback_json='{"fallback": true}')
         def crashing_hook():
             raise ValueError("Dummy hook crash")
-            
+
         # Capture stdout and stderr
         original_stdout = sys.stdout
         original_stderr = sys.stderr

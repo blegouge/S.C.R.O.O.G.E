@@ -81,7 +81,10 @@ def row_guardrail_intercepted(row: dict[str, Any]) -> bool:
         return True
     if row_guardrail_loop_halt(row):
         return True
-    if row.get("guardrail_roi_gate") is True and str(row.get("guardrail_risk", "")).lower() == "high":
+    if (
+        row.get("guardrail_roi_gate") is True
+        and str(row.get("guardrail_risk", "")).lower() == "high"
+    ):
         return True
     return False
 
@@ -184,7 +187,6 @@ def summarize_compliance_kpis(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "pct": idem_pct,
         },
     }
-
 
 
 GUARDRAIL_READ_EVENTS = frozenset(
@@ -392,7 +394,9 @@ def summarize_layer_kpis(
         elif ev == "postToolUse":
             legacy_observed += int(row.get("approx_tokens") or 0)
         elif is_subagent_launch(row):
-            legacy_observed += int(row.get("compression_after_tokens") or row.get("approx_tokens") or 0)
+            legacy_observed += int(
+                row.get("compression_after_tokens") or row.get("approx_tokens") or 0
+            )
         elif ev == "subagentStop":
             legacy_observed += int(row.get("approx_tokens") or 0)
 
@@ -415,6 +419,7 @@ def summarize_layer_kpis(
             "note": "Old KPI (includes chat) — often shows <1% when RTK missing.",
         },
     }
+
 
 def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Single source of truth for report.py and dashboard /api/report-summary."""
