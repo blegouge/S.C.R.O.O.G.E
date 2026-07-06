@@ -306,7 +306,9 @@ class SemanticCompressHookTests(unittest.TestCase):
             },
             "workspace_roots": [str(CURSOR_HOME)],
         }
-        out, _, _, rc = _run_hook("semantic-compress-pretool.py", payload)
+        out, _, _, rc = _run_hook(
+            "semantic-compress-pretool.py", payload, env={"TASK_BRIEF_ENFORCE": "deny"}
+        )
         self.assertEqual(rc, 0)
         self.assertEqual(out.get("permission"), "deny")
 
