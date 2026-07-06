@@ -13,19 +13,33 @@ from typing import Any
 
 from telemetry_paths import resolve_log_file as _path_log_file
 
+# Add hub_files to sys.path for providers module
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_HUB_FILES = _SCRIPT_DIR / "hub_files"
+if _HUB_FILES.exists() and str(_HUB_FILES) not in sys.path:
+    sys.path.insert(0, str(_HUB_FILES))
+
 
 def _detect_source() -> str:
-    """Detect telemetry source from environment variables."""
-    if os.environ.get("CLAUDE_TT_EVENT") or os.environ.get("CLAUDE_HOME"):
-        return "claude"
-    if os.environ.get("ANTIGRAVITY_TT_EVENT") or os.environ.get("ANTIGRAVITY_HOME"):
-        return "antigravity"
-    if os.environ.get("GEMINI_TT_EVENT") or os.environ.get("GEMINI_HOME"):
-        return "gemini"
-    if os.environ.get("HERMES_TT_EVENT") or os.environ.get("HERMES_HOME"):
-        return "hermes"
-    # Default to cursor
-    return "cursor"
+    """Detect telemetry source from environment variables.
+
+    Uses the providers module if available, falls back to legacy detection.
+    """
+    try:
+        from providers import detect_provider
+        return detect_provider().name
+    except (ImportError, Exception):
+        # Fallback to legacy detection if providers module is unavailable
+        if os.environ.get("CLAUDE_TT_EVENT") or os.environ.get("CLAUDE_HOME"):
+            return "claude"
+        if os.environ.get("ANTIGRAVITY_TT_EVENT") or os.environ.get("ANTIGRAVITY_HOME"):
+            return "antigravity"
+        if os.environ.get("GEMINI_TT_EVENT") or os.environ.get("GEMINI_HOME"):
+            return "gemini"
+        if os.environ.get("HERMES_TT_EVENT") or os.environ.get("HERMES_HOME"):
+            return "hermes"
+        # Default to cursor
+        return "cursor"
 
 
 def resolve_log_file() -> Path:
