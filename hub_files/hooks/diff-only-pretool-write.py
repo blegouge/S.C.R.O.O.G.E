@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-_HOME_DIR = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
 else:
@@ -25,8 +25,9 @@ for _path in (SRC_DIR, TOKEN_TELEMETRY_DIR):
 from telemetry_common import append_event  # pylint: disable=import-error
 from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
 
-DISABLE_ENV = "ANTIGRAVITY_DIFF_ONLY_DISABLE"
-ALLOW_WRITE_ENV = "ANTIGRAVITY_DIFF_ONLY_ALLOW_WRITE"
+_IS_CODEX_HOME = _HOME_PATH.name == ".codex" or os.getenv("CODEX_HOME")
+DISABLE_ENV = "CODEX_DIFF_ONLY_DISABLE" if _IS_CODEX_HOME else "ANTIGRAVITY_DIFF_ONLY_DISABLE"
+ALLOW_WRITE_ENV = "CODEX_DIFF_ONLY_ALLOW_WRITE" if _IS_CODEX_HOME else "ANTIGRAVITY_DIFF_ONLY_ALLOW_WRITE"
 # Legacy Cursor env aliases
 _LEGACY_DISABLE = "CURSOR_DIFF_ONLY_DISABLE"
 _LEGACY_ALLOW = "CURSOR_DIFF_ONLY_ALLOW_WRITE"
@@ -139,7 +140,8 @@ def main() -> None:
     message = (
         f"Write blocked on existing file `{target.name}` (Diff-Only policy).\n"
         "Use StrReplace with a unique SEARCH snippet, or emit SEARCH/REPLACE blocks in chat.\n"
-        "Override: set ANTIGRAVITY_DIFF_ONLY_ALLOW_WRITE=1 (or CURSOR_DIFF_ONLY_ALLOW_WRITE=1)."
+        "Override: set CODEX_DIFF_ONLY_ALLOW_WRITE=1, ANTIGRAVITY_DIFF_ONLY_ALLOW_WRITE=1, "
+        "or CURSOR_DIFF_ONLY_ALLOW_WRITE=1."
     )
     _respond(
         {

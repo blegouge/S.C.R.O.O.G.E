@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Local S.C.R.O.O.G.E. application for the Cursor hub: dashboard, CLI reports, Claw Compactor venv, and macOS `.app` build. **Persistent data** stays in `~/.cursor/token-telemetry/` (see `README-DATA.md` there).
+Local S.C.R.O.O.G.E. application for AI agent hubs: dashboard, CLI reports, Claw Compactor venv, and macOS `.app` build. **Persistent data** stays in the selected hub, such as `~/.cursor/token-telemetry/` or `~/.codex/token-telemetry/`.
 
 ## Stack
 
@@ -15,10 +15,10 @@ Local S.C.R.O.O.G.E. application for the Cursor hub: dashboard, CLI reports, Cla
 | Role | Default |
 |------|---------|
 | App | `~/www/private/SCROOGE` (`CURSOR_TOKEN_TELEMETRY_APP`) |
-| Data | `~/.cursor/token-telemetry` (`CURSOR_TOKEN_TELEMETRY_DATA_DIR`) |
+| Data | `~/.cursor/token-telemetry` or `~/.codex/token-telemetry` (`SCROOGE_TOKEN_TELEMETRY_DATA_DIR` / legacy `CURSOR_TOKEN_TELEMETRY_DATA_DIR`) |
 | Events log | `{data}/events.jsonl` (`CURSOR_TOKEN_TELEMETRY_LOG` for tests) |
 
-Hub hooks import this package via `CURSOR_TOKEN_TELEMETRY_APP`; see `~/.cursor/bin/telemetry-paths.sh`.
+Hub hooks import this package via `SCROOGE_TOKEN_TELEMETRY_APP` or the legacy `CURSOR_TOKEN_TELEMETRY_APP`; see each hub's `bin/telemetry-paths.sh`.
 
 ## Commands
 

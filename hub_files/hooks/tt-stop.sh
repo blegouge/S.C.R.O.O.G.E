@@ -2,10 +2,9 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOME_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-export ANTIGRAVITY_TT_EVENT=afterFileEdit
-export CURSOR_TT_EVENT=afterFileEdit
-export CLAUDE_TT_EVENT=afterFileEdit
-export CODEX_TT_EVENT=afterFileEdit
+export ANTIGRAVITY_TT_EVENT=stop
+export CURSOR_TT_EVENT=stop
+export CLAUDE_TT_EVENT=stop
 
 PYTHON_BIN="${HOME_DIR}/token-telemetry/.venv-desktop/bin/python"
 if [[ -x "${PYTHON_BIN}" ]]; then

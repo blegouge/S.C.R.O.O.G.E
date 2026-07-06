@@ -2,7 +2,7 @@
 """install_stack.py - Automated, interactive, and idempotent installation of the Token Optimization Stack.
 
 This script runs with the standard library only. It copies the reference files from
-hub_files/ to all selected target HUBs (~/.cursor or ~/.gemini/antigravity), prompts the user
+hub_files/ to all selected target HUBs (~/.cursor, ~/.gemini/antigravity, ~/.codex, etc.), prompts the user
 for required MCP tokens once, rewrites configuration paths, updates rule/skill references
 dynamically for the target IDE, sets up the Python venv, and runs the sanity check verification.
 """
@@ -14,10 +14,182 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 # Repository root (where this script is located)
 REPO_ROOT = Path(__file__).resolve().parent
 HUB_FILES = REPO_ROOT / "hub_files"
+CODEX_FILES = HUB_FILES / "codex"
+
+DASHBOARD_RUNTIME_FILES = {
+    ".env",
+    ".env.example",
+    "dashboard.html",
+    "dashboard.css",
+    "dashboard.js",
+    "dashboard_app.py",
+    "providers_config.py",
+    "providers_config.yaml",
+    "report.py",
+    "requirements-desktop.txt",
+    "rtk_resolver.py",
+    "serve_dashboard.py",
+    "telemetry_common.py",
+    "telemetry_config.py",
+    "telemetry_db.py",
+    "telemetry_metrics.py",
+    "telemetry_paths.py",
+}
+
+TOKEN_TELEMETRY_PRESERVE_NAMES = {
+    ".venv-desktop",
+    "dashboard-layout.json",
+    "dashboard.log",
+    "dashboard.pid",
+    "events.jsonl",
+    "icon.jpg",
+    "telemetry.db",
+    "telemetry.db-shm",
+    "telemetry.db-wal",
+    "__pycache__",
+}
+
+# Add hub_files to sys.path for providers module
+if str(HUB_FILES) not in sys.path:
+    sys.path.insert(0, str(HUB_FILES))
+
+# =============================================================================
+# Provider-based hooks transformation
+# =============================================================================
+
+def _get_provider(target_name: str):
+    """Get provider instance for the given target IDE name.
+
+    Falls back to legacy transformation functions if providers module is unavailable.
+    """
+    try:
+        from providers import get_provider
+        return get_provider(target_name)
+    except (ImportError, KeyError, Exception):
+        # If providers module is unavailable, return None to trigger fallback
+        return None
+
+
+def transform_hooks_cursor_to_claude(hooks_data: dict[str, Any]) -> dict[str, Any]:
+    """Transform Cursor/Gemini hooks.json format to Claude Code settings.json format.
+
+    This is a legacy fallback function. New code should use ClaudeProvider.transform_hooks_config().
+    """
+    provider = _get_provider("claude")
+    if provider is not None:
+        # Extract the hooks dict from the full structure ({"version": 1, "hooks": {...}})
+        cursor_hooks = hooks_data.get("hooks", {})
+        transformed = provider.transform_hooks_config(cursor_hooks)
+        # Wrap back in the expected structure for Claude
+        return {"hooks": transformed}
+
+    # Fallback to inline implementation if providers module unavailable
+    from collections import defaultdict
+
+    # Events supported by Claude Code (others will be skipped)
+    CLAUDE_SUPPORTED_EVENTS = {
+        "PreToolUse", "PostToolUse", "Stop", "SubagentStart", "SubagentStop", "SessionStart",
+    }
+
+    # Event name mapping: Cursor (camelCase) -> Claude Code (PascalCase)
+    CLAUDE_EVENT_MAPPING = {
+        "preToolUse": "PreToolUse", "postToolUse": "PostToolUse", "stop": "Stop",
+        "subagentStop": "SubagentStop", "sessionStart": "SessionStart", "subagentStart": "SubagentStart",
+    }
+
+    # Tool/matcher name mapping: Cursor -> Claude Code
+    CLAUDE_TOOL_MAPPING = {"Shell": "Bash", "shell": "Bash"}
+
+    result: dict[str, Any] = {"hooks": {}}
+    source_hooks = hooks_data.get("hooks", {})
+
+    for event_name, items in source_hooks.items():
+        claude_event = CLAUDE_EVENT_MAPPING.get(event_name)
+        if claude_event is None:
+            claude_event = event_name[0].upper() + event_name[1:]
+        if claude_event not in CLAUDE_SUPPORTED_EVENTS:
+            continue
+
+        by_matcher: dict[str, list[dict[str, str]]] = defaultdict(list)
+        for item in items:
+            matcher = item.get("matcher", "*")
+            matcher = CLAUDE_TOOL_MAPPING.get(matcher, matcher)
+            hook_entry = {"type": "command", "command": item["command"]}
+            by_matcher[matcher].append(hook_entry)
+
+        result["hooks"][claude_event] = [
+            {"matcher": matcher, "hooks": hooks_list}
+            for matcher, hooks_list in by_matcher.items()
+        ]
+
+    return result
+
+
+def merge_hooks_claude(existing: dict[str, Any], new_hooks: dict[str, Any]) -> dict[str, Any]:
+    """Merge new hooks into existing Claude Code settings.json without duplicates.
+
+    This is a legacy fallback function. New code should use ClaudeProvider.merge_hooks_config().
+
+    Args:
+        existing: Full settings.json content (e.g., {"hooks": {...}})
+        new_hooks: Full hooks structure (e.g., {"hooks": {...}})
+
+    Returns:
+        Full settings.json content with merged hooks
+    """
+    provider = _get_provider("claude")
+    if provider is not None:
+        # Extract hooks dicts from the full structures
+        existing_hooks = existing.get("hooks", {})
+        new_hooks_dict = new_hooks.get("hooks", {})
+
+        # Merge using provider
+        merged_hooks = provider.merge_hooks_config(existing_hooks, new_hooks_dict)
+
+        # Wrap back in full structure
+        return {"hooks": merged_hooks}
+
+    # Fallback to inline implementation if providers module unavailable
+    result: dict[str, Any] = {"hooks": {}}
+
+    for event, groups in existing.get("hooks", {}).items():
+        result["hooks"][event] = [
+            {"matcher": g["matcher"], "hooks": list(g.get("hooks", []))}
+            for g in groups
+        ]
+
+    for event, groups in new_hooks.get("hooks", {}).items():
+        if event not in result["hooks"]:
+            result["hooks"][event] = []
+
+        existing_groups = result["hooks"][event]
+
+        for new_group in groups:
+            new_matcher = new_group["matcher"]
+
+            target_group = None
+            for eg in existing_groups:
+                if eg["matcher"] == new_matcher:
+                    target_group = eg
+                    break
+
+            if target_group is None:
+                existing_groups.append({
+                    "matcher": new_matcher,
+                    "hooks": list(new_group.get("hooks", []))
+                })
+            else:
+                existing_commands = {h["command"] for h in target_group.get("hooks", [])}
+                for hook in new_group.get("hooks", []):
+                    if hook["command"] not in existing_commands:
+                        target_group["hooks"].append(hook)
+
+    return result
 
 
 def print_header(title: str) -> None:
@@ -74,14 +246,70 @@ def save_env_file(path: Path, data: dict[str, str], comment_header: str = "") ->
             f.write(f"{k}={v}\n")
 
 
+def hook_item_commands(item: dict) -> set[str]:
+    """Return command identities from Cursor-style or Codex-style hook entries."""
+    commands: set[str] = set()
+    command = item.get("command")
+    if isinstance(command, str) and command:
+        commands.add(command)
+    nested = item.get("hooks")
+    if isinstance(nested, list):
+        for handler in nested:
+            if isinstance(handler, dict):
+                nested_cmd = handler.get("command")
+                if isinstance(nested_cmd, str) and nested_cmd:
+                    commands.add(nested_cmd)
+    return commands
+
+
+def merge_hook_lists(existing_list: list, template_list: list) -> int:
+    """Merge hook groups while preserving custom user hooks."""
+    added = 0
+    for h_item in template_list:
+        if not isinstance(h_item, dict):
+            if h_item not in existing_list:
+                existing_list.append(h_item)
+                added += 1
+            continue
+
+        h_matcher = h_item.get("matcher")
+        h_cmds = hook_item_commands(h_item)
+        is_present = False
+        for ext_item in existing_list:
+            if ext_item == h_item:
+                is_present = True
+                break
+            if not isinstance(ext_item, dict):
+                continue
+            same_matcher = ext_item.get("matcher") == h_matcher
+            ext_cmds = hook_item_commands(ext_item)
+            if h_cmds and same_matcher and h_cmds.issubset(ext_cmds):
+                is_present = True
+                break
+            if h_cmds and ext_cmds and h_cmds == ext_cmds:
+                is_present = True
+                break
+        if not is_present:
+            existing_list.append(h_item)
+            added += 1
+    return added
+
+
 def copy_tree_idempotent(src: Path, dst: Path, ignore=None, overwrite: bool = True) -> None:
     """Copy directory src to dst, creating parent directories and overwriting existing files (if overwrite is True).
     Prevents infinite recursion if dst is inside src.
     """
-    if not src.exists():
+    if not src.exists() and not src.is_symlink():
         return
-    src_abs = src.resolve()
-    dst_abs = dst.resolve()
+    try:
+        src_abs = src.resolve()
+    except Exception:
+        src_abs = src
+    try:
+        dst_abs = dst.resolve()
+    except Exception:
+        dst_abs = dst
+
     dst.mkdir(parents=True, exist_ok=True)
     for item in os.listdir(src):
         s = src / item
@@ -94,15 +322,129 @@ def copy_tree_idempotent(src: Path, dst: Path, ignore=None, overwrite: bool = Tr
                 continue
         except Exception:
             pass
-        if s.is_dir():
+
+        if s.is_symlink():
+            if not overwrite and (d.exists() or d.is_symlink()):
+                continue
+            try:
+                if d.exists() or d.is_symlink():
+                    d.unlink()
+                target = os.readlink(s)
+                d.symlink_to(target)
+            except Exception as e:
+                print(f"Warning: Could not copy symlink {s} to {d}: {e}")
+        elif s.is_dir():
             copy_tree_idempotent(s, d, ignore, overwrite=overwrite)
         else:
             if not overwrite and d.exists():
+                continue
+            if s.is_symlink() and not s.exists():
+                print(f"Skipping broken symlink: {s}")
                 continue
             try:
                 shutil.copy2(s, d)
             except shutil.SameFileError:
                 pass
+            except Exception as e:
+                print(f"Warning: Could not copy file {s} to {d}: {e}")
+
+
+def deploy_token_telemetry_runtime(repo_root: Path, dst: Path) -> None:
+    """Deploy only dashboard/runtime files into <HUB>/token-telemetry."""
+    dst.mkdir(parents=True, exist_ok=True)
+    for name in DASHBOARD_RUNTIME_FILES:
+        src = repo_root / name
+        if src.is_file():
+            shutil.copy2(src, dst / name)
+
+    icon_src = repo_root / "docs" / "fr" / "assets" / "icon.jpg"
+    if icon_src.is_file():
+        shutil.copy2(icon_src, dst / "icon.jpg")
+    else:
+        print(f"Warning: dashboard icon source not found: {icon_src}")
+
+
+def prune_token_telemetry_runtime(dst: Path) -> None:
+    """Remove old repo-copy artifacts from <HUB>/token-telemetry while preserving runtime data."""
+    allowed = set(DASHBOARD_RUNTIME_FILES) | TOKEN_TELEMETRY_PRESERVE_NAMES
+    if not dst.exists():
+        return
+    for item in dst.iterdir():
+        if item.name in allowed:
+            continue
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+
+
+def detect_target_name(hub: Path) -> str:
+    """Return the target provider id from a hub path."""
+    hub_str = str(hub).lower()
+    if "cursor" in hub_str:
+        return "cursor"
+    if "antigravity" in hub_str:
+        return "antigravity"
+    if "claude" in hub_str:
+        return "claude"
+    if "hermes" in hub_str:
+        return "hermes"
+    if "codex" in hub_str:
+        return "codex"
+    if "gemini" in hub_str:
+        return "gemini"
+    return "antigravity"
+
+
+def json_to_toml_value(value: object) -> str:
+    """Serialize simple JSON-like values to TOML."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(json_to_toml_value(v) for v in value) + "]"
+    return json.dumps(str(value))
+
+
+def append_codex_mcp_config(config_path: Path, mcp_data: dict[str, object]) -> None:
+    """Append missing MCP servers to Codex config.toml without parsing user settings."""
+    existing = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    servers = mcp_data.get("mcpServers", {})
+    if not isinstance(servers, dict):
+        return
+
+    lines: list[str] = []
+    for server_name, server_config in servers.items():
+        marker = f"[mcp_servers.{server_name}]"
+        if marker in existing:
+            continue
+        if not isinstance(server_config, dict):
+            continue
+        lines.append("")
+        lines.append(marker)
+        for key in ("command", "args", "url", "cwd", "startup_timeout_sec", "tool_timeout_sec"):
+            if key in server_config:
+                lines.append(f"{key} = {json_to_toml_value(server_config[key])}")
+        env = server_config.get("env")
+        if isinstance(env, dict) and env:
+            lines.append(f"[mcp_servers.{server_name}.env]")
+            for env_key, env_value in env.items():
+                lines.append(f"{env_key} = {json_to_toml_value(env_value)}")
+
+    if not lines:
+        print(f"All Codex MCP servers from template already present in {config_path}.")
+        return
+
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    header = "\n# S.C.R.O.O.G.E. MCP servers (managed by install_stack.py)\n"
+    with config_path.open("a", encoding="utf-8") as f:
+        if existing and not existing.endswith("\n"):
+            f.write("\n")
+        f.write(header)
+        f.write("\n".join(lines).lstrip())
+        f.write("\n")
+    print(f"Added Codex MCP server configuration to {config_path}.")
 
 
 def main() -> int:
@@ -120,6 +462,7 @@ def main() -> int:
         home / ".gemini" / "antigravity",
         home / ".claude",
         home / ".hermes",
+        home / ".codex",
         home / ".gemini",
     ]
 
@@ -205,20 +548,23 @@ def main() -> int:
     
     # Save target homes & stats directories in repo's .env
     for HUB in hubs_to_install:
-        hub_str = str(HUB).lower()
-        if "cursor" in hub_str:
+        target_name = detect_target_name(HUB)
+        if target_name == "cursor":
             repo_env["CURSOR_HOME"] = str(HUB)
             repo_env["CURSOR_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif "antigravity" in hub_str:
+        elif target_name == "antigravity":
             repo_env["ANTIGRAVITY_HOME"] = str(HUB)
-            repo_env["GEMINI_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif "claude" in hub_str:
+            repo_env["ANTIGRAVITY_STATS_DIR"] = str(HUB / "token-telemetry")
+        elif target_name == "claude":
             repo_env["CLAUDE_HOME"] = str(HUB)
             repo_env["CLAUDE_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif "hermes" in hub_str:
+        elif target_name == "hermes":
             repo_env["HERMES_HOME"] = str(HUB)
             repo_env["HERMES_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif "gemini" in hub_str:
+        elif target_name == "codex":
+            repo_env["CODEX_HOME"] = str(HUB)
+            repo_env["CODEX_STATS_DIR"] = str(HUB / "token-telemetry")
+        elif target_name == "gemini":
             repo_env["GEMINI_HOME"] = str(HUB)
             repo_env["GEMINI_STATS_DIR"] = str(HUB / "token-telemetry")
 
@@ -250,10 +596,24 @@ def main() -> int:
         if (HUB_FILES / "AGENT.md").exists():
             shutil.copy2(HUB_FILES / "AGENT.md", HUB / "AGENT.md")
 
-        # Copy current telemetry repository contents to <HUB>/token-telemetry
-        print("Deploying local S.C.R.O.O.G.E. files...")
-        ignore_patterns = {".git", ".venv-build", ".venv-desktop", "build", "dist", "hub_files"}
-        copy_tree_idempotent(REPO_ROOT, HUB / "token-telemetry", ignore=ignore_patterns)
+        if detect_target_name(HUB) == "codex":
+            codex_agents = CODEX_FILES / "AGENTS.md"
+            target_agents = HUB / "AGENTS.md"
+            if codex_agents.exists() and not target_agents.exists():
+                shutil.copy2(codex_agents, target_agents)
+                print(f"Generated Codex global guidance at {target_agents}")
+            elif target_agents.exists():
+                print(f"Preserved existing Codex global guidance at {target_agents}")
+
+            codex_user_skills = home / ".agents" / "skills"
+            copy_tree_idempotent(HUB_FILES / "skills", codex_user_skills, ignore=["__pycache__"], overwrite=False)
+            print(f"Installed Codex user skills under {codex_user_skills}")
+
+        # Deploy only dashboard/runtime files to <HUB>/token-telemetry.
+        print("Deploying S.C.R.O.O.G.E. dashboard runtime files...")
+        token_telemetry_dir = HUB / "token-telemetry"
+        deploy_token_telemetry_runtime(REPO_ROOT, token_telemetry_dir)
+        prune_token_telemetry_runtime(token_telemetry_dir)
 
         # Initialize Télémétrie events.jsonl
         events_file = HUB / "token-telemetry" / "events.jsonl"
@@ -310,18 +670,7 @@ def main() -> int:
             print(f"Warning: Failed to set permissions on secrets file: {exc}")
 
         # Determine target name/type for replacements
-        target_name = "antigravity"
-        hub_str = str(HUB).lower()
-        if "cursor" in hub_str:
-            target_name = "cursor"
-        elif "antigravity" in hub_str:
-            target_name = "antigravity"
-        elif "claude" in hub_str:
-            target_name = "claude"
-        elif "hermes" in hub_str:
-            target_name = "hermes"
-        elif "gemini" in hub_str:
-            target_name = "gemini"
+        target_name = detect_target_name(HUB)
 
         def rewrite_config_content(content: str) -> str:
             # Replace template placeholders
@@ -334,6 +683,7 @@ def main() -> int:
             content = content.replace("/Users/blegouge/.cursor", str(HUB))
             content = content.replace("~/.cursor", str(HUB))
             content = content.replace("~/.gemini/antigravity", str(HUB))
+            content = content.replace("~/.codex", str(HUB))
             content = content.replace("/Users/blegouge/www", str(codebase_root_path))
             content = content.replace("/Users/blegouge", str(home))
             
@@ -357,6 +707,12 @@ def main() -> int:
                 content = content.replace("antigravity", "hermes")
                 content = content.replace("Cursor", "Hermes")
                 content = content.replace("cursor", "hermes")
+            elif target_name == "codex":
+                content = content.replace("Antigravity", "Codex")
+                content = content.replace("antigravity-ide", "codex")
+                content = content.replace("antigravity", "codex")
+                content = content.replace("Cursor", "Codex")
+                content = content.replace("cursor", "codex")
             elif target_name == "gemini":
                 content = content.replace("Antigravity", "Gemini CLI")
                 content = content.replace("antigravity-ide", "gemini")
@@ -404,9 +760,11 @@ def main() -> int:
                 mcp_out.write_text(json.dumps(tpl_data, indent=2), encoding="utf-8")
                 print(f"Generated {mcp_out}")
 
-        # 2) hooks.json
-        hooks_tpl = HUB_FILES / "hooks.json"
-        hooks_out = HUB / "hooks.json"
+            if target_name == "codex":
+                append_codex_mcp_config(HUB / "config.toml", tpl_data)
+
+        # 2) hooks.json (Cursor/Gemini/Codex) or settings.json (Claude Code)
+        hooks_tpl = CODEX_FILES / "hooks.json" if target_name == "codex" and (CODEX_FILES / "hooks.json").exists() else HUB_FILES / "hooks.json"
         if hooks_tpl.exists():
             tpl_text = rewrite_config_content(hooks_tpl.read_text(encoding="utf-8"))
             try:
@@ -415,55 +773,85 @@ def main() -> int:
                 print(f"Error parsing template hooks.json: {e}")
                 tpl_data = {}
 
-            if hooks_out.exists():
-                try:
-                    out_data = json.loads(hooks_out.read_text(encoding="utf-8"))
-                except Exception as e:
-                    print(f"Warning: Failed to parse existing {hooks_out}: {e}. Overwriting.")
-                    out_data = {}
+            if target_name == "claude":
+                # Claude Code uses settings.json with a different format
+                hooks_out = HUB / "settings.json"
+                claude_hooks = transform_hooks_cursor_to_claude(tpl_data)
 
-                # Preserve version from template if missing in output
-                if "version" not in out_data and "version" in tpl_data:
-                    out_data["version"] = tpl_data["version"]
+                if hooks_out.exists():
+                    try:
+                        out_data = json.loads(hooks_out.read_text(encoding="utf-8"))
+                    except Exception as e:
+                        print(f"Warning: Failed to parse existing {hooks_out}: {e}. Overwriting.")
+                        out_data = {"hooks": {}}
 
-                if "hooks" not in out_data:
-                    out_data["hooks"] = {}
+                    # Merge preserving existing hooks
+                    merged = merge_hooks_claude(out_data, claude_hooks)
 
-                tpl_hooks = tpl_data.get("hooks", {})
-                added_count = 0
-                for hook_type, hook_list in tpl_hooks.items():
-                    if hook_type not in out_data["hooks"]:
-                        out_data["hooks"][hook_type] = []
+                    # Count additions
+                    existing_cmds = set()
+                    for groups in out_data.get("hooks", {}).values():
+                        for g in groups:
+                            for h in g.get("hooks", []):
+                                existing_cmds.add(h.get("command"))
 
-                    existing_list = out_data["hooks"][hook_type]
-                    # We match a hook by its 'command' property, or check if the exact dict matches.
-                    for h_item in hook_list:
-                        is_present = False
-                        h_cmd = h_item.get("command")
-                        for ext_item in existing_list:
-                            if ext_item == h_item:
-                                is_present = True
-                                break
-                            if h_cmd and ext_item.get("command") == h_cmd:
-                                is_present = True
-                                break
-                        if not is_present:
-                            existing_list.append(h_item)
-                            added_count += 1
+                    new_cmds = set()
+                    for groups in merged.get("hooks", {}).values():
+                        for g in groups:
+                            for h in g.get("hooks", []):
+                                new_cmds.add(h.get("command"))
 
-                if added_count > 0:
-                    print(f"Added {added_count} new hooks to {hooks_out}.")
+                    added_count = len(new_cmds - existing_cmds)
+
+                    if added_count > 0:
+                        print(f"Added {added_count} new hooks to {hooks_out} (Claude Code format).")
+                    else:
+                        print(f"All hooks from template already present in {hooks_out}.")
+
+                    hooks_out.write_text(json.dumps(merged, indent=2), encoding="utf-8")
                 else:
-                    print(f"All hooks from template already present in {hooks_out}.")
-
-                hooks_out.write_text(json.dumps(out_data, indent=2), encoding="utf-8")
+                    hooks_out.write_text(json.dumps(claude_hooks, indent=2), encoding="utf-8")
+                    print(f"Generated {hooks_out} (Claude Code format)")
             else:
-                hooks_out.write_text(json.dumps(tpl_data, indent=2), encoding="utf-8")
-                print(f"Generated {hooks_out}")
+                # Cursor/Gemini/Hermes use hooks.json with original format
+                hooks_out = HUB / "hooks.json"
 
-        # Process rules and skills to dynamically rewrite references to Cursor vs Antigravity
-        print("Normalizing rule and skill naming references for target IDE...")
-        for root_dir in [HUB / "rules", HUB / "skills", HUB / "docs"]:
+                if hooks_out.exists():
+                    try:
+                        out_data = json.loads(hooks_out.read_text(encoding="utf-8"))
+                    except Exception as e:
+                        print(f"Warning: Failed to parse existing {hooks_out}: {e}. Overwriting.")
+                        out_data = {}
+
+                    # Preserve version from template if missing in output
+                    if "version" not in out_data and "version" in tpl_data:
+                        out_data["version"] = tpl_data["version"]
+
+                    if "hooks" not in out_data:
+                        out_data["hooks"] = {}
+
+                    tpl_hooks = tpl_data.get("hooks", {})
+                    added_count = 0
+                    for hook_type, hook_list in tpl_hooks.items():
+                        if hook_type not in out_data["hooks"]:
+                            out_data["hooks"][hook_type] = []
+
+                        existing_list = out_data["hooks"][hook_type]
+                        added_count += merge_hook_lists(existing_list, hook_list)
+
+                    if added_count > 0:
+                        print(f"Added {added_count} new hooks to {hooks_out}.")
+                    else:
+                        print(f"All hooks from template already present in {hooks_out}.")
+
+                    hooks_out.write_text(json.dumps(out_data, indent=2), encoding="utf-8")
+                else:
+                    hooks_out.write_text(json.dumps(tpl_data, indent=2), encoding="utf-8")
+                    print(f"Generated {hooks_out}")
+
+        # Process rules, skills, hooks, and bin files to dynamically rewrite references to Cursor vs Antigravity
+        print("Normalizing path and IDE references for target IDE...")
+        for root_dir in [HUB / "rules", HUB / "skills", HUB / "docs", HUB / "hooks", HUB / "bin"]:
             if root_dir.exists():
                 for p in root_dir.rglob("*"):
                     if p.is_file() and p.suffix in {".md", ".mdc", ".json", ".py", ".sh"}:
@@ -544,7 +932,13 @@ def main() -> int:
         if verify_script.exists():
             print(f"Verifying deployment at {HUB}...")
             try:
-                env = dict(os.environ, HUB=str(HUB), CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"))
+                env = dict(
+                    os.environ,
+                    HUB=str(HUB),
+                    SCROOGE_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"),
+                    CODEX_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"),
+                    CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(HUB / "token-telemetry"),
+                )
                 res = subprocess.run([sys.executable, str(verify_script)], capture_output=True, text=True, env=env)
                 print(res.stdout)
             except Exception as exc:
@@ -574,11 +968,17 @@ def main() -> int:
             try:
                 venv_python = venv_dir / "Scripts" / "python.exe"
                 cmd = [str(venv_python), str(first_hub / "token-telemetry" / "serve_dashboard.py")]
-                subprocess.Popen(
+                proc = subprocess.Popen(
                     cmd,
                     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
-                    env=dict(os.environ, CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"))
+                    env=dict(
+                        os.environ,
+                        SCROOGE_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                        CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                        CODEX_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                    )
                 )
+                pid_file.write_text(str(proc.pid), encoding="utf-8")
                 print("Dashboard started in background. Visit: http://127.0.0.1:8765/")
             except Exception as exc:
                 print(f"Failed to start dashboard: {exc}")
@@ -589,13 +989,19 @@ def main() -> int:
                 log_file.parent.mkdir(parents=True, exist_ok=True)
                 log_fh = open(log_file, "a", encoding="utf-8")
                 cmd = [str(venv_python), str(first_hub / "token-telemetry" / "serve_dashboard.py")]
-                subprocess.Popen(
+                proc = subprocess.Popen(
                     cmd,
                     stdout=log_fh,
                     stderr=subprocess.STDOUT,
                     start_new_session=True,
-                    env=dict(os.environ, CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"))
+                    env=dict(
+                        os.environ,
+                        SCROOGE_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                        CURSOR_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                        CODEX_TOKEN_TELEMETRY_DATA_DIR=str(first_hub / "token-telemetry"),
+                    )
                 )
+                pid_file.write_text(str(proc.pid), encoding="utf-8")
                 print("Dashboard started in background. Visit: http://127.0.0.1:8765/")
             except Exception as exc:
                 print(f"Failed to start dashboard: {exc}")

@@ -63,18 +63,18 @@ Faites défiler vers le bas pour suivre chaque session de sous-agent, analyser l
 
 | Fichier / Répertoire | Description |
 |---|---|
-| 🛠️ [install_stack.py](file:///Users/blegouge/www/private/SCROOGE/install_stack.py) | Script d'installation interactif, idempotent et automatisé. |
-| 🌐 [serve_dashboard.py](file:///Users/blegouge/www/private/SCROOGE/serve_dashboard.py) | Backend HTTP léger servant l'API du dashboard et l'interface HTML. |
-| 🖥️ [dashboard_app.py](file:///Users/blegouge/www/private/SCROOGE/dashboard_app.py) | Chargeur de fenêtre de bureau native utilisant `pywebview`. |
-| 🎨 [dashboard.html](file:///Users/blegouge/www/private/SCROOGE/dashboard.html) | SPA moderne à thème sombre avec mise en page dynamique et rafraîchissement automatique. |
-| 🎨 [dashboard.css](file:///Users/blegouge/www/private/SCROOGE/dashboard.css) | Feuilles de style CSS indépendantes extraites pour la SPA. |
-| ⚡ [dashboard.js](file:///Users/blegouge/www/private/SCROOGE/dashboard.js) | Logique applicative du client dashboard, graphiques Chart.js dynamiques. |
-| 🗄️ [telemetry_db.py](file:///Users/blegouge/www/private/SCROOGE/telemetry_db.py) | Gestionnaire de la base SQLite et des synchronisations incrémentales. |
-| ⚙️ [telemetry_config.py](file:///Users/blegouge/www/private/SCROOGE/telemetry_config.py) | ConfigManager centralisant les options d'environnement et de compression. |
-| 📊 [report.py](file:///Users/blegouge/www/private/SCROOGE/report.py) | Outil CLI pour afficher le résumé de consommation directement dans le terminal. |
-| 📁 [docs/verify_stack.py](file:///Users/blegouge/www/private/SCROOGE/docs/verify_stack.py) | Suite de tests automatisée post-installation validant tous les composants. |
-| ⚙️ [providers_config.py](file:///Users/blegouge/www/private/SCROOGE/providers_config.py) | Logique de mapping des répertoires et des providers IA. |
-| ⚙️ [providers_config.yaml](file:///Users/blegouge/www/private/SCROOGE/providers_config.yaml) | Définition YAML des répertoires IDE et de la configuration des prix. |
+| 🛠️ [install_stack.py](../../install_stack.py) | Script d'installation interactif, idempotent et automatisé. |
+| 🌐 [serve_dashboard.py](../../serve_dashboard.py) | Backend HTTP léger servant l'API du dashboard et l'interface HTML. |
+| 🖥️ [dashboard_app.py](../../dashboard_app.py) | Chargeur de fenêtre de bureau native utilisant `pywebview`. |
+| 🎨 [dashboard.html](../../dashboard.html) | SPA moderne à thème sombre avec mise en page dynamique et rafraîchissement automatique. |
+| 🎨 [dashboard.css](../../dashboard.css) | Feuilles de style CSS indépendantes extraites pour la SPA. |
+| ⚡ [dashboard.js](../../dashboard.js) | Logique applicative du client dashboard, graphiques Chart.js dynamiques. |
+| 🗄️ [telemetry_db.py](../../telemetry_db.py) | Gestionnaire de la base SQLite et des synchronisations incrémentales. |
+| ⚙️ [telemetry_config.py](../../telemetry_config.py) | ConfigManager centralisant les options d'environnement et de compression. |
+| 📊 [report.py](../../report.py) | Outil CLI pour afficher le résumé de consommation directement dans le terminal. |
+| 📁 [docs/verify_stack.py](../verify_stack.py) | Suite de tests automatisée post-installation validant tous les composants. |
+| ⚙️ [providers_config.py](../../providers_config.py) | Logique de mapping des répertoires et des providers IA. |
+| ⚙️ [providers_config.yaml](../../providers_config.yaml) | Définition YAML des répertoires IDE et de la configuration des prix. |
 
 ---
 
@@ -93,7 +93,7 @@ python3 install_stack.py
 4. **Configuration interactive des secrets** : Récupère vos clés d'API (Grafana, GitHub, MySQL, etc.) et les stocke dans un fichier `.env` sécurisé (`chmod 600`).
 5. **Environnement virtuel Python** : Crée un environnement dédié `.venv-desktop` et y installe les dépendances.
 6. **Normalisation des règles/skills** : Réécrit dynamiquement les références textuelles selon l'IDE cible (Cursor vs Antigravity).
-7. **Validation** : Exécute [verify_stack.py](file:///Users/blegouge/www/private/SCROOGE/docs/verify_stack.py) pour valider l'état fonctionnel de chaque brique.
+7. **Validation** : Exécute [docs/verify_stack.py](../verify_stack.py) pour valider l'état fonctionnel de chaque brique.
 8. **Lancement de service** : Propose de lancer automatiquement le démon du dashboard en tâche de fond sur le port `8765`.
 
 ---

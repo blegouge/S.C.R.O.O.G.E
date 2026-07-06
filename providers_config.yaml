@@ -41,3 +41,11 @@ sources:
     env_home: HERMES_HOME
     env_stats: HERMES_STATS_DIR
     label: Hermes
+
+  codex:
+    env_enabled: TELEMETRY_CODEX_ENABLED
+    data_dir: ~/.codex/token-telemetry
+    rtk_cwd: ~/.codex
+    env_home: CODEX_HOME
+    env_stats: CODEX_STATS_DIR
+    label: Codex

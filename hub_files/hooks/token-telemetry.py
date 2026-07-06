@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 # Resolve home directory dynamically based on environment or script path
-_HOME_DIR = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
 else:
@@ -432,6 +432,15 @@ def _build_row(
     return row
 
 
+def _is_claude_code() -> bool:
+    """Detect if running under Claude Code (vs Cursor/Antigravity)."""
+    return bool(
+        os.environ.get("CLAUDE_TT_EVENT")
+        or os.environ.get("CLAUDE_HOME")
+        or "/.claude/" in str(_HOME_PATH)
+    )
+
+
 def main() -> None:
     raw = sys.stdin.read()
     data: dict
@@ -440,10 +449,34 @@ def main() -> None:
     except json.JSONDecodeError:
         data = {"_parse_error": True, "_raw_len": len(raw)}
 
-    event = (os.environ.get("ANTIGRAVITY_TT_EVENT") or os.environ.get("CURSOR_TT_EVENT", "unknown")).strip()
-    row = _build_row(event, raw, data)
+    event = (
+        os.environ.get("CLAUDE_TT_EVENT")
+        or os.environ.get("CODEX_TT_EVENT")
+        or os.environ.get("ANTIGRAVITY_TT_EVENT")
+        or os.environ.get("CURSOR_TT_EVENT", "unknown")
+    ).strip()
 
+    row = _build_row(event, raw, data)
     append_event(row)
+
+    # Claude Code compatibility: emit synthetic events for missing hooks
+    # This ensures dashboard metrics work even without afterFileEdit/afterAgentResponse hooks
+    if _is_claude_code():
+        tool = _tool_label(data)
+
+        # Simulate afterFileEdit for Edit/Write tools
+        if event == "postToolUse" and tool in ("Edit", "Write"):
+            synthetic_row = _build_row("afterFileEdit", raw, data)
+            synthetic_row["synthetic"] = True
+            synthetic_row["synthetic_source"] = "postToolUse"
+            append_event(synthetic_row)
+
+        # Simulate afterAgentResponse on Stop event
+        elif event == "stop":
+            synthetic_row = _build_row("afterAgentResponse", raw, data)
+            synthetic_row["synthetic"] = True
+            synthetic_row["synthetic_source"] = "stop"
+            append_event(synthetic_row)
 
 
 if __name__ == "__main__":

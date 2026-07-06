@@ -11,15 +11,47 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from telemetry_paths import resolve_log_file as _default_log_file
+from telemetry_paths import resolve_log_file as _path_log_file
+
+# Add hub_files to sys.path for providers module
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_HUB_FILES = _SCRIPT_DIR / "hub_files"
+if _HUB_FILES.exists() and str(_HUB_FILES) not in sys.path:
+    sys.path.insert(0, str(_HUB_FILES))
+
+
+def _detect_source() -> str:
+    """Detect telemetry source from environment variables.
+
+    Uses the providers module if available, falls back to legacy detection.
+    """
+    try:
+        from providers import detect_provider
+        return detect_provider().name
+    except (ImportError, Exception):
+        # Fallback to legacy detection if providers module is unavailable
+        if os.environ.get("CLAUDE_TT_EVENT") or os.environ.get("CLAUDE_HOME"):
+            return "claude"
+        if os.environ.get("ANTIGRAVITY_TT_EVENT") or os.environ.get("ANTIGRAVITY_HOME"):
+            return "antigravity"
+        if os.environ.get("GEMINI_TT_EVENT") or os.environ.get("GEMINI_HOME"):
+            return "gemini"
+        if os.environ.get("HERMES_TT_EVENT") or os.environ.get("HERMES_HOME"):
+            return "hermes"
+        # Default to cursor
+        return "cursor"
 
 
 def resolve_log_file() -> Path:
-    """Telemetry log path (override with CURSOR_TOKEN_TELEMETRY_LOG for tests)."""
-    override = os.environ.get("CURSOR_TOKEN_TELEMETRY_LOG", "").strip()
+    """Telemetry log path (override with *_TOKEN_TELEMETRY_LOG for tests)."""
+    override = (
+        os.environ.get("SCROOGE_TOKEN_TELEMETRY_LOG", "").strip()
+        or os.environ.get("CODEX_TOKEN_TELEMETRY_LOG", "").strip()
+        or os.environ.get("CURSOR_TOKEN_TELEMETRY_LOG", "").strip()
+    )
     if override:
         return Path(override).expanduser()
-    return _default_log_file()
+    return _path_log_file(source=_detect_source())
 
 
 def resolve_skills_dir() -> Path:
@@ -29,6 +61,12 @@ def resolve_skills_dir() -> Path:
     hub = os.environ.get("HUB", "").strip()
     if hub:
         return Path(hub).expanduser() / "skills"
+    codex_home = os.environ.get("CODEX_HOME", "").strip()
+    if codex_home:
+        return Path(codex_home).expanduser() / "skills"
+    ag_home = os.environ.get("ANTIGRAVITY_HOME", "").strip()
+    if ag_home:
+        return Path(ag_home).expanduser() / "skills"
     c_home = os.environ.get("CURSOR_HOME", "").strip()
     if c_home:
         return Path(c_home).expanduser() / "skills"

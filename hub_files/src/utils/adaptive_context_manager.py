@@ -21,7 +21,7 @@ Message = dict[str, Any]
 StateDict = dict[str, str]
 
 # Resolve home directory dynamically based on environment or script path
-_HOME_DIR = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
 else:

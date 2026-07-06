@@ -219,6 +219,17 @@ def _rtk_daily_total(rtk_gain: dict[str, Any] | None, log_days: set[str]) -> tup
     return total, True
 
 
+def rtk_hook_saved_tokens(row: dict[str, Any]) -> int:
+    if str(row.get("event", "")) != "rtkShellRewrite":
+        return 0
+    value = row.get("rtk_saved_tokens")
+    if isinstance(value, (int, float)):
+        return max(0, int(value))
+    before = int(row.get("rtk_before_tokens") or 0)
+    after = int(row.get("rtk_after_tokens") or 0)
+    return max(0, before - after)
+
+
 def diff_only_saved_tokens(row: dict[str, Any]) -> int:
     if not str(row.get("event", "")).startswith("diffOnlyApply"):
         return 0
@@ -260,6 +271,7 @@ def summarize_layer_kpis(
     guardrail_read_blocks = 0
     guardrail_task_saved = 0
     crg_saved = 0
+    rtk_hook_saved = 0
     chat_observed = 0
 
     for row in rows:
@@ -268,10 +280,12 @@ def summarize_layer_kpis(
 
         if ev == "postToolUse":
             tok = int(row.get("approx_tokens") or 0)
-            if tool == "Shell":
+            if tool in {"Shell", "Bash"}:
                 shell_observed += tok
             elif tool == "Read":
                 read_observed += tok
+
+        rtk_hook_saved += rtk_hook_saved_tokens(row)
 
         if ev == "afterAgentResponse":
             billed = int(row.get("billed_total_tokens") or 0)
@@ -298,7 +312,9 @@ def summarize_layer_kpis(
         if ev == "guardrailReadBlocked":
             guardrail_read_blocks += 1
 
-    rtk_saved, rtk_ok = _rtk_daily_total(rtk_gain, log_days)
+    rtk_daily_saved, rtk_ok = _rtk_daily_total(rtk_gain, log_days)
+    rtk_saved = max(rtk_daily_saved, rtk_hook_saved)
+    rtk_ok = rtk_ok or rtk_hook_saved > 0
 
     layers: dict[str, dict[str, Any]] = {
         "rtk_shell": {
@@ -306,7 +322,17 @@ def summarize_layer_kpis(
             "observed_tokens": shell_observed,
             "pct": _layer_pct(rtk_saved, shell_observed),
             "available": rtk_ok,
-            "events": sum(1 for r in rows if r.get("event") == "postToolUse" and str(r.get("tool") or "") == "Shell"),
+            "events": sum(
+                1
+                for r in rows
+                if (
+                    r.get("event") == "postToolUse"
+                    and str(r.get("tool") or "") in {"Shell", "Bash"}
+                )
+                or r.get("event") == "rtkShellRewrite"
+            ),
+            "hook_savings_tokens": rtk_hook_saved,
+            "daily_savings_tokens": rtk_daily_saved,
         },
         "task_compression": {
             "savings_tokens": task_compression_saved,
