@@ -13,6 +13,17 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# Debug logging (no-op in production, enable by setting DEBUG_COMPRESS_HOOK=1)
+def _debug_log(msg: str, **kwargs) -> None:
+    if not os.environ.get("DEBUG_COMPRESS_HOOK"):
+        return
+    try:
+        debug_file = Path.home() / ".claude" / "token-telemetry" / "debug-compress-hook.jsonl"
+        with open(debug_file, "a") as f:
+            f.write(json.dumps({"ts": __import__("datetime").datetime.now().isoformat(), "msg": msg, **kwargs}) + "\n")
+    except Exception:
+        pass
+
 # Reuse the LLMLingua utility built in this workspace hub.
 # Resolve home directory dynamically based on environment or script path
 _HOME_DIR = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
@@ -53,6 +64,8 @@ from telemetry_common import (  # pylint: disable=import-error
 
 from telemetry_config import config
 
+_debug_log("imports_ok", home_path=str(_HOME_PATH), tt_dir=str(TOKEN_TELEMETRY_DIR))
+
 DEFAULT_RATE = config.llmlingua_hook_rate
 DEFAULT_MIN_CHARS = config.llmlingua_hook_min_chars
 DEFAULT_MESSAGE_THRESHOLD = config.adaptive_ctx_message_threshold
@@ -71,8 +84,54 @@ _BLOCK2_SECTION = re.compile(
 )
 
 
+def _is_claude_code() -> bool:
+    """Detect if running under Claude Code (vs Cursor/Antigravity).
+
+    Priority: explicit env vars > fallback to path detection.
+    If CURSOR_TT_EVENT or ANTIGRAVITY_TT_EVENT is set, we're NOT in Claude Code.
+    """
+    # Explicit non-Claude markers take precedence
+    if os.environ.get("CURSOR_TT_EVENT") or os.environ.get("ANTIGRAVITY_TT_EVENT"):
+        return False
+    # Explicit Claude markers
+    if os.environ.get("CLAUDE_TT_EVENT") or os.environ.get("CLAUDE_HOME"):
+        return True
+    # Fallback: check if script is in .claude directory
+    return "/.claude/" in str(_HOME_PATH)
+
+
 def _respond(payload: dict[str, Any]) -> None:
-    sys.stdout.write(json.dumps(payload, ensure_ascii=False))
+    """Respond with format appropriate for the IDE (Claude Code vs Cursor)."""
+    if _is_claude_code():
+        # Claude Code format
+        permission = payload.get("permission", "allow")
+        if permission == "deny":
+            cc_payload = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": payload.get("agent_message", payload.get("user_message", "Blocked by hook")),
+                }
+            }
+        elif "updated_input" in payload:
+            cc_payload = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "allow",
+                    "updatedInput": payload["updated_input"],
+                }
+            }
+        else:
+            cc_payload = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "allow",
+                }
+            }
+        sys.stdout.write(json.dumps(cc_payload, ensure_ascii=False))
+    else:
+        # Cursor format (original)
+        sys.stdout.write(json.dumps(payload, ensure_ascii=False))
     sys.stdout.flush()
 
 
@@ -134,8 +193,10 @@ def _append_telemetry(
     )
     idempotent_injected = _IDEMPOTENT_TAG in prompt
 
+    source = "claude" if _is_claude_code() else "cursor"
     row: dict[str, Any] = {
         "event": "subagentLaunch",
+        "source": source,
         "tool": "Task",
         "approx_tokens": after_tokens,
         "text_chars": after_chars,
@@ -461,19 +522,25 @@ from telemetry_common import hook_fail_safe
 
 @hook_fail_safe(fallback_json='{"permission": "allow"}')
 def main() -> None:
+    _debug_log("main_start")
     data = _load_stdin_json()
     name = _tool_name(data)
     tool_input = _tool_input(data)
+    _debug_log("parsed", tool_name=name, has_input=bool(tool_input))
 
     # Only rewrite Task tool input (subagent launches).
     if name != "Task" or not tool_input:
+        _debug_log("skip_not_task", tool_name=name)
         _respond({"permission": "allow"})
         return
 
     prompt = tool_input.get("prompt")
     if not isinstance(prompt, str) or not prompt:
+        _debug_log("skip_no_prompt")
         _respond({"permission": "allow"})
         return
+
+    _debug_log("processing", prompt_len=len(prompt))
 
     subagent_type = str(
         tool_input.get("subagent_type")
@@ -482,17 +549,24 @@ def main() -> None:
         or ""
     )
     description = str(tool_input.get("description") or "")
-    brief_result = validate_task_brief(
-        prompt,
-        subagent_type=subagent_type,
-        description=description,
-    )
+    _debug_log("before_validate_brief", subagent_type=subagent_type)
+    try:
+        brief_result = validate_task_brief(
+            prompt,
+            subagent_type=subagent_type,
+            description=description,
+        )
+        _debug_log("after_validate_brief", ok=brief_result.ok)
+    except Exception as e:
+        _debug_log("validate_brief_error", error=str(e), error_type=type(e).__name__)
+        raise
     brief_enforce = DEFAULT_TASK_BRIEF_ENFORCE
     if brief_enforce not in {"deny", "warn", "off"}:
         brief_enforce = "deny"
 
     if not brief_result.ok:
         violation_blob = "; ".join(brief_result.violations)
+        _debug_log("brief_invalid", violations=violation_blob[:200], enforce=brief_enforce)
         append_event(
             {
                 "event": "taskBriefValidation",
@@ -503,10 +577,12 @@ def main() -> None:
             }
         )
         if brief_enforce == "deny":
+            deny_msg = build_deny_message(brief_result)
+            _debug_log("returning_deny", deny_msg_preview=deny_msg[:200])
             _respond(
                 {
                     "permission": "deny",
-                    "agent_message": build_deny_message(brief_result),
+                    "agent_message": deny_msg,
                     "user_message": "Subagent Task blocked: brief incomplet (idempotence/MCP). L'agent va corriger et relancer.",
                 }
             )
@@ -609,31 +685,37 @@ def main() -> None:
     updated_input["prompt"] = compressed_prompt
     after_chars = len(compressed_prompt)
     after_tokens = (after_chars + 3) // 4
-    _append_telemetry(
-        hook_data=data,
-        tool_input=tool_input,
-        prompt=prompt,
-        input_chars=input_chars,
-        input_tokens=input_tokens,
-        before_chars=before_chars,
-        after_chars=after_chars,
-        before_tokens=before_tokens,
-        after_tokens=after_tokens,
-        rate=rate,
-        min_chars=min_chars,
-        message_threshold=message_threshold,
-        token_threshold=token_threshold,
-        recent_window=recent_window,
-        used_llmlingua=used_llmlingua,
-        used_claw_compactor=used_claw_compactor,
-        compression_backend=compression_backend,
-        compacted_history=int(stats.get("compacted", 0)),
-        summarizer_mode=summarizer_mode,
-        git_cache_hit=bool(stats.get("cache_hit")),
-        structured_prompt=structured_prompt,
-        stats=stats,
-        compression_mode=compression_mode,
-    )
+    _debug_log("before_telemetry", input_tokens=input_tokens, after_tokens=after_tokens, mode=compression_mode)
+    try:
+        _append_telemetry(
+            hook_data=data,
+            tool_input=tool_input,
+            prompt=prompt,
+            input_chars=input_chars,
+            input_tokens=input_tokens,
+            before_chars=before_chars,
+            after_chars=after_chars,
+            before_tokens=before_tokens,
+            after_tokens=after_tokens,
+            rate=rate,
+            min_chars=min_chars,
+            message_threshold=message_threshold,
+            token_threshold=token_threshold,
+            recent_window=recent_window,
+            used_llmlingua=used_llmlingua,
+            used_claw_compactor=used_claw_compactor,
+            compression_backend=compression_backend,
+            compacted_history=int(stats.get("compacted", 0)),
+            summarizer_mode=summarizer_mode,
+            git_cache_hit=bool(stats.get("cache_hit")),
+            structured_prompt=structured_prompt,
+            stats=stats,
+            compression_mode=compression_mode,
+        )
+        _debug_log("telemetry_ok")
+    except Exception as e:
+        _debug_log("telemetry_error", error=str(e), error_type=type(e).__name__)
+        raise
 
     cache_note = ""
     if stats.get("cache_hit"):

@@ -13,11 +13,136 @@ import os
 import shutil
 import subprocess
 import sys
+from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 # Repository root (where this script is located)
 REPO_ROOT = Path(__file__).resolve().parent
 HUB_FILES = REPO_ROOT / "hub_files"
+
+# =============================================================================
+# Claude Code hooks format transformation
+# Cursor/Gemini use hooks.json, Claude Code uses settings.json with different structure
+# =============================================================================
+
+# Events supported by Claude Code (others will be skipped)
+CLAUDE_SUPPORTED_EVENTS = {
+    "PreToolUse",
+    "PostToolUse",
+    "Stop",
+    "SubagentStart",
+    "SubagentStop",
+    "SessionStart",
+}
+
+# Event name mapping: Cursor (camelCase) -> Claude Code (PascalCase)
+CLAUDE_EVENT_MAPPING = {
+    "preToolUse": "PreToolUse",
+    "postToolUse": "PostToolUse",
+    "stop": "Stop",
+    "subagentStop": "SubagentStop",
+    "sessionStart": "SessionStart",
+    "subagentStart": "SubagentStart",
+    # These events are NOT supported by Claude Code (will be skipped):
+    # "afterAgentResponse", "afterFileEdit", "afterTabFileEdit", "beforeShellExecution"
+}
+
+# Tool/matcher name mapping: Cursor -> Claude Code
+CLAUDE_TOOL_MAPPING = {
+    "Shell": "Bash",
+    "shell": "Bash",
+}
+
+
+def transform_hooks_cursor_to_claude(hooks_data: dict[str, Any]) -> dict[str, Any]:
+    """Transform Cursor/Gemini hooks.json format to Claude Code settings.json format.
+
+    Cursor format:
+        {"version": 1, "hooks": {"preToolUse": [{"command": "...", "matcher": "Shell"}]}}
+
+    Claude Code format:
+        {"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "..."}]}]}}
+    """
+    result: dict[str, Any] = {"hooks": {}}
+    source_hooks = hooks_data.get("hooks", {})
+
+    for event_name, items in source_hooks.items():
+        # Map event name (preToolUse -> PreToolUse)
+        claude_event = CLAUDE_EVENT_MAPPING.get(event_name)
+        if claude_event is None:
+            # Fallback: capitalize first letter
+            claude_event = event_name[0].upper() + event_name[1:]
+
+        # Skip events not supported by Claude Code
+        if claude_event not in CLAUDE_SUPPORTED_EVENTS:
+            continue
+
+        # Group hooks by matcher
+        by_matcher: dict[str, list[dict[str, str]]] = defaultdict(list)
+
+        for item in items:
+            matcher = item.get("matcher", "*")
+            # Map tool names (Shell -> Bash)
+            matcher = CLAUDE_TOOL_MAPPING.get(matcher, matcher)
+            # Build Claude Code hook entry
+            hook_entry = {"type": "command", "command": item["command"]}
+            by_matcher[matcher].append(hook_entry)
+
+        # Build the grouped structure
+        result["hooks"][claude_event] = [
+            {"matcher": matcher, "hooks": hooks_list}
+            for matcher, hooks_list in by_matcher.items()
+        ]
+
+    return result
+
+
+def merge_hooks_claude(existing: dict[str, Any], new_hooks: dict[str, Any]) -> dict[str, Any]:
+    """Merge new hooks into existing Claude Code settings.json without duplicates.
+
+    Preserves existing hooks and adds new ones (matched by command path).
+    """
+    result: dict[str, Any] = {"hooks": {}}
+
+    # Copy existing hooks
+    for event, groups in existing.get("hooks", {}).items():
+        result["hooks"][event] = [
+            {"matcher": g["matcher"], "hooks": list(g.get("hooks", []))}
+            for g in groups
+        ]
+
+    # Merge new hooks
+    for event, groups in new_hooks.get("hooks", {}).items():
+        if event not in result["hooks"]:
+            result["hooks"][event] = []
+
+        existing_groups = result["hooks"][event]
+
+        for new_group in groups:
+            new_matcher = new_group["matcher"]
+
+            # Find existing group with same matcher
+            target_group = None
+            for eg in existing_groups:
+                if eg["matcher"] == new_matcher:
+                    target_group = eg
+                    break
+
+            if target_group is None:
+                # Add new matcher group
+                existing_groups.append({
+                    "matcher": new_matcher,
+                    "hooks": list(new_group.get("hooks", []))
+                })
+            else:
+                # Merge hooks into existing group (avoid duplicates by command)
+                existing_commands = {h["command"] for h in target_group.get("hooks", [])}
+                for hook in new_group.get("hooks", []):
+                    if hook["command"] not in existing_commands:
+                        target_group["hooks"].append(hook)
+
+    return result
 
 
 def print_header(title: str) -> None:
@@ -424,9 +549,8 @@ def main() -> int:
                 mcp_out.write_text(json.dumps(tpl_data, indent=2), encoding="utf-8")
                 print(f"Generated {mcp_out}")
 
-        # 2) hooks.json
+        # 2) hooks.json (Cursor/Gemini) or settings.json (Claude Code)
         hooks_tpl = HUB_FILES / "hooks.json"
-        hooks_out = HUB / "hooks.json"
         if hooks_tpl.exists():
             tpl_text = rewrite_config_content(hooks_tpl.read_text(encoding="utf-8"))
             try:
@@ -435,51 +559,94 @@ def main() -> int:
                 print(f"Error parsing template hooks.json: {e}")
                 tpl_data = {}
 
-            if hooks_out.exists():
-                try:
-                    out_data = json.loads(hooks_out.read_text(encoding="utf-8"))
-                except Exception as e:
-                    print(f"Warning: Failed to parse existing {hooks_out}: {e}. Overwriting.")
-                    out_data = {}
+            if target_name == "claude":
+                # Claude Code uses settings.json with a different format
+                hooks_out = HUB / "settings.json"
+                claude_hooks = transform_hooks_cursor_to_claude(tpl_data)
 
-                # Preserve version from template if missing in output
-                if "version" not in out_data and "version" in tpl_data:
-                    out_data["version"] = tpl_data["version"]
+                if hooks_out.exists():
+                    try:
+                        out_data = json.loads(hooks_out.read_text(encoding="utf-8"))
+                    except Exception as e:
+                        print(f"Warning: Failed to parse existing {hooks_out}: {e}. Overwriting.")
+                        out_data = {"hooks": {}}
 
-                if "hooks" not in out_data:
-                    out_data["hooks"] = {}
+                    # Merge preserving existing hooks
+                    merged = merge_hooks_claude(out_data, claude_hooks)
 
-                tpl_hooks = tpl_data.get("hooks", {})
-                added_count = 0
-                for hook_type, hook_list in tpl_hooks.items():
-                    if hook_type not in out_data["hooks"]:
-                        out_data["hooks"][hook_type] = []
+                    # Count additions
+                    existing_cmds = set()
+                    for groups in out_data.get("hooks", {}).values():
+                        for g in groups:
+                            for h in g.get("hooks", []):
+                                existing_cmds.add(h.get("command"))
 
-                    existing_list = out_data["hooks"][hook_type]
-                    # We match a hook by its 'command' property, or check if the exact dict matches.
-                    for h_item in hook_list:
-                        is_present = False
-                        h_cmd = h_item.get("command")
-                        for ext_item in existing_list:
-                            if ext_item == h_item:
-                                is_present = True
-                                break
-                            if h_cmd and ext_item.get("command") == h_cmd:
-                                is_present = True
-                                break
-                        if not is_present:
-                            existing_list.append(h_item)
-                            added_count += 1
+                    new_cmds = set()
+                    for groups in merged.get("hooks", {}).values():
+                        for g in groups:
+                            for h in g.get("hooks", []):
+                                new_cmds.add(h.get("command"))
 
-                if added_count > 0:
-                    print(f"Added {added_count} new hooks to {hooks_out}.")
+                    added_count = len(new_cmds - existing_cmds)
+
+                    if added_count > 0:
+                        print(f"Added {added_count} new hooks to {hooks_out} (Claude Code format).")
+                    else:
+                        print(f"All hooks from template already present in {hooks_out}.")
+
+                    hooks_out.write_text(json.dumps(merged, indent=2), encoding="utf-8")
                 else:
-                    print(f"All hooks from template already present in {hooks_out}.")
-
-                hooks_out.write_text(json.dumps(out_data, indent=2), encoding="utf-8")
+                    hooks_out.write_text(json.dumps(claude_hooks, indent=2), encoding="utf-8")
+                    print(f"Generated {hooks_out} (Claude Code format)")
             else:
-                hooks_out.write_text(json.dumps(tpl_data, indent=2), encoding="utf-8")
-                print(f"Generated {hooks_out}")
+                # Cursor/Gemini/Hermes use hooks.json with original format
+                hooks_out = HUB / "hooks.json"
+
+                if hooks_out.exists():
+                    try:
+                        out_data = json.loads(hooks_out.read_text(encoding="utf-8"))
+                    except Exception as e:
+                        print(f"Warning: Failed to parse existing {hooks_out}: {e}. Overwriting.")
+                        out_data = {}
+
+                    # Preserve version from template if missing in output
+                    if "version" not in out_data and "version" in tpl_data:
+                        out_data["version"] = tpl_data["version"]
+
+                    if "hooks" not in out_data:
+                        out_data["hooks"] = {}
+
+                    tpl_hooks = tpl_data.get("hooks", {})
+                    added_count = 0
+                    for hook_type, hook_list in tpl_hooks.items():
+                        if hook_type not in out_data["hooks"]:
+                            out_data["hooks"][hook_type] = []
+
+                        existing_list = out_data["hooks"][hook_type]
+                        # We match a hook by its 'command' property, or check if the exact dict matches.
+                        for h_item in hook_list:
+                            is_present = False
+                            h_cmd = h_item.get("command")
+                            for ext_item in existing_list:
+                                if ext_item == h_item:
+                                    is_present = True
+                                    break
+                                if h_cmd and ext_item.get("command") == h_cmd:
+                                    is_present = True
+                                    break
+                            if not is_present:
+                                existing_list.append(h_item)
+                                added_count += 1
+
+                    if added_count > 0:
+                        print(f"Added {added_count} new hooks to {hooks_out}.")
+                    else:
+                        print(f"All hooks from template already present in {hooks_out}.")
+
+                    hooks_out.write_text(json.dumps(out_data, indent=2), encoding="utf-8")
+                else:
+                    hooks_out.write_text(json.dumps(tpl_data, indent=2), encoding="utf-8")
+                    print(f"Generated {hooks_out}")
 
         # Process rules, skills, hooks, and bin files to dynamically rewrite references to Cursor vs Antigravity
         print("Normalizing path and IDE references for target IDE...")
