@@ -397,9 +397,7 @@ def _build_row(
         model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
     else:
         model_name = model_name[:240]
-    approx = (
-        estimate_tokens(raw, model_name) if raw else estimate_tokens(str(data), model_name)
-    )
+    approx = estimate_tokens(raw, model_name) if raw else estimate_tokens(str(data), model_name)
 
     row: dict[str, object] = {
         "ts": _dt.datetime.now(_dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
