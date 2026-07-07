@@ -595,7 +595,16 @@ def main() -> int:
         print_header(f"Deploying Stack to Target: {HUB}")
 
         # Create folders
-        folders = ["bin", "hooks", "rules", "skills", "src", "providers", "projects", "token-telemetry"]
+        folders = [
+            "bin",
+            "hooks",
+            "rules",
+            "skills",
+            "src",
+            "providers",
+            "projects",
+            "token-telemetry",
+        ]
         for folder in folders:
             (HUB / folder).mkdir(parents=True, exist_ok=True)
 

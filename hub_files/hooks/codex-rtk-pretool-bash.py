@@ -30,10 +30,10 @@ for _path in (_HOME_PATH / "token-telemetry", _HOME_PATH / "src"):
 try:
     from telemetry_common import append_event, enrich_correlation
     from utils.hook_utils import (
-        load_stdin_json,
-        extract_tool_name,
         extract_tool_input,
+        extract_tool_name,
         hook_fail_safe,
+        load_stdin_json,
     )
 except Exception:  # pragma: no cover - last-ditch fail-open when runtime is incomplete
 

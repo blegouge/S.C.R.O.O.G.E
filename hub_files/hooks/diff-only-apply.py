@@ -39,8 +39,8 @@ from utils.diff_applier import (  # pylint: disable=import-error
     resolve_workspace_roots,
 )
 from utils.hook_utils import (
-    load_stdin_json,
     hook_fail_safe,
+    load_stdin_json,
 )
 
 DISABLE_ENV = (

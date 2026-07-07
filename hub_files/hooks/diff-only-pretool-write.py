@@ -26,10 +26,10 @@ for _path in (SRC_DIR, TOKEN_TELEMETRY_DIR):
 from telemetry_common import append_event  # pylint: disable=import-error
 from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
 from utils.hook_utils import (
-    load_stdin_json,
-    extract_tool_name,
     extract_tool_input,
+    extract_tool_name,
     hook_fail_safe,
+    load_stdin_json,
 )
 
 _IS_CODEX_HOME = _HOME_PATH.name == ".codex" or os.getenv("CODEX_HOME")

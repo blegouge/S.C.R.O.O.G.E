@@ -32,8 +32,8 @@ from utils.consumption_report_validator import (  # pylint: disable=import-error
 )
 from utils.diff_applier import extract_response_text  # pylint: disable=import-error
 from utils.hook_utils import (
-    load_stdin_json,
     hook_fail_safe,
+    load_stdin_json,
 )
 
 DISABLE_ENV = (

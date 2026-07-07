@@ -85,11 +85,16 @@ def _compression_env() -> dict[str, str]:
     # Force Cursor provider format by setting other provider environment variables to empty strings.
     # This prevents subprocesses from reloading them from repository .env (as .env won't overwrite existing keys).
     for var in [
-        "CLAUDE_HOME", "CLAUDE_TT_EVENT",
-        "CODEX_HOME", "CODEX_TT_EVENT",
-        "ANTIGRAVITY_HOME", "ANTIGRAVITY_TT_EVENT",
-        "GEMINI_HOME", "GEMINI_TT_EVENT",
-        "HERMES_HOME", "HERMES_TT_EVENT",
+        "CLAUDE_HOME",
+        "CLAUDE_TT_EVENT",
+        "CODEX_HOME",
+        "CODEX_TT_EVENT",
+        "ANTIGRAVITY_HOME",
+        "ANTIGRAVITY_TT_EVENT",
+        "GEMINI_HOME",
+        "GEMINI_TT_EVENT",
+        "HERMES_HOME",
+        "HERMES_TT_EVENT",
     ]:
         env[var] = ""
 

@@ -4,31 +4,37 @@
 from __future__ import annotations
 
 import io
-import json
 import unittest
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
 from utils.hook_utils import (
-    resolve_home_path,
-    load_stdin_json,
-    extract_tool_name,
     extract_tool_input,
+    extract_tool_name,
     fail_safe,
     hook_fail_safe,
+    load_stdin_json,
+    resolve_home_path,
 )
 
+
 class HookUtilsTests(unittest.TestCase):
-    
-    @patch.dict("os.environ", {"CODEX_HOME": "", "ANTIGRAVITY_HOME": "", "CURSOR_HOME": "/dummy/cursor"})
+    @patch.dict(
+        "os.environ", {"CODEX_HOME": "", "ANTIGRAVITY_HOME": "", "CURSOR_HOME": "/dummy/cursor"}
+    )
     def test_resolve_home_path_cursor(self):
         self.assertEqual(resolve_home_path(), Path("/dummy/cursor"))
 
-    @patch.dict("os.environ", {"CODEX_HOME": "", "ANTIGRAVITY_HOME": "/dummy/antigravity", "CURSOR_HOME": ""})
+    @patch.dict(
+        "os.environ",
+        {"CODEX_HOME": "", "ANTIGRAVITY_HOME": "/dummy/antigravity", "CURSOR_HOME": ""},
+    )
     def test_resolve_home_path_antigravity(self):
         self.assertEqual(resolve_home_path(), Path("/dummy/antigravity"))
 
-    @patch.dict("os.environ", {"CODEX_HOME": "/dummy/codex", "ANTIGRAVITY_HOME": "", "CURSOR_HOME": ""})
+    @patch.dict(
+        "os.environ", {"CODEX_HOME": "/dummy/codex", "ANTIGRAVITY_HOME": "", "CURSOR_HOME": ""}
+    )
     def test_resolve_home_path_codex(self):
         self.assertEqual(resolve_home_path(), Path("/dummy/codex"))
 
@@ -60,13 +66,7 @@ class HookUtilsTests(unittest.TestCase):
         self.assertEqual(extract_tool_name({"tool": "git_grep"}), "git_grep")
 
     def test_extract_tool_name_calls(self):
-        data = {
-            "tool_calls": [
-                {
-                    "function": {"name": "git_grep"}
-                }
-            ]
-        }
+        data = {"tool_calls": [{"function": {"name": "git_grep"}}]}
         self.assertEqual(extract_tool_name(data), "git_grep")
 
     def test_extract_tool_input_direct(self):
@@ -80,7 +80,7 @@ class HookUtilsTests(unittest.TestCase):
         @fail_safe(fallback_value="safe")
         def buggy_func():
             raise ValueError("boom")
-            
+
         with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
             res = buggy_func()
             self.assertEqual(res, "safe")
@@ -90,7 +90,7 @@ class HookUtilsTests(unittest.TestCase):
         @hook_fail_safe(fallback_json='{"err": true}')
         def buggy_main():
             raise RuntimeError("critical")
-            
+
         with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
             with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
                 res = buggy_main()

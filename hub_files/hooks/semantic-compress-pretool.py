@@ -68,10 +68,10 @@ from utils.adaptive_context_manager import (  # pylint: disable=import-error
 )
 from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
 from utils.hook_utils import (
-    load_stdin_json,
-    extract_tool_name,
     extract_tool_input,
+    extract_tool_name,
     hook_fail_safe,
+    load_stdin_json,
 )
 from utils.static_prompt_registry import build_global_static_block  # pylint: disable=import-error
 from utils.summarizer_factory import resolve_summarizer  # pylint: disable=import-error
@@ -220,9 +220,6 @@ def _append_telemetry(
     row.update(guardrail_meta)
     row.update(enrich_correlation(hook_data, tool_input))
     append_event(row)
-
-
-
 
 
 def _is_code_like(text: str) -> bool:
