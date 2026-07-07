@@ -21,7 +21,7 @@ except ImportError:
     import functools
 
     @functools.lru_cache(maxsize=1024)
-    def estimate_tokens(text: str) -> int:
+    def estimate_tokens(text: str, model_name: str | None = None) -> int:
         if not text:
             return 0
         try:

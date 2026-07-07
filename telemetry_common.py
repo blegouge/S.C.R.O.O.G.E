@@ -322,9 +322,18 @@ _tiktoken_encodings: dict[str, Any] = {}
 
 
 def _get_tiktoken_encoding(model_name: str | None = None) -> Any:
+    if not model_name:
+        model_name = (
+            os.environ.get("CODEX_MODEL")
+            or os.environ.get("CURSOR_MODEL")
+            or os.environ.get("CLAUDE_MODEL")
+            or os.environ.get("GEMINI_MODEL")
+            or os.environ.get("HERMES_MODEL")
+            or None
+        )
     encoding_name = "cl100k_base"
     if model_name:
-        model_lower = model_name.lower()
+        model_lower = str(model_name).lower()
         if "gpt-4o" in model_lower or "o1" in model_lower:
             encoding_name = "o200k_base"
         elif "gpt-4" in model_lower or "gpt-3.5" in model_lower:

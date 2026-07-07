@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from telemetry_config import config
+
 SUBAGENT_LAUNCH_EVENTS = frozenset({"subagentLaunch", "preToolUseCompression"})
 SUBAGENT_STOP_EVENT = "subagentStop"
 
@@ -68,7 +70,7 @@ def row_git_cache_tokens_preserved(row: dict[str, Any]) -> int:
             return int(value)
     if row_git_cache_hit(row):
         after = int(row.get("compression_after_tokens") or row.get("approx_tokens") or 0)
-        return max(0, int(after * 0.12)) if after else 0
+        return max(0, int(after * config.git_cache_savings_coefficient)) if after else 0
     return 0
 
 
@@ -101,7 +103,7 @@ def row_guardrail_avoided_tokens(row: dict[str, Any]) -> int:
         streak = int(row.get("guardrail_failure_streak") or 2)
         cycles = max(1, 4 - streak)
         return cycles * (input_tok + max(after_tok, input_tok // 3))
-    return int(input_tok * 0.35 + max(after_tok, input_tok // 4))
+    return int(input_tok * config.guardrail_savings_coefficient + max(after_tok, input_tok // 4))
 
 
 def row_idempotent_context_injected(row: dict[str, Any]) -> bool:
