@@ -318,26 +318,48 @@ def hook_fail_safe(fallback_json: str = '{"permission": "allow"}'):
     return decorator
 
 
-_tiktoken_encoding = None
+_tiktoken_encodings: dict[str, Any] = {}
 
 
-@functools.lru_cache(maxsize=1024)
-def estimate_tokens(text: str) -> int:
-    """Accurately estimate tokens using tiktoken (cl100k_base), falling back to len/4 on failure."""
-    if not text:
-        return 0
-    global _tiktoken_encoding
-    if _tiktoken_encoding is None:
+def _get_tiktoken_encoding(model_name: str | None = None) -> Any:
+    encoding_name = "cl100k_base"
+    if model_name:
+        model_lower = model_name.lower()
+        if "gpt-4o" in model_lower or "o1" in model_lower:
+            encoding_name = "o200k_base"
+        elif "gpt-4" in model_lower or "gpt-3.5" in model_lower:
+            encoding_name = "cl100k_base"
+
+    if encoding_name in _tiktoken_encodings:
+        return _tiktoken_encodings[encoding_name]
+
+    try:
+        import tiktoken
+
+        enc = tiktoken.get_encoding(encoding_name)
+        _tiktoken_encodings[encoding_name] = enc
+        return enc
+    except Exception:
         try:
             import tiktoken
 
-            _tiktoken_encoding = tiktoken.get_encoding("cl100k_base")
+            enc = tiktoken.get_encoding("cl100k_base")
+            _tiktoken_encodings[encoding_name] = enc
+            return enc
         except Exception:
-            _tiktoken_encoding = False
+            _tiktoken_encodings[encoding_name] = False
+            return False
 
-    if _tiktoken_encoding:
+
+@functools.lru_cache(maxsize=1024)
+def estimate_tokens(text: str, model_name: str | None = None) -> int:
+    """Accurately estimate tokens using tiktoken (model-aware), falling back to len/4 on failure."""
+    if not text:
+        return 0
+    enc = _get_tiktoken_encoding(model_name)
+    if enc:
         try:
-            return len(_tiktoken_encoding.encode(text, disallowed_special=()))
+            return len(enc.encode(text, disallowed_special=()))
         except Exception:
             pass
     return max(1, (len(text) + 3) // 4)

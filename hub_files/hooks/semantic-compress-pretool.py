@@ -169,7 +169,12 @@ def _append_telemetry(
     if git_cache_hit:
         match = _BLOCK2_SECTION.search(structured_prompt)
         if match:
-            block2_preserved = estimate_tokens(match.group(1))
+            model_name = str(tool_input.get("model") or "").strip()
+            if not model_name:
+                model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
+            else:
+                model_name = model_name[:240]
+            block2_preserved = estimate_tokens(match.group(1), model_name)
 
     guardrail_meta = analyze_guardrail_launch(
         subagent_type=subagent_type,
@@ -478,7 +483,14 @@ def main() -> None:
     data = load_stdin_json()
     name = extract_tool_name(data)
     tool_input = extract_tool_input(data)
-    _debug_log("parsed", tool_name=name, has_input=bool(tool_input))
+
+    model_name = str(data.get("model") or tool_input.get("model") or "").strip()
+    if not model_name:
+        model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
+    else:
+        model_name = model_name[:240]
+
+    _debug_log("parsed", tool_name=name, has_input=bool(tool_input), model_name=model_name)
 
     # Only rewrite Task tool input (subagent launches).
     if name != "Task" or not tool_input:
@@ -562,7 +574,7 @@ def main() -> None:
         summarizer_mode = DEFAULT_SUMMARIZER_MODE
 
     input_chars = len(prompt)
-    input_tokens = estimate_tokens(prompt)
+    input_tokens = estimate_tokens(prompt, model_name)
     structure_min = max(
         500,
         _safe_int(tool_input.get("structure_min_input_tokens"), DEFAULT_STRUCTURE_MIN_INPUT_TOKENS),
@@ -639,12 +651,12 @@ def main() -> None:
                 compressed_prompt[: match.start()] + replacement + compressed_prompt[match.end() :]
             )
         before_chars = len(structured_prompt)
-        before_tokens = estimate_tokens(structured_prompt)
+        before_tokens = estimate_tokens(structured_prompt, model_name)
 
     updated_input = dict(tool_input)
     updated_input["prompt"] = compressed_prompt
     after_chars = len(compressed_prompt)
-    after_tokens = estimate_tokens(compressed_prompt)
+    after_tokens = estimate_tokens(compressed_prompt, model_name)
     _debug_log(
         "before_telemetry",
         input_tokens=input_tokens,

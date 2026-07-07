@@ -707,13 +707,9 @@ def main() -> int:
             content = content.replace("{{HOME}}", str(home))
 
             # Replace home folders or reference hub roots (legacy/fallbacks)
-            content = content.replace("/Users/blegouge/.gemini/antigravity", str(HUB))
-            content = content.replace("/Users/blegouge/.cursor", str(HUB))
             content = content.replace("~/.cursor", str(HUB))
             content = content.replace("~/.gemini/antigravity", str(HUB))
             content = content.replace("~/.codex", str(HUB))
-            content = content.replace("/Users/blegouge/www", str(codebase_root_path))
-            content = content.replace("/Users/blegouge", str(home))
 
             # Context-sensitive replacements for IDE/Agent name
             if target_name == "cursor":

@@ -3,20 +3,14 @@
 
 from __future__ import annotations
 
-import os
 import sys
 import unittest
 from pathlib import Path
 
-# Setup path so telemetry_metrics can be imported
-_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
-if _HOME_DIR:
-    _HOME_PATH = Path(_HOME_DIR).resolve()
-else:
-    _HOME_PATH = Path(__file__).resolve().parent.parent.parent
-TELEMETRY_DIR = _HOME_PATH / "token-telemetry"
-if str(TELEMETRY_DIR) not in sys.path:
-    sys.path.insert(0, str(TELEMETRY_DIR))
+# Setup path so telemetry_metrics can be imported from local project root
+project_root = Path(__file__).resolve().parents[4]
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 # Import the metrics functions to test
 import telemetry_metrics
@@ -259,6 +253,48 @@ class TelemetryMetricsTests(unittest.TestCase):
         self.assertEqual(res["subagents"]["stop"], 1)
         self.assertEqual(res["subagents"]["prompt_proxy_tokens"], 100)
         self.assertEqual(res["subagents"]["out_proxy_tokens"], 50)
+
+    def test_summarize_report_cache_aware(self) -> None:
+        rows = [
+            {
+                "event": "afterAgentResponse",
+                "billed_total_tokens": 1000,
+                "input_tokens": 800,
+                "output_tokens": 200,
+                "cache_read_tokens": 500,
+                "cache_write_tokens": 100,
+                "ts": "2026-07-07T12:00:00Z",
+            },
+            {
+                "event": "afterAgentResponse",
+                "billed_total_tokens": 1500,
+                "input_tokens": 1200,
+                "output_tokens": 300,
+                "cache_read_tokens": 800,
+                "cache_write_tokens": 200,
+                "ts": "2026-07-07T13:00:00Z",
+            },
+        ]
+        res = telemetry_metrics.summarize_report(rows)
+        # Billed totals
+        self.assertEqual(res["parent_billed"]["sum"], 2500)
+        self.assertEqual(res["parent_billed"]["avg"], 1250)
+
+        # Cache sums
+        self.assertEqual(res["parent_billed"]["cache_read_sum"], 1300)
+        self.assertEqual(res["parent_billed"]["cache_write_sum"], 300)
+
+        # Adjusted calculations:
+        # Row 1: adj_in = (800 - 500) + 500 * 0.1 = 300 + 50 = 350 -> adj_billed = 350 + 200 = 550
+        # Row 2: adj_in = (1200 - 800) + 800 * 0.1 = 400 + 80 = 480 -> adj_billed = 480 + 300 = 780
+        # Total adjusted_sum = 550 + 780 = 1330
+        # Adjusted average = 1330 // 2 = 665
+        self.assertEqual(res["parent_billed"]["adjusted_sum"], 1330)
+        self.assertEqual(res["parent_billed"]["adjusted_avg"], 665)
+
+        # Latest check: latest is at 13:00:00Z
+        self.assertEqual(res["parent_billed"]["latest"], 1500)
+        self.assertEqual(res["parent_billed"]["latest_adjusted"], 780)
 
 
 if __name__ == "__main__":

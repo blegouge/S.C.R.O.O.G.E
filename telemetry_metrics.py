@@ -429,9 +429,14 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
     sub_stop_hook = sub_stop_fallback = 0
     resp_n = resp_with_report = resp_complete = 0
     billed_sum = 0
+    adjusted_billed_sum = 0
     billed_n = 0
+    cache_read_sum = 0
+    cache_write_sum = 0
     latest_billed: int | None = None
+    latest_adjusted_billed: int | None = None
     latest_in = latest_out = 0
+    latest_cache_read = latest_cache_write = 0
 
     responses = [r for r in rows if r.get("event") == "afterAgentResponse"]
     if responses:
@@ -441,6 +446,13 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
             latest_billed = billed
             latest_in = int(latest.get("input_tokens") or 0)
             latest_out = int(latest.get("output_tokens") or 0)
+            latest_cache_read = int(latest.get("cache_read_tokens") or 0)
+            latest_cache_write = int(latest.get("cache_write_tokens") or 0)
+            latest_adjusted_billed = int(
+                max(0.0, float(latest_in - latest_cache_read))
+                + float(latest_cache_read) * 0.1
+                + latest_out
+            )
 
     crg_runs = crg_saved = 0
     crg_risk_sum = 0.0
@@ -463,6 +475,14 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
             if isinstance(billed, int):
                 billed_sum += billed
                 billed_n += 1
+                in_tok = int(r.get("input_tokens") or 0)
+                out_tok = int(r.get("output_tokens") or 0)
+                c_read = int(r.get("cache_read_tokens") or 0)
+                c_write = int(r.get("cache_write_tokens") or 0)
+                cache_read_sum += c_read
+                cache_write_sum += c_write
+                adj_in = max(0.0, float(in_tok - c_read)) + float(c_read) * 0.1
+                adjusted_billed_sum += int(adj_in + out_tok)
         ev = str(r.get("event", ""))
         if ev == "codeReviewGraph":
             crg_runs += 1
@@ -527,11 +547,16 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "parent_billed": {
             "sum": billed_sum,
+            "adjusted_sum": adjusted_billed_sum,
             "avg": billed_sum // billed_n if billed_n else 0,
+            "adjusted_avg": adjusted_billed_sum // billed_n if billed_n else 0,
             "count": billed_n,
             "latest": latest_billed,
+            "latest_adjusted": latest_adjusted_billed,
             "latest_input": latest_in,
             "latest_output": latest_out,
+            "cache_read_sum": cache_read_sum,
+            "cache_write_sum": cache_write_sum,
         },
         "stack": {**stack, "idempotent_pct": idem_pct},
         "compliance": summarize_compliance_kpis(rows),

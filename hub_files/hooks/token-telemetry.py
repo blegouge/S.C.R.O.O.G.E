@@ -99,7 +99,8 @@ def _populate_subagent_stop_row(
         path = Path(transcript_path.replace("file://", "").strip()).expanduser()
         if path.is_file():
             try:
-                transcript_text = path.read_text(encoding="utf-8", errors="replace")
+                with path.open("r", encoding="utf-8", errors="replace") as f:
+                    transcript_text = f.read(500000)
             except OSError:
                 pass
 
@@ -108,7 +109,19 @@ def _populate_subagent_stop_row(
         output_text = tool_output_text(data.get("tool_output"))
 
     row["text_chars"] = len(output_text)
-    row["approx_tokens"] = estimate_tokens(output_text) if output_text else estimate_tokens(raw)
+
+    # Extract model name
+    model_name = str(data.get("model") or tool_input.get("model") or "").strip()
+    if not model_name:
+        model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
+    else:
+        model_name = model_name[:240]
+
+    row["approx_tokens"] = (
+        estimate_tokens(output_text, model_name)
+        if output_text
+        else estimate_tokens(raw, model_name)
+    )
 
     subagent_type = (
         data.get("subagent_type")
@@ -379,7 +392,14 @@ def _build_row(
 ) -> dict[str, object]:
     text_chars = _string_chars(data)
     raw_chars = len(raw)
-    approx = estimate_tokens(raw) if raw else estimate_tokens(str(data))
+    model_name = str(data.get("model") or "").strip()
+    if not model_name:
+        model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
+    else:
+        model_name = model_name[:240]
+    approx = (
+        estimate_tokens(raw, model_name) if raw else estimate_tokens(str(data), model_name)
+    )
 
     row: dict[str, object] = {
         "ts": _dt.datetime.now(_dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),

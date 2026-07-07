@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 # Add code-review-graph pipx site-packages to sys.path so we can use its utility functions
-sys.path.append("/Users/blegouge/.local/pipx/venvs/code-review-graph/lib/python3.14/site-packages")
+sys.path.append("{{HOME}}/.local/pipx/venvs/code-review-graph/lib/python3.14/site-packages")
 
 try:
     from code_review_graph.context_savings import estimate_file_tokens, format_context_savings_panel

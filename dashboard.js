@@ -181,6 +181,7 @@ const TRANSLATIONS = {
     complete: 'complete',
     incomplete: 'incomplete',
     avgSumLatest: 'sum {sum} · {count} resp. · latest {latest}',
+    avgSumLatestCacheAdjusted: 'sum {sum} (adj: {adjSum}) · {count} resp. · latest {latest} (adj: {latestAdj})',
     notExposed: 'not exposed',
     launchCount: '{count} launch(es)',
     stopCount: '{count} stop(s)',
@@ -400,6 +401,7 @@ const TRANSLATIONS = {
     complete: 'complet',
     incomplete: 'incomplet',
     avgSumLatest: 'somme {sum} · {count} resp. · dernier {latest}',
+    avgSumLatestCacheAdjusted: 'somme {sum} (adj : {adjSum}) · {count} resp. · dernier {latest} (adj : {latestAdj})',
     notExposed: 'non exposé',
     launchCount: '{count} lancement(s)',
     stopCount: '{count} arrêt(s)',
@@ -648,10 +650,15 @@ function observedTokens(e) {
   if (e.event === 'afterFileEdit' || e.event === 'afterTabFileEdit') return 0;
   if (isDiffOnlyEvent(e)) return 0;
   if (e.event === 'afterAgentResponse') {
-    const billed = num(e.billed_total_tokens);
-    if (billed > 0) return billed;
     const inp = num(e.input_tokens);
     const out = num(e.output_tokens);
+    const cRead = num(e.cache_read_tokens);
+    if (cRead > 0) {
+      const adjIn = Math.max(0, inp - cRead) + cRead * 0.1;
+      return Math.round(adjIn + out);
+    }
+    const billed = num(e.billed_total_tokens);
+    if (billed > 0) return billed;
     if (inp > 0 || out > 0) return inp + out;
   }
   if (isSubagentLaunch(e)) {
@@ -1835,10 +1842,16 @@ function computeReportSummary(events) {
   let respWithReport = 0;
   let respComplete = 0;
   let billedSum = 0;
+  let adjustedBilledSum = 0;
   let billedN = 0;
+  let cacheReadSum = 0;
+  let cacheWriteSum = 0;
   let latestBilled = null;
+  let latestAdjustedBilled = null;
   let latestIn = 0;
   let latestOut = 0;
+  let latestCacheRead = 0;
+  let latestCacheWrite = 0;
 
   const responses = events.filter((e) => e.event === 'afterAgentResponse');
   if (responses.length) {
@@ -1849,6 +1862,11 @@ function computeReportSummary(events) {
       latestBilled = latest.billed_total_tokens;
       latestIn = Number(latest.input_tokens || 0);
       latestOut = Number(latest.output_tokens || 0);
+      latestCacheRead = Number(latest.cache_read_tokens || 0);
+      latestCacheWrite = Number(latest.cache_write_tokens || 0);
+      latestAdjustedBilled = Math.round(
+        Math.max(0, latestIn - latestCacheRead) + latestCacheRead * 0.1 + latestOut
+      );
     }
   }
 
@@ -1869,6 +1887,14 @@ function computeReportSummary(events) {
       if (typeof e.billed_total_tokens === 'number') {
         billedSum += e.billed_total_tokens;
         billedN++;
+        const inp = Number(e.input_tokens || 0);
+        const out = Number(e.output_tokens || 0);
+        const cRead = Number(e.cache_read_tokens || 0);
+        const cWrite = Number(e.cache_write_tokens || 0);
+        cacheReadSum += cRead;
+        cacheWriteSum += cWrite;
+        const adjIn = Math.max(0, inp - cRead) + cRead * 0.1;
+        adjustedBilledSum += Math.round(adjIn + out);
       }
     }
     if (isSubagentLaunch(e)) {
@@ -1923,11 +1949,16 @@ function computeReportSummary(events) {
     compliance: summarizeComplianceKpis(events),
     parent_billed: {
       sum: billedSum,
+      adjusted_sum: adjustedBilledSum,
       avg: billedN ? Math.floor(billedSum / billedN) : 0,
+      adjusted_avg: billedN ? Math.floor(adjustedBilledSum / billedN) : 0,
       count: billedN,
       latest: latestBilled,
+      latest_adjusted: latestAdjustedBilled,
       latest_input: latestIn,
       latest_output: latestOut,
+      cache_read_sum: cacheReadSum,
+      cache_write_sum: cacheWriteSum,
     },
     tour: { launches: tourLaunches, stops: tourStops },
   };
@@ -1954,12 +1985,23 @@ function applyReportSummary(summary) {
       : t('alignedReport');
 
   if (billed.count) {
-    document.getElementById('kpiParentBilled').textContent = fmtCompact(billed.avg || 0);
-    document.getElementById('kpiParentBilledSub').textContent = t('avgSumLatest', {
-      sum: fmtCompact(billed.sum || 0),
-      count: fmtNum(billed.count),
-      latest: fmtCompact(billed.latest || 0),
-    });
+    if (billed.cache_read_sum > 0) {
+      document.getElementById('kpiParentBilled').textContent = fmtCompact(billed.adjusted_avg || 0);
+      document.getElementById('kpiParentBilledSub').textContent = t('avgSumLatestCacheAdjusted', {
+        sum: fmtCompact(billed.sum || 0),
+        adjSum: fmtCompact(billed.adjusted_sum || 0),
+        count: fmtNum(billed.count),
+        latest: fmtCompact(billed.latest || 0),
+        latestAdj: fmtCompact(billed.latest_adjusted || 0),
+      });
+    } else {
+      document.getElementById('kpiParentBilled').textContent = fmtCompact(billed.avg || 0);
+      document.getElementById('kpiParentBilledSub').textContent = t('avgSumLatest', {
+        sum: fmtCompact(billed.sum || 0),
+        count: fmtNum(billed.count),
+        latest: fmtCompact(billed.latest || 0),
+      });
+    }
   } else {
     document.getElementById('kpiParentBilled').textContent = '—';
     document.getElementById('kpiParentBilledSub').textContent = t('notExposed');
