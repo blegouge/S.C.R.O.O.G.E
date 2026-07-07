@@ -28,7 +28,13 @@ for _path in (_HOME_PATH / "token-telemetry", _HOME_PATH / "src"):
         sys.path.insert(0, str(_path))
 
 try:
-    from telemetry_common import append_event, enrich_correlation, hook_fail_safe
+    from telemetry_common import append_event, enrich_correlation
+    from utils.hook_utils import (
+        load_stdin_json,
+        extract_tool_name,
+        extract_tool_input,
+        hook_fail_safe,
+    )
 except Exception:  # pragma: no cover - last-ditch fail-open when runtime is incomplete
 
     def append_event(row: dict[str, Any]) -> None:
@@ -51,37 +57,24 @@ except Exception:  # pragma: no cover - last-ditch fail-open when runtime is inc
 
         return decorator
 
+    def load_stdin_json() -> dict[str, Any]:
+        raw = sys.stdin.read()
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
 
-def _respond(payload: dict[str, Any]) -> None:
-    sys.stdout.write(json.dumps(payload, ensure_ascii=False))
+    def extract_tool_name(data: dict[str, Any]) -> str:
+        for key in ("tool_name", "tool", "toolName", "name"):
+            value = data.get(key)
+            if isinstance(value, str):
+                return value.strip()
+        return ""
 
-
-def _load_stdin_json() -> dict[str, Any]:
-    raw = sys.stdin.read()
-    if not raw.strip():
-        return {}
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError:
-        return {"_parse_error": True, "_raw_len": len(raw)}
-    return parsed if isinstance(parsed, dict) else {}
-
-
-def _tool_name(data: dict[str, Any]) -> str:
-    for key in ("tool_name", "tool", "toolName", "name"):
-        value = data.get(key)
-        if isinstance(value, str):
-            return value.strip()
-        if isinstance(value, dict):
-            nested = value.get("name") or value.get("tool")
-            if isinstance(nested, str):
-                return nested.strip()
-    return ""
-
-
-def _tool_input(data: dict[str, Any]) -> dict[str, Any]:
-    value = data.get("tool_input")
-    return value if isinstance(value, dict) else {}
+    def extract_tool_input(data: dict[str, Any]) -> dict[str, Any]:
+        value = data.get("tool_input")
+        return value if isinstance(value, dict) else {}
 
 
 def _command_from_tool_input(tool_input: dict[str, Any]) -> tuple[str, str]:
@@ -158,14 +151,18 @@ def _append_row(
     append_event(row)
 
 
+def _respond(payload: dict[str, Any]) -> None:
+    sys.stdout.write(json.dumps(payload, ensure_ascii=False))
+
+
 @hook_fail_safe(fallback_json='{"permission": "allow"}')
 def main() -> None:
-    data = _load_stdin_json()
-    if _tool_name(data) != "Bash":
+    data = load_stdin_json()
+    if extract_tool_name(data) != "Bash":
         _respond({"permission": "allow"})
         return
 
-    tool_input = _tool_input(data)
+    tool_input = extract_tool_input(data)
     command_key, command = _command_from_tool_input(tool_input)
     if not command_key:
         _respond({"permission": "allow"})

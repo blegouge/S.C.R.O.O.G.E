@@ -38,6 +38,10 @@ from utils.diff_applier import (  # pylint: disable=import-error
     parse_blocks,
     resolve_workspace_roots,
 )
+from utils.hook_utils import (
+    load_stdin_json,
+    hook_fail_safe,
+)
 
 DISABLE_ENV = (
     "CODEX_DIFF_ONLY_DISABLE"
@@ -47,17 +51,6 @@ DISABLE_ENV = (
     else "CURSOR_DIFF_ONLY_DISABLE"
 )
 LAST_TEXT_CACHE = _HOME_PATH / "token-telemetry" / "diff-only-last-text.txt"
-
-
-def _load_stdin() -> dict[str, Any]:
-    raw = sys.stdin.read()
-    if not raw.strip():
-        return {}
-    try:
-        parsed = json.loads(raw)
-        return parsed if isinstance(parsed, dict) else {}
-    except json.JSONDecodeError:
-        return {"_raw": raw}
 
 
 def _hook_event(data: dict[str, Any]) -> str:
@@ -105,11 +98,12 @@ def _respond_followup(message: str) -> None:
     sys.stdout.flush()
 
 
+@hook_fail_safe()
 def main() -> int:
     if os.environ.get(DISABLE_ENV, "").strip().lower() in {"1", "true", "yes"}:
         return 0
 
-    data = _load_stdin()
+    data = load_stdin_json()
     event = _hook_event(data)
 
     text = _gather_text(data, event)

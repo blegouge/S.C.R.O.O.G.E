@@ -25,6 +25,12 @@ for _path in (SRC_DIR, TOKEN_TELEMETRY_DIR):
 
 from telemetry_common import append_event  # pylint: disable=import-error
 from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
+from utils.hook_utils import (
+    load_stdin_json,
+    extract_tool_name,
+    extract_tool_input,
+    hook_fail_safe,
+)
 
 _IS_CODEX_HOME = _HOME_PATH.name == ".codex" or os.getenv("CODEX_HOME")
 DISABLE_ENV = "CODEX_DIFF_ONLY_DISABLE" if _IS_CODEX_HOME else "ANTIGRAVITY_DIFF_ONLY_DISABLE"
@@ -34,40 +40,6 @@ ALLOW_WRITE_ENV = (
 # Legacy Cursor env aliases
 _LEGACY_DISABLE = "CURSOR_DIFF_ONLY_DISABLE"
 _LEGACY_ALLOW = "CURSOR_DIFF_ONLY_ALLOW_WRITE"
-
-
-def _load_stdin() -> dict[str, Any]:
-    raw = sys.stdin.read()
-    if not raw.strip():
-        return {}
-    try:
-        parsed = json.loads(raw)
-        return parsed if isinstance(parsed, dict) else {}
-    except json.JSONDecodeError:
-        return {}
-
-
-def _tool_name(data: dict[str, Any]) -> str:
-    for key in ("tool_name", "name"):
-        value = data.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    tool = data.get("tool")
-    if isinstance(tool, dict):
-        nested = tool.get("name")
-        if isinstance(nested, str) and nested.strip():
-            return nested.strip()
-    if isinstance(tool, str) and tool.strip():
-        return tool.strip()
-    return ""
-
-
-def _tool_input(data: dict[str, Any]) -> dict[str, Any]:
-    value = data.get("tool_input")
-    if isinstance(value, dict):
-        return value
-    value = data.get("input")
-    return value if isinstance(value, dict) else {}
 
 
 def _extract_target_path(tool_input: dict[str, Any]) -> str:
@@ -107,9 +79,6 @@ def _respond(payload: dict[str, Any]) -> None:
     sys.stdout.flush()
 
 
-from telemetry_common import hook_fail_safe
-
-
 @hook_fail_safe(fallback_json='{"permission": "allow"}')
 def main() -> None:
     if any(
@@ -125,12 +94,12 @@ def main() -> None:
         _respond({"permission": "allow"})
         return
 
-    data = _load_stdin()
-    if _tool_name(data) != "Write":
+    data = load_stdin_json()
+    if extract_tool_name(data) != "Write":
         _respond({"permission": "allow"})
         return
 
-    tool_input = _tool_input(data)
+    tool_input = extract_tool_input(data)
     rel_path = _extract_target_path(tool_input)
     if not rel_path:
         _respond({"permission": "allow"})

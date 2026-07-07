@@ -67,6 +67,12 @@ from utils.adaptive_context_manager import (  # pylint: disable=import-error
     AdaptiveContextManager,
 )
 from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
+from utils.hook_utils import (
+    load_stdin_json,
+    extract_tool_name,
+    extract_tool_input,
+    hook_fail_safe,
+)
 from utils.static_prompt_registry import build_global_static_block  # pylint: disable=import-error
 from utils.summarizer_factory import resolve_summarizer  # pylint: disable=import-error
 from utils.task_brief_validator import (  # pylint: disable=import-error
@@ -216,36 +222,7 @@ def _append_telemetry(
     append_event(row)
 
 
-def _load_stdin_json() -> dict[str, Any]:
-    raw = sys.stdin.read()
-    if not raw.strip():
-        return {}
-    try:
-        parsed = json.loads(raw)
-        return parsed if isinstance(parsed, dict) else {}
-    except json.JSONDecodeError:
-        return {}
 
-
-def _tool_name(data: dict[str, Any]) -> str:
-    for key in ("tool_name", "name"):
-        value = data.get(key)
-        if isinstance(value, str) and value:
-            return value
-    tool = data.get("tool")
-    if isinstance(tool, dict):
-        name = tool.get("name")
-        if isinstance(name, str) and name:
-            return name
-    return ""
-
-
-def _tool_input(data: dict[str, Any]) -> dict[str, Any]:
-    value = data.get("tool_input")
-    if isinstance(value, dict):
-        return value
-    value = data.get("input")
-    return value if isinstance(value, dict) else {}
 
 
 def _is_code_like(text: str) -> bool:
@@ -497,15 +474,12 @@ def _build_structured_prompt(
     return structured_prompt, stats
 
 
-from telemetry_common import hook_fail_safe
-
-
 @hook_fail_safe(fallback_json='{"permission": "allow"}')
 def main() -> None:
     _debug_log("main_start")
-    data = _load_stdin_json()
-    name = _tool_name(data)
-    tool_input = _tool_input(data)
+    data = load_stdin_json()
+    name = extract_tool_name(data)
+    tool_input = extract_tool_input(data)
     _debug_log("parsed", tool_name=name, has_input=bool(tool_input))
 
     # Only rewrite Task tool input (subagent launches).

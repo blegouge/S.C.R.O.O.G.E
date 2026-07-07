@@ -1,3 +1,38 @@
+[project]
+name = "telemetry-token"
+version = "1.0.0"
+description = "Token Optimization Stack"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.15.20",
+    "mypy>=2.1.0",
+    "bandit>=1.9.4",
+    "pip-audit>=2.10.1",
+    "types-PyYAML",
+    "pre-commit>=4.6.0",
+]
+desktop = [
+    "pywebview>=5.0,<6",
+    "pyyaml>=6.0",
+    "llmlingua>=0.2.2",
+    "transformers<5",
+    "numpy<2",
+    "claw-compactor[accurate]>=7.1.0",
+]
+build = [
+    "pywebview>=5.0,<6",
+    "pyinstaller>=6.0,<8",
+    "pyyaml>=6.0",
+]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100

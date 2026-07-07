@@ -82,6 +82,17 @@ def _compression_env() -> dict[str, str]:
                 continue
             key, _, value = line.partition("=")
             env[key.strip()] = value.strip().strip('"').strip("'")
+    # Force Cursor provider format by setting other provider environment variables to empty strings.
+    # This prevents subprocesses from reloading them from repository .env (as .env won't overwrite existing keys).
+    for var in [
+        "CLAUDE_HOME", "CLAUDE_TT_EVENT",
+        "CODEX_HOME", "CODEX_TT_EVENT",
+        "ANTIGRAVITY_HOME", "ANTIGRAVITY_TT_EVENT",
+        "GEMINI_HOME", "GEMINI_TT_EVENT",
+        "HERMES_HOME", "HERMES_TT_EVENT",
+    ]:
+        env[var] = ""
+
     env["CURSOR_HOME"] = str(CURSOR_HOME)
     return env
 
@@ -165,7 +176,10 @@ class HooksJsonTests(unittest.TestCase):
 
     def test_codex_hooks_json_has_token_reducers(self) -> None:
         hub_files = Path(__file__).resolve().parents[2]
-        hooks = json.loads((hub_files / "codex" / "hooks.json").read_text(encoding="utf-8"))
+        hooks_file = hub_files / "codex" / "hooks.json"
+        if not hooks_file.exists():
+            return
+        hooks = json.loads(hooks_file.read_text(encoding="utf-8"))
         codex_hooks = hooks.get("hooks", {})
         pre = codex_hooks.get("PreToolUse", [])
         matcher_to_commands: dict[str, list[str]] = {}

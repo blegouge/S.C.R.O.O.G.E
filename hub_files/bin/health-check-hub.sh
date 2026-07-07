@@ -328,8 +328,12 @@ PY
 fi
 
 # --- Full mode: unit tests ---
-if [[ "$FULL_MODE" == "1" ]] && command -v python3 >/dev/null 2>&1; then
-  if PYTHONPATH="${CURSOR_HOME}/src" python3 -m unittest discover -s "${CURSOR_HOME}/src/utils" -p 'test_*.py' -q 2>/dev/null; then
+if [[ "$FULL_MODE" == "1" ]]; then
+  TEST_PY="${CURSOR_HOME}/token-telemetry/.venv-desktop/bin/python"
+  if [[ ! -x "$TEST_PY" ]]; then
+    TEST_PY="python3"
+  fi
+  if PYTHONPATH="${CURSOR_HOME}/src" "$TEST_PY" -m unittest discover -s "${CURSOR_HOME}/src/utils" -p 'test_*.py' -q 2>/dev/null; then
     record PASS unit_tests "src/utils tests pass"
   else
     record FAIL unit_tests "src/utils tests failed"
