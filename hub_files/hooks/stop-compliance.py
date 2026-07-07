@@ -31,6 +31,10 @@ from utils.consumption_report_validator import (  # pylint: disable=import-error
     build_consumption_followup,
 )
 from utils.diff_applier import extract_response_text  # pylint: disable=import-error
+from utils.hook_utils import (
+    hook_fail_safe,
+    load_stdin_json,
+)
 
 DISABLE_ENV = (
     "CODEX_CONSUMPTION_ENFORCE_DISABLE"
@@ -41,17 +45,6 @@ DISABLE_ENV = (
 )
 LAST_TEXT_CACHE = TOKEN_TELEMETRY_DIR / "diff-only-last-text.txt"
 MAX_LOOPS = int(os.getenv("CONSUMPTION_REPORT_MAX_LOOPS", "2"))
-
-
-def _load_stdin() -> dict[str, Any]:
-    raw = sys.stdin.read()
-    if not raw.strip():
-        return {}
-    try:
-        parsed = json.loads(raw)
-        return parsed if isinstance(parsed, dict) else {}
-    except json.JSONDecodeError:
-        return {}
 
 
 def _gather_text(data: dict[str, Any]) -> str:
@@ -84,16 +77,13 @@ def _log_compliance(*, present: bool, complete: bool, loop_count: int, enforced:
     )
 
 
-from telemetry_common import hook_fail_safe
-
-
 @hook_fail_safe(fallback_json="{}")
 def main() -> int:
     if os.environ.get(DISABLE_ENV, "").strip().lower() in {"1", "true", "yes"}:
         _log_compliance(present=True, complete=True, loop_count=0, enforced=False)
         return 0
 
-    data = _load_stdin()
+    data = load_stdin_json()
     status_value = str(data.get("status") or "").strip().lower()
     if status_value and status_value not in {"completed", "success", "done"}:
         return 0

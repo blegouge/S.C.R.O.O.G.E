@@ -595,13 +595,22 @@ def main() -> int:
         print_header(f"Deploying Stack to Target: {HUB}")
 
         # Create folders
-        folders = ["bin", "hooks", "rules", "skills", "src", "projects", "token-telemetry"]
+        folders = [
+            "bin",
+            "hooks",
+            "rules",
+            "skills",
+            "src",
+            "providers",
+            "projects",
+            "token-telemetry",
+        ]
         for folder in folders:
             (HUB / folder).mkdir(parents=True, exist_ok=True)
 
         # Copy Reference Hub Components
         print("Copying hub files from repository templates...")
-        for folder in ["bin", "hooks", "rules", "skills", "src"]:
+        for folder in ["bin", "hooks", "rules", "skills", "src", "providers"]:
             overwrite = False if folder == "skills" else True
             copy_tree_idempotent(
                 HUB_FILES / folder, HUB / folder, ignore=["__pycache__"], overwrite=overwrite

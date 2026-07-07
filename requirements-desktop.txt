@@ -1,4 +1,4 @@
-# Optional: native wrapper for dashboard_app.py (WebKit via pywebview)
+# Required packages for Claw / desktop venv (copied to target hub)
 pywebview>=5.0,<6
 pyyaml>=6.0
 llmlingua>=0.2.2
