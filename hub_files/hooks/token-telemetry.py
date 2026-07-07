@@ -33,6 +33,7 @@ from telemetry_common import (  # pylint: disable=import-error
     append_event,
     correlation_fields,
     enrich_correlation,
+    estimate_tokens,
     extract_skill_hint,
     extract_tool_label,
     int_field,
@@ -93,16 +94,21 @@ def _populate_subagent_stop_row(
         row["subagent_status"] = "completed"
 
     row["subagent_summary_chars"] = len(summary_text)
-    transcript_chars = 0
-    if isinstance(transcript_path, str):
-        transcript_chars = _read_transcript_chars(transcript_path)
+    transcript_text = ""
+    if isinstance(transcript_path, str) and transcript_path.strip():
+        path = Path(transcript_path.replace("file://", "").strip()).expanduser()
+        if path.is_file():
+            try:
+                transcript_text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
 
-    output_chars = len(summary_text) + transcript_chars
-    if output_chars == 0 and source == "postToolUse_fallback":
-        output_chars = len(tool_output_text(data.get("tool_output")))
+    output_text = summary_text + transcript_text
+    if not output_text and source == "postToolUse_fallback":
+        output_text = tool_output_text(data.get("tool_output"))
 
-    row["text_chars"] = output_chars
-    row["approx_tokens"] = (output_chars + 3) // 4 if output_chars else (len(raw) + 3) // 4
+    row["text_chars"] = len(output_text)
+    row["approx_tokens"] = estimate_tokens(output_text) if output_text else estimate_tokens(raw)
 
     subagent_type = (
         data.get("subagent_type")
@@ -373,7 +379,7 @@ def _build_row(
 ) -> dict[str, object]:
     text_chars = _string_chars(data)
     raw_chars = len(raw)
-    approx = (max(text_chars, raw_chars) + 3) // 4
+    approx = estimate_tokens(raw) if raw else estimate_tokens(str(data))
 
     row: dict[str, object] = {
         "ts": _dt.datetime.now(_dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),

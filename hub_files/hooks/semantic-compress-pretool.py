@@ -59,6 +59,7 @@ from providers import detect_provider  # pylint: disable=import-error
 from telemetry_common import (  # pylint: disable=import-error
     append_event,
     enrich_correlation,
+    estimate_tokens,
     extract_skill_hint,
 )
 from telemetry_config import config
@@ -168,7 +169,7 @@ def _append_telemetry(
     if git_cache_hit:
         match = _BLOCK2_SECTION.search(structured_prompt)
         if match:
-            block2_preserved = max(0, (len(match.group(1)) + 3) // 4)
+            block2_preserved = estimate_tokens(match.group(1))
 
     guardrail_meta = analyze_guardrail_launch(
         subagent_type=subagent_type,
@@ -561,7 +562,7 @@ def main() -> None:
         summarizer_mode = DEFAULT_SUMMARIZER_MODE
 
     input_chars = len(prompt)
-    input_tokens = (input_chars + 3) // 4
+    input_tokens = estimate_tokens(prompt)
     structure_min = max(
         500,
         _safe_int(tool_input.get("structure_min_input_tokens"), DEFAULT_STRUCTURE_MIN_INPUT_TOKENS),
@@ -638,12 +639,12 @@ def main() -> None:
                 compressed_prompt[: match.start()] + replacement + compressed_prompt[match.end() :]
             )
         before_chars = len(structured_prompt)
-        before_tokens = (before_chars + 3) // 4
+        before_tokens = estimate_tokens(structured_prompt)
 
     updated_input = dict(tool_input)
     updated_input["prompt"] = compressed_prompt
     after_chars = len(compressed_prompt)
-    after_tokens = (after_chars + 3) // 4
+    after_tokens = estimate_tokens(compressed_prompt)
     _debug_log(
         "before_telemetry",
         input_tokens=input_tokens,

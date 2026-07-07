@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import functools
 import json
 import os
 import re
@@ -315,3 +316,28 @@ def hook_fail_safe(fallback_json: str = '{"permission": "allow"}'):
         return wrapper
 
     return decorator
+
+
+_tiktoken_encoding = None
+
+
+@functools.lru_cache(maxsize=1024)
+def estimate_tokens(text: str) -> int:
+    """Accurately estimate tokens using tiktoken (cl100k_base), falling back to len/4 on failure."""
+    if not text:
+        return 0
+    global _tiktoken_encoding
+    if _tiktoken_encoding is None:
+        try:
+            import tiktoken
+
+            _tiktoken_encoding = tiktoken.get_encoding("cl100k_base")
+        except Exception:
+            _tiktoken_encoding = False
+
+    if _tiktoken_encoding:
+        try:
+            return len(_tiktoken_encoding.encode(text, disallowed_special=()))
+        except Exception:
+            pass
+    return max(1, (len(text) + 3) // 4)

@@ -15,10 +15,22 @@ LARGE_PROMPT_CHAR_THRESHOLD = 8000
 LARGE_PROMPT_TOKEN_THRESHOLD = 2000
 
 
-def estimate_tokens(text: str) -> int:
-    if not text:
-        return 0
-    return max(1, (len(text) + 3) // 4)
+try:
+    from telemetry_common import estimate_tokens
+except ImportError:
+    import functools
+
+    @functools.lru_cache(maxsize=1024)
+    def estimate_tokens(text: str) -> int:
+        if not text:
+            return 0
+        try:
+            import tiktoken
+
+            encoding = tiktoken.get_encoding("cl100k_base")
+            return len(encoding.encode(text, disallowed_special=()))
+        except Exception:
+            return max(1, (len(text) + 3) // 4)
 
 
 def _normalize_streak(value: Any) -> int:
