@@ -3,19 +3,14 @@
 
 from __future__ import annotations
 
-import os
 import sys
 import unittest
 from pathlib import Path
 
-_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
-if _HOME_DIR:
-    _HOME_PATH = Path(_HOME_DIR).resolve()
-else:
-    _HOME_PATH = Path(__file__).resolve().parent.parent.parent
-TELEMETRY_DIR = _HOME_PATH / "token-telemetry"
-if str(TELEMETRY_DIR) not in sys.path:
-    sys.path.insert(0, str(TELEMETRY_DIR))
+# Setup path so telemetry_metrics can be imported from local project root
+project_root = Path(__file__).resolve().parents[4]
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 from telemetry_metrics import summarize_compliance_kpis  # noqa: E402
 

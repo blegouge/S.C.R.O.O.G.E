@@ -7,6 +7,7 @@ import json
 import os
 import pathlib
 import re
+import secrets
 import shutil
 import subprocess
 import sys
@@ -218,11 +219,39 @@ def _save_dashboard_layout(
     return clean
 
 
+_security_token = secrets.token_hex(16)
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     def log_message(self, format: str, *args: object) -> None:
         return
 
+    def validate_request(self) -> bool:
+        # 1. Host Validation
+        host = self.headers.get("Host", "")
+        # Extract hostname before optional port
+        host_name = host.split(":")[0].lower()
+        if host_name not in ("127.0.0.1", "localhost"):
+            self.send_error(400, "Invalid Host header")
+            return False
+
+        # 2. Token Validation (only for /api/* paths)
+        import urllib.parse
+
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path.startswith("/api/"):
+            token = self.headers.get("X-Telemetry-Token")
+            if not token:
+                query = urllib.parse.parse_qs(parsed.query)
+                token = query.get("token", [None])[0]
+            if token != _security_token:
+                self.send_error(403, "Forbidden: Invalid security token")
+                return False
+        return True
+
     def do_GET(self) -> None:  # noqa: N802
+        if not self.validate_request():
+            return
         import urllib.parse
 
         parsed = urllib.parse.urlparse(self.path)
@@ -244,7 +273,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             payload = json.dumps(rows, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -256,7 +284,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -269,7 +296,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -282,7 +308,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -293,7 +318,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -303,17 +327,40 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             payload = json.dumps(providers, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
             return
         if path in ("/", "/index.html"):
-            body = (
+            html_content = (
                 DASH.read_text(encoding="utf-8")
                 if DASH.is_file()
                 else "<pre>dashboard.html missing</pre>"
-            ).encode("utf-8")
+            )
+            token_script = f"""<script>
+  window.__TELEMETRY_TOKEN__ = {json.dumps(_security_token)};
+  const originalFetch = window.fetch;
+  window.fetch = function(input, init) {{
+    if (typeof input === 'string' && input.startsWith('/api/')) {{
+      init = init || {{}};
+      init.headers = init.headers || {{}};
+      if (init.headers instanceof Headers) {{
+        init.headers.set('X-Telemetry-Token', window.__TELEMETRY_TOKEN__);
+      }} else if (Array.isArray(init.headers)) {{
+        init.headers.push(['X-Telemetry-Token', window.__TELEMETRY_TOKEN__]);
+      }} else {{
+        init.headers['X-Telemetry-Token'] = window.__TELEMETRY_TOKEN__;
+      }}
+    }}
+    return originalFetch(input, init);
+  }};
+</script>"""
+            if "<head>" in html_content:
+                html_content = html_content.replace("<head>", f"<head>\n  {token_script}")
+            else:
+                html_content = html_content.replace("<body>", f"<body>\n  {token_script}")
+
+            body = html_content.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -352,6 +399,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.send_error(404, "Not found")
 
     def do_POST(self) -> None:  # noqa: N802
+        if not self.validate_request():
+            return
         import urllib.parse
 
         parsed = urllib.parse.urlparse(self.path)
@@ -385,7 +434,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)

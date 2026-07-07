@@ -31,8 +31,8 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
    - Compiles into a native **macOS Desktop App** (`.app` bundle via PyInstaller) for a standalone window dashboard.
 
 2. **🗜️ Context Compression & Optimizations**
-   - **RTK Gain**: Integrates with shell command savings (saves up to 98% on command runs).
-   - **Diff-Only Protocol**: Applies SEARCH/REPLACE delta patching to avoid rewriting large source files, saving up to 95% of output tokens.
+   - **RTK Gain**: Integrates with shell command savings (saves up to 98% on command runs, estimated).
+   - **Diff-Only Protocol**: Applies SEARCH/REPLACE delta patching to avoid rewriting large source files, saving up to 95% of output tokens (estimated).
    - **Claw Compactor & LLMLingua**: Reduces dynamic context size by pruning low-information tokens before sending payloads.
 
 3. **🔄 Adaptive Context Routing**

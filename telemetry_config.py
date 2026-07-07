@@ -127,6 +127,14 @@ class ConfigManager:
     def llmlingua_blocking_init(self) -> bool:
         return self._get_env_bool("LLMLINGUA_BLOCKING_INIT", False)
 
+    @property
+    def git_cache_savings_coefficient(self) -> float:
+        return self._get_env_float("GIT_CACHE_SAVINGS_COEFFICIENT", 0.12)
+
+    @property
+    def guardrail_savings_coefficient(self) -> float:
+        return self._get_env_float("GUARDRAIL_SAVINGS_COEFFICIENT", 0.35)
+
 
 # Global config instance initialized on import
 config = ConfigManager()

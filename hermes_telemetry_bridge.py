@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from telemetry_common import estimate_tokens
+
 HERMES_LOG = Path.home() / ".hermes" / "compression.log"
 HERMES_EVENTS = Path.home() / ".hermes" / "token-telemetry" / "events.jsonl"
 SOURCE = "hermes"
@@ -42,7 +44,7 @@ def _estimate_tokens_from_text(text: str) -> int:
     if match:
         raw = _parse_int(match.group(1))
         return max(1, raw // 4)
-    return max(1, len(text) // 4)
+    return estimate_tokens(text)
 
 
 def _normalize_hermes_event(row: dict[str, Any]) -> dict[str, Any] | None:

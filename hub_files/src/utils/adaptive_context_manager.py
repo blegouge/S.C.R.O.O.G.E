@@ -74,11 +74,23 @@ class Block2CacheEntry:
     created_at: str = ""
 
 
-def estimate_tokens(text: str) -> int:
-    """Fast, model-agnostic token proxy."""
-    if not text:
-        return 0
-    return max(1, (len(text) + 3) // 4)
+try:
+    from telemetry_common import estimate_tokens
+except ImportError:
+    import functools
+
+    @functools.lru_cache(maxsize=1024)
+    def estimate_tokens(text: str, model_name: str | None = None) -> int:
+        """Fast, model-agnostic token proxy fallback."""
+        if not text:
+            return 0
+        try:
+            import tiktoken
+
+            encoding = tiktoken.get_encoding("cl100k_base")
+            return len(encoding.encode(text, disallowed_special=()))
+        except Exception:
+            return max(1, (len(text) + 3) // 4)
 
 
 def estimate_messages_tokens(messages: list[Message]) -> int:

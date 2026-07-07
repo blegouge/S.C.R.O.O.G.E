@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import functools
 import json
 import os
 import re
@@ -315,3 +316,59 @@ def hook_fail_safe(fallback_json: str = '{"permission": "allow"}'):
         return wrapper
 
     return decorator
+
+
+_tiktoken_encodings: dict[str, Any] = {}
+
+
+def _get_tiktoken_encoding(model_name: str | None = None) -> Any:
+    if not model_name:
+        model_name = (
+            os.environ.get("CODEX_MODEL")
+            or os.environ.get("CURSOR_MODEL")
+            or os.environ.get("CLAUDE_MODEL")
+            or os.environ.get("GEMINI_MODEL")
+            or os.environ.get("HERMES_MODEL")
+            or None
+        )
+    encoding_name = "cl100k_base"
+    if model_name:
+        model_lower = str(model_name).lower()
+        if "gpt-4o" in model_lower or "o1" in model_lower:
+            encoding_name = "o200k_base"
+        elif "gpt-4" in model_lower or "gpt-3.5" in model_lower:
+            encoding_name = "cl100k_base"
+
+    if encoding_name in _tiktoken_encodings:
+        return _tiktoken_encodings[encoding_name]
+
+    try:
+        import tiktoken
+
+        enc = tiktoken.get_encoding(encoding_name)
+        _tiktoken_encodings[encoding_name] = enc
+        return enc
+    except Exception:
+        try:
+            import tiktoken
+
+            enc = tiktoken.get_encoding("cl100k_base")
+            _tiktoken_encodings[encoding_name] = enc
+            return enc
+        except Exception:
+            _tiktoken_encodings[encoding_name] = False
+            return False
+
+
+@functools.lru_cache(maxsize=1024)
+def estimate_tokens(text: str, model_name: str | None = None) -> int:
+    """Accurately estimate tokens using tiktoken (model-aware), falling back to len/4 on failure."""
+    if not text:
+        return 0
+    enc = _get_tiktoken_encoding(model_name)
+    if enc:
+        try:
+            return len(enc.encode(text, disallowed_special=()))
+        except Exception:
+            pass
+    return max(1, (len(text) + 3) // 4)

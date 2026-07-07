@@ -7,7 +7,7 @@ set -euo pipefail
 cat > /dev/null
 
 # Run detect-changes and log telemetry; swallow errors
-output=$(python3 /Users/blegouge/.gemini/antigravity/hooks/log-crg-pre-commit.py 2>&1) || output=""
+output=$(python3 {{HUB}}/hooks/log-crg-pre-commit.py 2>&1) || output=""
 
 # Emit valid JSON on stdout
 python3 -c "
