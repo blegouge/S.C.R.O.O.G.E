@@ -181,7 +181,8 @@ const TRANSLATIONS = {
     complete: 'complete',
     incomplete: 'incomplete',
     avgSumLatest: 'sum {sum} · {count} resp. · latest {latest}',
-    avgSumLatestCacheAdjusted: 'sum {sum} (adj: {adjSum}) · {count} resp. · latest {latest} (adj: {latestAdj})',
+    avgSumLatestCacheAdjusted:
+      'sum {sum} (adj: {adjSum}) · {count} resp. · latest {latest} (adj: {latestAdj})',
     notExposed: 'not exposed',
     launchCount: '{count} launch(es)',
     stopCount: '{count} stop(s)',
@@ -401,7 +402,8 @@ const TRANSLATIONS = {
     complete: 'complet',
     incomplete: 'incomplet',
     avgSumLatest: 'somme {sum} · {count} resp. · dernier {latest}',
-    avgSumLatestCacheAdjusted: 'somme {sum} (adj : {adjSum}) · {count} resp. · dernier {latest} (adj : {latestAdj})',
+    avgSumLatestCacheAdjusted:
+      'somme {sum} (adj : {adjSum}) · {count} resp. · dernier {latest} (adj : {latestAdj})',
     notExposed: 'non exposé',
     launchCount: '{count} lancement(s)',
     stopCount: '{count} arrêt(s)',
