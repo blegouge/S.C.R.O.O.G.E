@@ -11,6 +11,7 @@ import {
   compressionSummary,
   hookSavedTokens,
   hookSavedPct,
+  cacheReadWeight,
 } from './dashboard_utils.js';
 
 import {
@@ -133,8 +134,9 @@ function computeReportSummary(events) {
       latestOut = Number(latest.output_tokens || 0);
       latestCacheRead = Number(latest.cache_read_tokens || 0);
       latestCacheWrite = Number(latest.cache_write_tokens || 0);
+      const w = cacheReadWeight(latest.model);
       latestAdjustedBilled = Math.round(
-        Math.max(0, latestIn - latestCacheRead) + latestCacheRead * 0.1 + latestOut
+        Math.max(0, latestIn - latestCacheRead) + latestCacheRead * w + latestOut
       );
     }
   }
@@ -162,7 +164,8 @@ function computeReportSummary(events) {
         const cWrite = Number(e.cache_write_tokens || 0);
         cacheReadSum += cRead;
         cacheWriteSum += cWrite;
-        const adjIn = Math.max(0, inp - cRead) + cRead * 0.1;
+        const w = cacheReadWeight(e.model);
+        const adjIn = Math.max(0, inp - cRead) + cRead * w;
         adjustedBilledSum += Math.round(adjIn + out);
       }
     }

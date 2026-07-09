@@ -423,6 +423,20 @@ def summarize_layer_kpis(
     }
 
 
+def _cache_read_weight(model_name: str | None) -> float:
+    """Return cache read cost factor (weight) based on provider: 0.1 for Anthropic/Gemini, 0.5 for OpenAI."""
+    if not model_name:
+        return 0.1
+    name = str(model_name).lower()
+    if "claude" in name:
+        return 0.1
+    if "gpt" in name or "o1" in name or "o3" in name:
+        return 0.5
+    if "gemini" in name:
+        return 0.1
+    return 0.1
+
+
 def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Single source of truth for report.py and dashboard /api/report-summary."""
     agent_la = agent_lr = agent_pass = tab_n = tab_la = 0
@@ -450,9 +464,10 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
             latest_out = int(latest.get("output_tokens") or 0)
             latest_cache_read = int(latest.get("cache_read_tokens") or 0)
             latest_cache_write = int(latest.get("cache_write_tokens") or 0)
+            w = _cache_read_weight(latest.get("model"))
             latest_adjusted_billed = int(
                 max(0.0, float(latest_in - latest_cache_read))
-                + float(latest_cache_read) * 0.1
+                + float(latest_cache_read) * w
                 + latest_out
             )
 
@@ -483,8 +498,10 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 c_write = int(r.get("cache_write_tokens") or 0)
                 cache_read_sum += c_read
                 cache_write_sum += c_write
-                adj_in = max(0.0, float(in_tok - c_read)) + float(c_read) * 0.1
+                w = _cache_read_weight(r.get("model"))
+                adj_in = max(0.0, float(in_tok - c_read)) + float(c_read) * w
                 adjusted_billed_sum += int(adj_in + out_tok)
+
         ev = str(r.get("event", ""))
         if ev == "codeReviewGraph":
             crg_runs += 1

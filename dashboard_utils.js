@@ -191,6 +191,15 @@ export function compressionSummary(e) {
     : t('none');
 }
 
+export function cacheReadWeight(modelName) {
+  if (!modelName) return 0.1;
+  const name = String(modelName).toLowerCase();
+  if (name.includes('claude')) return 0.1;
+  if (name.includes('gpt') || name.includes('o1') || name.includes('o3')) return 0.5;
+  if (name.includes('gemini')) return 0.1;
+  return 0.1;
+}
+
 export function observedTokens(e) {
   if (e.event === 'afterFileEdit' || e.event === 'afterTabFileEdit') return 0;
   if (isDiffOnlyEvent(e)) return 0;
@@ -199,13 +208,15 @@ export function observedTokens(e) {
     const out = num(e.output_tokens);
     const cRead = num(e.cache_read_tokens);
     if (cRead > 0) {
-      const adjIn = Math.max(0, inp - cRead) + cRead * 0.1;
+      const w = cacheReadWeight(e.model);
+      const adjIn = Math.max(0, inp - cRead) + cRead * w;
       return Math.round(adjIn + out);
     }
     const billed = num(e.billed_total_tokens);
     if (billed > 0) return billed;
     if (inp > 0 || out > 0) return inp + out;
   }
+
   if (isSubagentLaunch(e)) {
     return num(e.compression_after_tokens) || num(e.approx_tokens);
   }

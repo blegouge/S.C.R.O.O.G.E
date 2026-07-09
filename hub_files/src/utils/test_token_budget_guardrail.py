@@ -27,14 +27,18 @@ class TokenBudgetGuardrailTests(unittest.TestCase):
         self.assertIn("[TOKEN_BUDGET_GUARDRAIL_REPORT]", report)
         self.assertIn("subagent_type=generalpurpose", report)
         self.assertIn("prompt_tokens_est=", report)
-        self.assertIn("risk=medium", report)  # generalpurpose mentions large read is false but type is generalpurpose
+        self.assertIn(
+            "risk=medium", report
+        )  # generalpurpose mentions large read is false but type is generalpurpose
 
     def test_build_upstream_report_halt(self) -> None:
         report = build_upstream_guardrail_report(
             subagent_type="explore",
             prompt="Read whole codebase",
             description="Testing loop halt",
-            tool_input={"guardrail_state": {"failure_streak": 2, "last_failure_kind": "infinite_loop"}},
+            tool_input={
+                "guardrail_state": {"failure_streak": 2, "last_failure_kind": "infinite_loop"}
+            },
         )
         self.assertIn("loop_halt_active=yes", report)
         self.assertIn("risk=high", report)

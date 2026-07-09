@@ -284,7 +284,7 @@ class TelemetryMetricsTests(unittest.TestCase):
         self.assertEqual(res["parent_billed"]["cache_read_sum"], 1300)
         self.assertEqual(res["parent_billed"]["cache_write_sum"], 300)
 
-        # Adjusted calculations:
+        # Adjusted calculations (fallback = 0.1 weight):
         # Row 1: adj_in = (800 - 500) + 500 * 0.1 = 300 + 50 = 350 -> adj_billed = 350 + 200 = 550
         # Row 2: adj_in = (1200 - 800) + 800 * 0.1 = 400 + 80 = 480 -> adj_billed = 480 + 300 = 780
         # Total adjusted_sum = 550 + 780 = 1330
@@ -295,6 +295,44 @@ class TelemetryMetricsTests(unittest.TestCase):
         # Latest check: latest is at 13:00:00Z
         self.assertEqual(res["parent_billed"]["latest"], 1500)
         self.assertEqual(res["parent_billed"]["latest_adjusted"], 780)
+
+    def test_summarize_report_cache_aware_openai(self) -> None:
+        rows = [
+            {
+                "event": "afterAgentResponse",
+                "billed_total_tokens": 1000,
+                "input_tokens": 800,
+                "output_tokens": 200,
+                "cache_read_tokens": 500,
+                "cache_write_tokens": 100,
+                "model": "gpt-4o",
+                "ts": "2026-07-07T12:00:00Z",
+            }
+        ]
+        res = telemetry_metrics.summarize_report(rows)
+        # OpenAI weight = 0.5:
+        # adj_in = (800 - 500) + 500 * 0.5 = 300 + 250 = 550 -> adj_billed = 550 + 200 = 750
+        self.assertEqual(res["parent_billed"]["adjusted_sum"], 750)
+        self.assertEqual(res["parent_billed"]["latest_adjusted"], 750)
+
+    def test_summarize_report_cache_aware_anthropic(self) -> None:
+        rows = [
+            {
+                "event": "afterAgentResponse",
+                "billed_total_tokens": 1000,
+                "input_tokens": 800,
+                "output_tokens": 200,
+                "cache_read_tokens": 500,
+                "cache_write_tokens": 100,
+                "model": "claude-3-5-sonnet",
+                "ts": "2026-07-07T12:00:00Z",
+            }
+        ]
+        res = telemetry_metrics.summarize_report(rows)
+        # Anthropic weight = 0.1:
+        # adj_in = (800 - 500) + 500 * 0.1 = 300 + 50 = 350 -> adj_billed = 350 + 200 = 350 + 200 = 550
+        self.assertEqual(res["parent_billed"]["adjusted_sum"], 550)
+        self.assertEqual(res["parent_billed"]["latest_adjusted"], 550)
 
 
 if __name__ == "__main__":

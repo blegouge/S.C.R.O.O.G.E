@@ -147,7 +147,9 @@ def _append_telemetry(
     structured_prompt: str = "",
     stats: dict[str, Any] | None = None,
     compression_mode: str = "full",
+    model_name: str | None = None,
 ) -> None:
+
     pipeline_saved_tokens = max(0, before_tokens - after_tokens)
     pipeline_saved_chars = max(0, before_chars - after_chars)
     # End-to-end: original Task prompt vs final prompt sent to the subagent.
@@ -169,11 +171,6 @@ def _append_telemetry(
     if git_cache_hit:
         match = _BLOCK2_SECTION.search(structured_prompt)
         if match:
-            model_name = str(tool_input.get("model") or "").strip()
-            if not model_name:
-                model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
-            else:
-                model_name = model_name[:240]
             block2_preserved = estimate_tokens(match.group(1), model_name)
 
     guardrail_meta = analyze_guardrail_launch(
@@ -182,7 +179,9 @@ def _append_telemetry(
         description=description,
         tool_input=tool_input,
         after_tokens=after_tokens,
+        model_name=model_name,
     )
+
     idempotent_injected = _IDEMPOTENT_TAG in prompt
 
     row: dict[str, Any] = {
@@ -410,6 +409,7 @@ def _build_structured_prompt(
     *,
     repo_root: Path | None = None,
     summarizer_mode: str = "",
+    model_name: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     existing_state = tool_input.get("global_state")
     state_dict = existing_state if isinstance(existing_state, dict) else {}
@@ -419,6 +419,7 @@ def _build_structured_prompt(
         state_dict,
         repo_root=repo_root,
         summarizer_mode=summarizer_mode,
+        model_name=model_name,
     )
 
     ephemeral = {}
@@ -459,6 +460,7 @@ def _build_structured_prompt(
         prompt=f"{block_3}\n{block_4}".strip(),
         description=str(tool_input.get("description") or ""),
         tool_input=tool_input,
+        model_name=model_name,
     )
 
     structured_prompt = (
@@ -625,7 +627,9 @@ def main() -> None:
             tool_input,
             repo_root=repo_root,
             summarizer_mode=summarizer_mode,
+            model_name=model_name,
         )
+
         compressed_prompt = structured_prompt
         compress_targets: list[str] = [
             r"(?s)(\[BLOCK_2_SEMI_STATIC\]\n)(.*?)(\n\n\[BLOCK_3_DYNAMIC_HISTORY\]\n)",
@@ -688,7 +692,9 @@ def main() -> None:
             structured_prompt=structured_prompt,
             stats=stats,
             compression_mode=compression_mode,
+            model_name=model_name,
         )
+
         _debug_log("telemetry_ok")
     except Exception as e:
         _debug_log("telemetry_error", error=str(e), error_type=type(e).__name__)

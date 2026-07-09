@@ -127,8 +127,6 @@ def append_event(row: dict[str, Any]) -> None:
                         pass
 
 
-
-
 def _load_known_skills() -> set[str]:
     global _KNOWN_SKILLS  # noqa: PLW0603
     if _KNOWN_SKILLS is not None:

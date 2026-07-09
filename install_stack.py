@@ -902,7 +902,9 @@ def main() -> int:
         # Create Python Virtual Environment (.venv-desktop)
         venv_dir = HUB / "token-telemetry" / ".venv-desktop"
         req_lock = HUB / "token-telemetry" / "requirements-desktop.lock"
-        req_file = req_lock if req_lock.is_file() else HUB / "token-telemetry" / "requirements-desktop.txt"
+        req_file = (
+            req_lock if req_lock.is_file() else HUB / "token-telemetry" / "requirements-desktop.txt"
+        )
 
         print(f"Setting up Python venv at {venv_dir}...")
         try:
