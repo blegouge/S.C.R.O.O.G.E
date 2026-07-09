@@ -31,6 +31,13 @@ export async function loadLayerKpis() {
   return res.json();
 }
 
+export async function loadReportSummary() {
+  const res = await fetch('/api/report-summary?source=' + getSource());
+  if (!res.ok) throw new Error('Report summary API ' + res.status);
+  return res.json();
+}
+
+
 export async function loadProviders() {
   try {
     const resp = await fetch('/api/providers');

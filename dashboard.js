@@ -19,6 +19,7 @@ import {
   loadApi,
   loadRtkGain,
   loadLayerKpis,
+  loadReportSummary,
   loadProviders,
   persistLayoutPrefs,
   loadLayoutPrefs,
@@ -28,6 +29,7 @@ import {
   summarizeStackKpis,
   summarizeOptimizationTotals,
   summarizeComplianceKpis,
+  summarizeAbTest,
 } from './dashboard_stats.js';
 
 import { renderCharts } from './dashboard_charts.js';
@@ -50,6 +52,7 @@ const DEFAULT_SECTION_ORDER = [
   'kpi-subagents',
   'kpi-stack',
   'kpi-compliance',
+  'kpi-ab-test',
   'table-subagents',
   'table-compliance',
   'table-crg',
@@ -628,6 +631,27 @@ function renderComplianceStats(events) {
   setComplianceChipState('chipBriefPass', b.pass_rate_pct, 85);
 }
 
+function renderAbTestKpis(events, abReportSummary) {
+  const ab = summarizeAbTest(events);
+  const enabled = abReportSummary?.ab_test?.enabled || false;
+  const ratio = abReportSummary?.ab_test?.ratio || 0.2;
+
+  document.getElementById('kpiAbEnabled').textContent = enabled ? 'Active' : 'Disabled';
+  document.getElementById('kpiAbRatio').textContent = `Ratio: ${Math.round(ratio * 100)}%`;
+
+  document.getElementById('kpiAbControlRuns').textContent = fmtNum(ab.control.launches);
+  document.getElementById('kpiAbControlTokens').textContent =
+    `${fmtCompact(ab.control.input_tokens)} input tokens`;
+
+  document.getElementById('kpiAbTreatmentRuns').textContent = fmtNum(ab.treatment.launches);
+  document.getElementById('kpiAbTreatmentTokens').textContent =
+    `${fmtCompact(ab.treatment.input_tokens)} input tokens`;
+
+  document.getElementById('kpiAbSavingsTokens').textContent = fmtCompact(ab.treatment.saved_tokens);
+  document.getElementById('kpiAbSavingsPct').textContent =
+    `${ab.treatment.saved_pct.toFixed(2)}% reduction`;
+}
+
 function renderOptimizationKpis(events, rtkGain) {
   const tData = summarizeOptimizationTotals(events, rtkGain);
   document.getElementById('kpiObserved').textContent = fmtCompact(tData.observed);
@@ -733,6 +757,12 @@ function renderAll(events) {
   renderRtkGainStats(rtkGainData, hookSummary.savedTokens);
   renderOptimizationKpis(events, rtkGainData);
   loadLayerKpis().then((lp) => renderLayerKpis(lp));
+  loadReportSummary()
+    .then((summary) => renderAbTestKpis(events, summary))
+    .catch((err) => {
+      console.warn('Failed to load AB report summary config:', err);
+      renderAbTestKpis(events, null);
+    });
 
   const isDark = !document.documentElement.classList.contains('theme-light');
   const bucket = document.getElementById('bucketSelect').value;

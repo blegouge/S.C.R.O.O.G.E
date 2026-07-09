@@ -595,6 +595,61 @@
           </div>
         </div>
 
+        <div class="dash-section" data-section-id="kpi-ab-test">
+          <div class="dash-section-header">
+            <button
+              type="button"
+              class="dash-section-toggle"
+              aria-expanded="true"
+              aria-controls="dash-body-kpi-ab-test"
+              title="Show or hide section"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M4 2.5L8 6l-4 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <span
+              class="dash-section-drag-handle"
+              title="Drag to reorder"
+              aria-label="Drag to reorder"
+              >⋮⋮</span
+            >
+            <h2 class="dash-section-title" data-i18n="section_kpi_ab_test">
+              A/B Testing &amp; Calibration (KPI)
+            </h2>
+          </div>
+          <div class="dash-section-body" id="dash-body-kpi-ab-test">
+            <section class="glass-strip ab-test-strip" aria-label="A/B Testing">
+              <article class="metric-chip" id="chipAbStatus">
+                <label data-i18n="abTestStatus">A/B Testing Status</label>
+                <div class="big" id="kpiAbEnabled">Disabled</div>
+                <div class="sub" id="kpiAbRatio">Ratio: 20%</div>
+              </article>
+              <article class="metric-chip" id="chipAbControl">
+                <label data-i18n="abControlGroup">Control (Raw A)</label>
+                <div class="big" id="kpiAbControlRuns">0</div>
+                <div class="sub" id="kpiAbControlTokens">0 input tokens</div>
+              </article>
+              <article class="metric-chip" id="chipAbTreatment">
+                <label data-i18n="abTreatmentGroup">Treatment (Optimized B)</label>
+                <div class="big" id="kpiAbTreatmentRuns">0</div>
+                <div class="sub" id="kpiAbTreatmentTokens">0 input tokens</div>
+              </article>
+              <article class="metric-chip" id="chipAbSavings">
+                <label data-i18n="abSavingsGroup">Real Savings (B vs A)</label>
+                <div class="big" id="kpiAbSavingsTokens">0</div>
+                <div class="sub" id="kpiAbSavingsPct">0% reduction</div>
+              </article>
+            </section>
+          </div>
+        </div>
+
         <div class="dash-section" data-section-id="table-subagents">
           <div class="dash-section-header">
             <button

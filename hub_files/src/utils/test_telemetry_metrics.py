@@ -334,6 +334,43 @@ class TelemetryMetricsTests(unittest.TestCase):
         self.assertEqual(res["parent_billed"]["adjusted_sum"], 550)
         self.assertEqual(res["parent_billed"]["latest_adjusted"], 550)
 
+    def test_summarize_report_ab_testing(self) -> None:
+        rows = [
+            {
+                "event": "subagentLaunch",
+                "ab_group": "control",
+                "compression_input_tokens": 1000,
+                "compression_after_tokens": 1000,
+            },
+            {
+                "event": "subagentLaunch",
+                "ab_group": "treatment",
+                "compression_input_tokens": 2000,
+                "compression_after_tokens": 800,
+            },
+            {
+                "event": "subagentLaunch",
+                "ab_group": "treatment",
+                "compression_input_tokens": 1000,
+                "compression_after_tokens": 200,
+            }
+        ]
+        res = telemetry_metrics.summarize_report(rows)
+        ab = res.get("ab_test")
+        self.assertIsNotNone(ab)
+        self.assertEqual(ab["control"]["launches"], 1)
+        self.assertEqual(ab["control"]["input_tokens"], 1000)
+        self.assertEqual(ab["control"]["after_tokens"], 1000)
+        self.assertEqual(ab["control"]["saved_tokens"], 0)
+
+        self.assertEqual(ab["treatment"]["launches"], 2)
+        self.assertEqual(ab["treatment"]["input_tokens"], 3000)
+        self.assertEqual(ab["treatment"]["after_tokens"], 1000)
+        # 3000 - 1000 = 2000
+        self.assertEqual(ab["treatment"]["saved_tokens"], 2000)
+        self.assertEqual(ab["treatment"]["saved_pct"], 66.67)
+
 
 if __name__ == "__main__":
     unittest.main()
+

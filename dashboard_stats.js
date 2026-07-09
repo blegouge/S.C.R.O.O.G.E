@@ -203,3 +203,49 @@ export function summarizeComplianceKpis(events) {
     },
   };
 }
+
+export function summarizeAbTest(events) {
+  const launches = events.filter(isSubagentLaunch);
+  let controlLaunches = 0;
+  let controlInputTokens = 0;
+  let controlAfterTokens = 0;
+  let treatmentLaunches = 0;
+  let treatmentInputTokens = 0;
+  let treatmentAfterTokens = 0;
+
+  launches.forEach((e) => {
+    const ab = e.ab_group || 'treatment';
+    const inp = num(e.compression_input_tokens);
+    const aft = num(e.compression_after_tokens) || num(e.approx_tokens);
+    if (ab === 'control') {
+      controlLaunches++;
+      controlInputTokens += inp;
+      controlAfterTokens += aft;
+    } else {
+      treatmentLaunches++;
+      treatmentInputTokens += inp;
+      treatmentAfterTokens += aft;
+    }
+  });
+
+  const treatmentReduction = treatmentInputTokens - treatmentAfterTokens;
+  const treatmentSavedPct =
+    treatmentInputTokens > 0 ? (100 * treatmentReduction) / treatmentInputTokens : 0;
+
+  return {
+    control: {
+      launches: controlLaunches,
+      input_tokens: controlInputTokens,
+      after_tokens: controlAfterTokens,
+      saved_tokens: 0,
+      saved_pct: 0,
+    },
+    treatment: {
+      launches: treatmentLaunches,
+      input_tokens: treatmentInputTokens,
+      after_tokens: treatmentAfterTokens,
+      saved_tokens: treatmentReduction,
+      saved_pct: Math.round(treatmentSavedPct * 100) / 100,
+    },
+  };
+}

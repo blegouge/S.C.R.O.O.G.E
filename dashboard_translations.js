@@ -219,7 +219,13 @@ export const TRANSLATIONS = {
     inOutAvoided: 'in+out avoided (est.)',
     noInterceptsRecorded: 'no intercepts recorded',
     briefsTagged: '{pct}% briefs tagged',
+    section_kpi_ab_test: 'A/B Testing & Calibration (KPI)',
+    abTestStatus: 'A/B Testing Status',
+    abControlGroup: 'Control (Raw A)',
+    abTreatmentGroup: 'Treatment (Optimized B)',
+    abSavingsGroup: 'Real Savings (B vs A)',
   },
+
   fr: {
     brandTitle: 'S.C.R.O.O.G.E.',
     brandSub: 'Smart Context Reducer & Optimized Observability Governance Engine',
@@ -441,6 +447,11 @@ export const TRANSLATIONS = {
     inOutAvoided: 'in/out évitées (est.)',
     noInterceptsRecorded: 'aucun intercept détecté',
     briefsTagged: '{pct}% briefs marqués',
+    section_kpi_ab_test: 'A/B Testing & Calibration (KPI)',
+    abTestStatus: "Statut de l'A/B Testing",
+    abControlGroup: 'Contrôle (Brut A)',
+    abTreatmentGroup: 'Traitement (Optimisé B)',
+    abSavingsGroup: 'Économies réelles (B vs A)',
   },
 };
 

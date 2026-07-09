@@ -530,6 +530,54 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
     idem = stack["idempotent_context_injected"]
     idem_pct = (100 * idem // launches) if launches else 0
 
+    control_launches = 0
+    control_input_tokens = 0
+    control_after_tokens = 0
+    treatment_launches = 0
+    treatment_input_tokens = 0
+    treatment_after_tokens = 0
+
+    for r in rows:
+        if is_subagent_launch(r):
+            ab = r.get("ab_group", "treatment")
+            inp = int(r.get("compression_input_tokens") or 0)
+            aft = int(r.get("compression_after_tokens") or r.get("approx_tokens") or 0)
+            if ab == "control":
+                control_launches += 1
+                control_input_tokens += inp
+                control_after_tokens += aft
+            else:
+                treatment_launches += 1
+                treatment_input_tokens += inp
+                treatment_after_tokens += aft
+
+    treatment_reduction = treatment_input_tokens - treatment_after_tokens
+    treatment_saved_pct = (
+        (100.0 * treatment_reduction / max(1, treatment_input_tokens))
+        if treatment_input_tokens
+        else 0.0
+    )
+
+    from telemetry_config import config
+    ab_stats = {
+        "enabled": config.ab_test_enabled,
+        "ratio": config.ab_test_ratio,
+        "control": {
+            "launches": control_launches,
+            "input_tokens": control_input_tokens,
+            "after_tokens": control_after_tokens,
+            "saved_tokens": 0,
+            "saved_pct": 0.0,
+        },
+        "treatment": {
+            "launches": treatment_launches,
+            "input_tokens": treatment_input_tokens,
+            "after_tokens": treatment_after_tokens,
+            "saved_tokens": treatment_reduction,
+            "saved_pct": round(treatment_saved_pct, 2),
+        },
+    }
+
     return {
         "event_count": len(rows),
         "edit": {
@@ -579,4 +627,6 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "stack": {**stack, "idempotent_pct": idem_pct},
         "compliance": summarize_compliance_kpis(rows),
+        "ab_test": ab_stats,
     }
+
