@@ -367,8 +367,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         # Serve static files dynamically and securely
         target_file = (package_root() / path.lstrip("/")).resolve()
+        pkg_root = package_root().resolve()
+        if getattr(sys, "frozen", False) and pkg_root.name in ("Frameworks", "Resources", "MacOS"):
+            pkg_root = pkg_root.parent
         try:
-            if target_file.is_file() and target_file.is_relative_to(package_root().resolve()):
+            if target_file.is_file() and target_file.is_relative_to(pkg_root):
                 suffix = target_file.suffix.lower()
                 safe_extensions = {".js", ".css", ".ico", ".jpg", ".png", ".html"}
                 if suffix in safe_extensions:
