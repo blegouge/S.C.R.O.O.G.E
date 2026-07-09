@@ -365,22 +365,32 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if path == "/dashboard.js" and JS.is_file():
-            body = JS.read_text(encoding="utf-8").encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/javascript; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        if path == "/dashboard.css" and CSS.is_file():
-            body = CSS.read_text(encoding="utf-8").encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/css; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
+        # Serve static files dynamically and securely
+        target_file = (package_root() / path.lstrip("/")).resolve()
+        try:
+            if target_file.is_file() and target_file.is_relative_to(package_root().resolve()):
+                suffix = target_file.suffix.lower()
+                safe_extensions = {".js", ".css", ".ico", ".jpg", ".png", ".html"}
+                if suffix in safe_extensions:
+                    mime_types = {
+                        ".js": "application/javascript; charset=utf-8",
+                        ".css": "text/css; charset=utf-8",
+                        ".ico": "image/x-icon",
+                        ".jpg": "image/jpeg",
+                        ".png": "image/png",
+                        ".html": "text/html; charset=utf-8",
+                    }
+                    content_type = mime_types.get(suffix, "application/octet-stream")
+                    body = target_file.read_bytes()
+                    self.send_response(200)
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
+        except ValueError:
+            pass
+
         if path in ("/icon.jpg", "/favicon.ico", "/docs/fr/assets/icon.jpg"):
             icon = icon_path()
             if icon is None:
