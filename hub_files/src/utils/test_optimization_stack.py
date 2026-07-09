@@ -26,7 +26,8 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 _TEST_LOG_DIR: tempfile.TemporaryDirectory[str] | None = None
 _TEST_LOG_PATH: Path | None = None
 
-for path in (TELEMETRY_DIR, SRC_DIR, REPO_ROOT):
+LOCAL_SRC = REPO_ROOT / "hub_files" / "src"
+for path in (TELEMETRY_DIR, SRC_DIR, REPO_ROOT, LOCAL_SRC):
     path_str = str(path)
     if path_str in sys.path:
         sys.path.remove(path_str)

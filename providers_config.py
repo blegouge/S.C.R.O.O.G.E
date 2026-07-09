@@ -29,7 +29,7 @@ _config_cache: dict[str, ProviderConfig] | None = None
 
 def _config_path() -> Path:
     if getattr(sys, "frozen", False):
-        return Path(sys._MEIPASS) / "providers_config.yaml"
+        return Path(sys._MEIPASS) / "providers_config.yaml"  # type: ignore[attr-defined]
     return Path(__file__).parent / "providers_config.yaml"
 
 

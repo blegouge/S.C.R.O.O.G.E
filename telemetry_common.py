@@ -103,7 +103,7 @@ def append_event(row: dict[str, Any]) -> None:
                 import msvcrt
 
                 pos = fh.tell()
-                msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore[attr-defined]
                 locked = True
             except (ImportError, OSError):
                 pass
@@ -122,9 +122,11 @@ def append_event(row: dict[str, Any]) -> None:
                         import msvcrt
 
                         fh.seek(pos)
-                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
                     except (ImportError, OSError):
                         pass
+
+
 
 
 def _load_known_skills() -> set[str]:
