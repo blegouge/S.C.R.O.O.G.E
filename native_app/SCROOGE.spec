@@ -15,10 +15,17 @@ block_cipher = None
 datas = [
     (str(PACKAGE / "dashboard.html"), "."),
     (str(PACKAGE / "dashboard.js"), "."),
+    (str(PACKAGE / "dashboard_translations.js"), "."),
+    (str(PACKAGE / "dashboard_utils.js"), "."),
+    (str(PACKAGE / "dashboard_api.js"), "."),
+    (str(PACKAGE / "dashboard_stats.js"), "."),
+    (str(PACKAGE / "dashboard_charts.js"), "."),
+    (str(PACKAGE / "dashboard_tables.js"), "."),
     (str(PACKAGE / "dashboard.css"), "."),
     (str(PACKAGE / "docs" / "fr" / "assets" / "icon.jpg"), "."),
     (str(PACKAGE / "providers_config.yaml"), "."),
 ] + webview_datas
+
 
 a = Analysis(
     [str(PACKAGE / "dashboard_app.py")],
