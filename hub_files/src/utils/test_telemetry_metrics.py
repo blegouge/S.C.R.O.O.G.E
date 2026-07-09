@@ -353,11 +353,12 @@ class TelemetryMetricsTests(unittest.TestCase):
                 "ab_group": "treatment",
                 "compression_input_tokens": 1000,
                 "compression_after_tokens": 200,
-            }
+            },
         ]
         res = telemetry_metrics.summarize_report(rows)
         ab = res.get("ab_test")
         self.assertIsNotNone(ab)
+        assert isinstance(ab, dict)
         self.assertEqual(ab["control"]["launches"], 1)
         self.assertEqual(ab["control"]["input_tokens"], 1000)
         self.assertEqual(ab["control"]["after_tokens"], 1000)
@@ -373,4 +374,3 @@ class TelemetryMetricsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

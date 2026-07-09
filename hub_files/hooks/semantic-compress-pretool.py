@@ -229,7 +229,6 @@ def _append_telemetry(
     append_event(row)
 
 
-
 def _is_code_like(text: str) -> bool:
     if "```" in text:
         return True
@@ -491,7 +490,7 @@ def main() -> None:
 
     model_name = str(data.get("model") or tool_input.get("model") or "").strip()
     if not model_name:
-        model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
+        model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or ""
     else:
         model_name = model_name[:240]
 
@@ -583,6 +582,7 @@ def main() -> None:
     ab_group = "treatment"
     if config.ab_test_enabled:
         import random
+
         if random.random() < config.ab_test_ratio:
             ab_group = "control"
 
@@ -605,7 +605,9 @@ def main() -> None:
     else:
         structure_min = max(
             500,
-            _safe_int(tool_input.get("structure_min_input_tokens"), DEFAULT_STRUCTURE_MIN_INPUT_TOKENS),
+            _safe_int(
+                tool_input.get("structure_min_input_tokens"), DEFAULT_STRUCTURE_MIN_INPUT_TOKENS
+            ),
         )
         compression_mode = "light" if input_tokens < structure_min else "full"
 
@@ -679,7 +681,9 @@ def main() -> None:
                 used_llmlingua = used_llmlingua or used_lingua
                 replacement = f"{prefix}{compacted}{suffix}"
                 compressed_prompt = (
-                    compressed_prompt[: match.start()] + replacement + compressed_prompt[match.end() :]
+                    compressed_prompt[: match.start()]
+                    + replacement
+                    + compressed_prompt[match.end() :]
                 )
             before_chars = len(structured_prompt)
             before_tokens = estimate_tokens(structured_prompt, model_name)
@@ -723,7 +727,6 @@ def main() -> None:
             model_name=model_name,
             ab_group=ab_group,
         )
-
 
         _debug_log("telemetry_ok")
     except Exception as e:

@@ -559,6 +559,7 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
     )
 
     from telemetry_config import config
+
     ab_stats = {
         "enabled": config.ab_test_enabled,
         "ratio": config.ab_test_ratio,
@@ -629,4 +630,3 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "compliance": summarize_compliance_kpis(rows),
         "ab_test": ab_stats,
     }
-

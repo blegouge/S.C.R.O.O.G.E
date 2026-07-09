@@ -144,6 +144,5 @@ class ConfigManager:
         return self._get_env_float("AB_TEST_RATIO", 0.20)
 
 
-
 # Global config instance initialized on import
 config = ConfigManager()
