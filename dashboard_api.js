@@ -37,7 +37,6 @@ export async function loadReportSummary() {
   return res.json();
 }
 
-
 export async function loadProviders() {
   try {
     const resp = await fetch('/api/providers');
