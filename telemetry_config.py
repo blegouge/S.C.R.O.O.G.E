@@ -135,6 +135,14 @@ class ConfigManager:
     def guardrail_savings_coefficient(self) -> float:
         return self._get_env_float("GUARDRAIL_SAVINGS_COEFFICIENT", 0.35)
 
+    @property
+    def ab_test_enabled(self) -> bool:
+        return self._get_env_bool("AB_TEST_ENABLED", False)
+
+    @property
+    def ab_test_ratio(self) -> float:
+        return self._get_env_float("AB_TEST_RATIO", 0.20)
+
 
 # Global config instance initialized on import
 config = ConfigManager()

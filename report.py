@@ -84,12 +84,15 @@ def main() -> None:
 
     s = summarize_report(rows)
     rtk_gain = {"ok": False}
-    base, _ = resolve_rtk_command()
-    if base:
+    rtk_cmd, _ = resolve_rtk_command()
+    if rtk_cmd:
         import subprocess as _sp
 
         proc = _sp.run(
-            [base[0], "gain", "-d", "--format", "json"], capture_output=True, text=True, timeout=8
+            [rtk_cmd[0], "gain", "-d", "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=8,
         )
         if proc.returncode == 0:
             try:

@@ -28,11 +28,18 @@ DASHBOARD_RUNTIME_FILES = {
     "dashboard.html",
     "dashboard.css",
     "dashboard.js",
+    "dashboard_translations.js",
+    "dashboard_utils.js",
+    "dashboard_api.js",
+    "dashboard_charts.js",
+    "dashboard_stats.js",
+    "dashboard_tables.js",
     "dashboard_app.py",
     "providers_config.py",
     "providers_config.yaml",
     "report.py",
     "requirements-desktop.txt",
+    "requirements-desktop.lock",
     "rtk_resolver.py",
     "serve_dashboard.py",
     "telemetry_common.py",
@@ -522,40 +529,7 @@ def main() -> int:
         default=current_backend,
     )
 
-    # 4. Configure interactive secrets (mcp.secrets.env) - Ask once
-    print_header("MCP Secret Tokens Setup")
-    # Collect existing secrets from any possible target directory to use as defaults
-    existing_secrets = {}
-    for pt in possible_targets:
-        target_secrets_file = pt / "mcp.secrets.env"
-        if target_secrets_file.exists():
-            existing_secrets.update(load_env_file(target_secrets_file))
-
-    secret_vars = [
-        ("GRAFANA_API_TOKEN", "Grafana API Token"),
-        ("ES_USERNAME", "Elasticsearch catalog Username"),
-        ("ES_PASSWORD", "Elasticsearch catalog Password"),
-        ("MYSQL_PASSWORD", "MySQL Database Password"),
-        ("DD_API_KEY", "Datadog API Key"),
-        ("DD_APP_KEY", "Datadog App Key"),
-        ("GITHUB_PERSONAL_ACCESS_TOKEN", "GitHub Personal Access Token"),
-        ("GITLAB_TOKEN", "GitLab Personal Token"),
-    ]
-
-    new_secrets = {}
-    print(
-        "Please enter the credentials for each integration (press Enter to skip or keep existing):"
-    )
-    for var_name, description in secret_vars:
-        prev_val = existing_secrets.get(var_name, "")
-        masked_prev = f"{prev_val[:4]}...{prev_val[-4:]}" if len(prev_val) > 8 else prev_val
-        prompt_desc = f"{description} ({var_name})"
-
-        user_val = input(f"  {prompt_desc} [{masked_prev if prev_val else 'empty'}]: ").strip()
-        if not user_val:
-            new_secrets[var_name] = prev_val
-        else:
-            new_secrets[var_name] = user_val
+    # Note: MCP secrets (mcp.secrets.env) are now initialized from template rather than prompted.
 
     # Persist configurations back to the repository's `.env`
     repo_env["CODEBASE_ROOT"] = codebase_root
@@ -684,18 +658,15 @@ def main() -> int:
             comment_header="# Token optimization context compression configuration",
         )
 
-        # Write secrets to target hub
+        # Initialize mcp.secrets.env from example if not present
         secrets_file = HUB / "mcp.secrets.env"
-        save_env_file(
-            secrets_file,
-            new_secrets,
-            comment_header="# Loaded by bin/mcp-env-exec.sh before starting MCP servers",
-        )
-        try:
-            secrets_file.chmod(0o600)
-            print(f"Secured secrets file at {secrets_file}")
-        except Exception as exc:
-            print(f"Warning: Failed to set permissions on secrets file: {exc}")
+        if not secrets_file.exists() and (HUB_FILES / "mcp.secrets.env.example").exists():
+            shutil.copy2(HUB_FILES / "mcp.secrets.env.example", secrets_file)
+            try:
+                secrets_file.chmod(0o600)
+                print(f"Generated default secrets template at {secrets_file}")
+            except Exception as exc:
+                print(f"Warning: Failed to set permissions on secrets file: {exc}")
 
         # Determine target name/type for replacements
         target_name = detect_target_name(HUB)
@@ -894,7 +865,10 @@ def main() -> int:
 
         # Create Python Virtual Environment (.venv-desktop)
         venv_dir = HUB / "token-telemetry" / ".venv-desktop"
-        req_file = HUB / "token-telemetry" / "requirements-desktop.txt"
+        req_lock = HUB / "token-telemetry" / "requirements-desktop.lock"
+        req_file = (
+            req_lock if req_lock.is_file() else HUB / "token-telemetry" / "requirements-desktop.txt"
+        )
 
         print(f"Setting up Python venv at {venv_dir}...")
         try:

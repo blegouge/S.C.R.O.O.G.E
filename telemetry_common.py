@@ -103,7 +103,7 @@ def append_event(row: dict[str, Any]) -> None:
                 import msvcrt
 
                 pos = fh.tell()
-                msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore[attr-defined]
                 locked = True
             except (ImportError, OSError):
                 pass
@@ -122,7 +122,7 @@ def append_event(row: dict[str, Any]) -> None:
                         import msvcrt
 
                         fh.seek(pos)
-                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
                     except (ImportError, OSError):
                         pass
 
@@ -319,6 +319,40 @@ def hook_fail_safe(fallback_json: str = '{"permission": "allow"}'):
 
 
 _tiktoken_encodings: dict[str, Any] = {}
+_claude_tokenizer: Any = None
+
+
+def _resolve_claude_tokenizer_path() -> Path | None:
+    """Resolve absolute path to the offline Claude tokenizer.json file."""
+    base_dir = Path(__file__).resolve().parent
+    # In installed context: token-telemetry/telemetry_common.py -> src/utils/claude_tokenizer/tokenizer.json
+    path_installed = base_dir.parent / "src" / "utils" / "claude_tokenizer" / "tokenizer.json"
+    if path_installed.is_file():
+        return path_installed
+    # In dev context: telemetry_common.py -> hub_files/src/utils/claude_tokenizer/tokenizer.json
+    path_dev = base_dir / "hub_files" / "src" / "utils" / "claude_tokenizer" / "tokenizer.json"
+    if path_dev.is_file():
+        return path_dev
+    return None
+
+
+def _get_claude_tokenizer() -> Any:
+    """Load Claude tokenizer from file if tokenizers library is available."""
+    global _claude_tokenizer  # noqa: PLW0603
+    if _claude_tokenizer is not None:
+        return _claude_tokenizer
+
+    try:
+        from tokenizers import Tokenizer
+
+        tokenizer_path = _resolve_claude_tokenizer_path()
+        if tokenizer_path:
+            _claude_tokenizer = Tokenizer.from_file(str(tokenizer_path))
+            return _claude_tokenizer
+    except Exception:
+        pass
+    _claude_tokenizer = False
+    return False
 
 
 def _get_tiktoken_encoding(model_name: str | None = None) -> Any:
@@ -361,14 +395,41 @@ def _get_tiktoken_encoding(model_name: str | None = None) -> Any:
 
 
 @functools.lru_cache(maxsize=1024)
-def estimate_tokens(text: str, model_name: str | None = None) -> int:
-    """Accurately estimate tokens using tiktoken (model-aware), falling back to len/4 on failure."""
+def estimate_tokens_with_source(text: str, model_name: str | None = None) -> tuple[int, str]:
+    """Accurately estimate tokens, returning a tuple (count, source).
+
+    source is one of:
+      - 'tokenizer' (either Claude tokenizer or tiktoken was used)
+      - 'proxy' (character-based fallback)
+    """
     if not text:
-        return 0
+        return 0, "tokenizer"
+
+    # Check if this is a Claude model
+    is_claude = False
+    if model_name:
+        is_claude = "claude" in str(model_name).lower()
+    else:
+        is_claude = _detect_source() == "claude"
+
+    if is_claude:
+        tokenizer = _get_claude_tokenizer()
+        if tokenizer:
+            try:
+                return len(tokenizer.encode(text).ids), "tokenizer"
+            except Exception:
+                pass
+
     enc = _get_tiktoken_encoding(model_name)
     if enc:
         try:
-            return len(enc.encode(text, disallowed_special=()))
+            return len(enc.encode(text, disallowed_special=())), "tokenizer"
         except Exception:
             pass
-    return max(1, (len(text) + 3) // 4)
+
+    return max(1, (len(text) + 3) // 4), "proxy"
+
+
+def estimate_tokens(text: str, model_name: str | None = None) -> int:
+    """Accurately estimate tokens using tiktoken/claude tokenizer, falling back to len/4 on failure."""
+    return estimate_tokens_with_source(text, model_name)[0]

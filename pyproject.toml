@@ -64,7 +64,7 @@ known-first-party = ["utils", "telemetry_db", "telemetry_config", "telemetry_pat
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
-check_untyped_defs = false
+check_untyped_defs = true
 warn_unused_ignores = false
 warn_redundant_casts = false
 files = [
@@ -73,6 +73,8 @@ files = [
     "telemetry_config.py",
     "telemetry_paths.py",
     "providers_config.py",
+    "telemetry_common.py",
+    "telemetry_metrics.py",
     "token_compactor.py",
     "smart_crusher.py",
     "report.py",
@@ -91,16 +93,5 @@ files = [
 testpaths = ["hub_files/src/utils"]
 pythonpath = ["hub_files/src", "."]
 python_files = ["test_*.py"]
-addopts = "--cov=hub_files/src/utils --cov-report=term-missing"
+addopts = "--cov=hub_files/src/utils --cov-report=term-missing --cov-fail-under=80"
 
-[[tool.mypy.overrides]]
-module = [
-    "providers_config",
-    "telemetry_common",
-    "report",
-    "serve_dashboard",
-    "headroom_adapter",
-    "utils.*",
-    "hub_files.src.utils.*"
-]
-ignore_errors = true

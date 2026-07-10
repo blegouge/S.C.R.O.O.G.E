@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import http.server
 import json
 import os
 import pathlib
@@ -11,12 +12,8 @@ import secrets
 import shutil
 import subprocess
 import sys
+from http.server import SimpleHTTPRequestHandler
 from typing import Any
-
-try:
-    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer as HTTPServer
-except ImportError:
-    from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 from providers_config import get_data_dir, get_enabled_providers, get_rtk_cwd
 from telemetry_metrics import summarize_layer_kpis, summarize_report
@@ -25,7 +22,8 @@ from telemetry_metrics import summarize_layer_kpis, summarize_report
 def package_root() -> pathlib.Path:
     """Bundle HTML/icon: PyInstaller extract dir when frozen; else script directory."""
     if getattr(sys, "frozen", False):
-        return pathlib.Path(sys._MEIPASS)
+        return pathlib.Path(sys._MEIPASS)  # type: ignore[attr-defined]
+
     return pathlib.Path(__file__).resolve().parent
 
 
@@ -367,22 +365,35 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if path == "/dashboard.js" and JS.is_file():
-            body = JS.read_text(encoding="utf-8").encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/javascript; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        if path == "/dashboard.css" and CSS.is_file():
-            body = CSS.read_text(encoding="utf-8").encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/css; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
+        # Serve static files dynamically and securely
+        target_file = (package_root() / path.lstrip("/")).resolve()
+        pkg_root = package_root().resolve()
+        if getattr(sys, "frozen", False) and pkg_root.name in ("Frameworks", "Resources", "MacOS"):
+            pkg_root = pkg_root.parent
+        try:
+            if target_file.is_file() and target_file.is_relative_to(pkg_root):
+                suffix = target_file.suffix.lower()
+                safe_extensions = {".js", ".css", ".ico", ".jpg", ".png", ".html"}
+                if suffix in safe_extensions:
+                    mime_types = {
+                        ".js": "application/javascript; charset=utf-8",
+                        ".css": "text/css; charset=utf-8",
+                        ".ico": "image/x-icon",
+                        ".jpg": "image/jpeg",
+                        ".png": "image/png",
+                        ".html": "text/html; charset=utf-8",
+                    }
+                    content_type = mime_types.get(suffix, "application/octet-stream")
+                    body = target_file.read_bytes()
+                    self.send_response(200)
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
+        except ValueError:
+            pass
+
         if path in ("/icon.jpg", "/favicon.ico", "/docs/fr/assets/icon.jpg"):
             icon = icon_path()
             if icon is None:
@@ -439,13 +450,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(payload)
 
 
-def make_httpd(preferred_port: int = PORT) -> tuple[HTTPServer, int]:
+def make_httpd(preferred_port: int = PORT) -> tuple[http.server.HTTPServer, int]:
     """Bind to preferred_port if free; otherwise let the OS assign a free port."""
+    klass = getattr(http.server, "ThreadingHTTPServer", http.server.HTTPServer)
     try:
-        httpd = HTTPServer((HOST, preferred_port), DashboardHandler)
+        httpd = klass((HOST, preferred_port), DashboardHandler)
         return httpd, preferred_port
     except OSError:
-        httpd = HTTPServer((HOST, 0), DashboardHandler)
+        httpd = klass((HOST, 0), DashboardHandler)
         actual = int(httpd.server_address[1])
         return httpd, actual
 

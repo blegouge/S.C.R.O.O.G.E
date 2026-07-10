@@ -88,13 +88,15 @@ def build_upstream_guardrail_report(
     prompt: str = "",
     description: str = "",
     tool_input: dict[str, Any] | None = None,
+    model_name: str | None = None,
 ) -> str:
     """
     Build a compact deterministic guardrail block for subagent prompts.
     """
     tool_input = tool_input or {}
     failure_streak, last_failure_kind = _extract_guardrail_state(tool_input)
-    prompt_tokens = estimate_tokens(prompt)
+    prompt_tokens = estimate_tokens(prompt, model_name=model_name)
+
     signals = _prompt_signals(prompt, description)
     agent_type = str(
         subagent_type
@@ -163,13 +165,15 @@ def analyze_guardrail_launch(
     description: str = "",
     tool_input: dict[str, Any] | None = None,
     after_tokens: int = 0,
+    model_name: str | None = None,
 ) -> dict[str, Any]:
     """
     Telemetry snapshot for token-budget-guardrail on a Task launch.
     """
     tool_input = tool_input or {}
     failure_streak, last_failure_kind = _extract_guardrail_state(tool_input)
-    prompt_tokens = estimate_tokens(prompt)
+    prompt_tokens = estimate_tokens(prompt, model_name=model_name)
+
     signals = _prompt_signals(prompt, description)
     agent_type = str(
         subagent_type

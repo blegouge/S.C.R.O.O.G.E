@@ -4,10 +4,11 @@
   "description": "SCROOGE Dashboard Frontend Tools",
   "private": true,
   "scripts": {
-    "lint:js": "eslint dashboard.js",
+    "lint:js": "eslint dashboard.js dashboard_*.js",
     "lint:css": "stylelint dashboard.css",
-    "format:check": "prettier --check \"dashboard.js\" \"dashboard.css\" \"dashboard.html\"",
-    "format:write": "prettier --write \"dashboard.js\" \"dashboard.css\" \"dashboard.html\"",
+    "format:check": "prettier --check \"dashboard.js\" \"dashboard_*.js\" \"dashboard.css\" \"dashboard.html\"",
+    "format:write": "prettier --write \"dashboard.js\" \"dashboard_*.js\" \"dashboard.css\" \"dashboard.html\"",
+
     "lint": "npm run lint:js && npm run lint:css && npm run format:check"
   },
   "devDependencies": {

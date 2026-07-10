@@ -147,7 +147,10 @@ def _append_telemetry(
     structured_prompt: str = "",
     stats: dict[str, Any] | None = None,
     compression_mode: str = "full",
+    model_name: str | None = None,
+    ab_group: str = "treatment",
 ) -> None:
+
     pipeline_saved_tokens = max(0, before_tokens - after_tokens)
     pipeline_saved_chars = max(0, before_chars - after_chars)
     # End-to-end: original Task prompt vs final prompt sent to the subagent.
@@ -169,11 +172,6 @@ def _append_telemetry(
     if git_cache_hit:
         match = _BLOCK2_SECTION.search(structured_prompt)
         if match:
-            model_name = str(tool_input.get("model") or "").strip()
-            if not model_name:
-                model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
-            else:
-                model_name = model_name[:240]
             block2_preserved = estimate_tokens(match.group(1), model_name)
 
     guardrail_meta = analyze_guardrail_launch(
@@ -182,7 +180,9 @@ def _append_telemetry(
         description=description,
         tool_input=tool_input,
         after_tokens=after_tokens,
+        model_name=model_name,
     )
+
     idempotent_injected = _IDEMPOTENT_TAG in prompt
 
     row: dict[str, Any] = {
@@ -195,6 +195,7 @@ def _append_telemetry(
         "subagent_type": subagent_type,
         "subagent_description": description,
         "skill_hint": skill_hint,
+        "ab_group": ab_group,
         "compression_before_chars": before_chars,
         "compression_after_chars": after_chars,
         "compression_saved_chars": saved_chars,
@@ -410,6 +411,7 @@ def _build_structured_prompt(
     *,
     repo_root: Path | None = None,
     summarizer_mode: str = "",
+    model_name: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     existing_state = tool_input.get("global_state")
     state_dict = existing_state if isinstance(existing_state, dict) else {}
@@ -419,6 +421,7 @@ def _build_structured_prompt(
         state_dict,
         repo_root=repo_root,
         summarizer_mode=summarizer_mode,
+        model_name=model_name,
     )
 
     ephemeral = {}
@@ -459,6 +462,7 @@ def _build_structured_prompt(
         prompt=f"{block_3}\n{block_4}".strip(),
         description=str(tool_input.get("description") or ""),
         tool_input=tool_input,
+        model_name=model_name,
     )
 
     structured_prompt = (
@@ -486,7 +490,7 @@ def main() -> None:
 
     model_name = str(data.get("model") or tool_input.get("model") or "").strip()
     if not model_name:
-        model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
+        model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or ""
     else:
         model_name = model_name[:240]
 
@@ -575,83 +579,115 @@ def main() -> None:
 
     input_chars = len(prompt)
     input_tokens = estimate_tokens(prompt, model_name)
-    structure_min = max(
-        500,
-        _safe_int(tool_input.get("structure_min_input_tokens"), DEFAULT_STRUCTURE_MIN_INPUT_TOKENS),
-    )
-    compression_mode = "light" if input_tokens < structure_min else "full"
+    ab_group = "treatment"
+    if config.ab_test_enabled:
+        import random
 
-    history, latest = _segment_prompt(prompt)
-    compression_backend = _compression_backend()
-    used_llmlingua = False
-    used_claw_compactor = False
+        if random.random() < config.ab_test_ratio:
+            ab_group = "control"
 
-    latest_tags = _content_tags(latest)
-    if len(latest) >= min_chars:
-        latest, used_claw, used_lingua, compression_backend = _compress_dynamic_block(
-            latest, rate, latest_tags
-        )
-        used_claw_compactor = used_claw_compactor or used_claw
-        used_llmlingua = used_llmlingua or used_lingua
-
-    structured_prompt = ""
-    stats: dict[str, Any]
-
-    if compression_mode == "light":
-        compressed_prompt = _reassemble_light_prompt(history, latest)
+    if ab_group == "control":
+        compressed_prompt = prompt
         stats = {
-            "messages": len(history) + (1 if latest else 0),
+            "messages": 0,
             "tokens": input_tokens,
             "compacted": 0,
             "cache_hit": False,
         }
         before_chars = input_chars
         before_tokens = input_tokens
+        used_llmlingua = False
+        used_claw_compactor = False
+        compression_backend = "none"
+        git_cache_hit = False
+        structured_prompt = ""
+        compression_mode = "control"
     else:
-        manager = AdaptiveContextManager(
-            config=AdaptiveContextConfig(
-                message_threshold=message_threshold,
-                token_threshold=token_threshold,
-                recent_history_window=recent_window,
-                summarizer_mode=summarizer_mode,
+        structure_min = max(
+            500,
+            _safe_int(
+                tool_input.get("structure_min_input_tokens"), DEFAULT_STRUCTURE_MIN_INPUT_TOKENS
             ),
-            summarize_fn=resolve_summarizer(summarizer_mode),
         )
-        repo_root = _resolve_repo_root(data, tool_input)
-        structured_prompt, stats = _build_structured_prompt(
-            manager,
-            history,
-            latest,
-            tool_input,
-            repo_root=repo_root,
-            summarizer_mode=summarizer_mode,
-        )
-        compressed_prompt = structured_prompt
-        compress_targets: list[str] = [
-            r"(?s)(\[BLOCK_2_SEMI_STATIC\]\n)(.*?)(\n\n\[BLOCK_3_DYNAMIC_HISTORY\]\n)",
-            r"(?s)(\[BLOCK_3_DYNAMIC_HISTORY\]\n)(.*?)(\n\n\[BLOCK_1B_TOKEN_BUDGET_GUARDRAIL\]\n)",
-            r"(?s)(\[BLOCK_4_ULTRA_DYNAMIC\]\n)(.*)\Z",
-        ]
-        for pattern in compress_targets:
-            match = re.search(pattern, compressed_prompt)
-            if not match:
-                continue
-            prefix, body = match.group(1), match.group(2)
-            suffix = match.group(3) if match.lastindex and match.lastindex >= 3 else ""
-            tags = _content_tags(body)
-            if len(body) < min_chars:
-                continue
-            compacted, used_claw, used_lingua, compression_backend = _compress_dynamic_block(
-                body, rate, tags
+        compression_mode = "light" if input_tokens < structure_min else "full"
+
+        history, latest = _segment_prompt(prompt)
+        compression_backend = _compression_backend()
+        used_llmlingua = False
+        used_claw_compactor = False
+
+        latest_tags = _content_tags(latest)
+        if len(latest) >= min_chars:
+            latest, used_claw, used_lingua, compression_backend = _compress_dynamic_block(
+                latest, rate, latest_tags
             )
             used_claw_compactor = used_claw_compactor or used_claw
             used_llmlingua = used_llmlingua or used_lingua
-            replacement = f"{prefix}{compacted}{suffix}"
-            compressed_prompt = (
-                compressed_prompt[: match.start()] + replacement + compressed_prompt[match.end() :]
+
+        structured_prompt = ""
+        stats = {}
+
+        if compression_mode == "light":
+            compressed_prompt = _reassemble_light_prompt(history, latest)
+            stats = {
+                "messages": len(history) + (1 if latest else 0),
+                "tokens": input_tokens,
+                "compacted": 0,
+                "cache_hit": False,
+            }
+            before_chars = input_chars
+            before_tokens = input_tokens
+            git_cache_hit = False
+        else:
+            manager = AdaptiveContextManager(
+                config=AdaptiveContextConfig(
+                    message_threshold=message_threshold,
+                    token_threshold=token_threshold,
+                    recent_history_window=recent_window,
+                    summarizer_mode=summarizer_mode,
+                ),
+                summarize_fn=resolve_summarizer(summarizer_mode),
             )
-        before_chars = len(structured_prompt)
-        before_tokens = estimate_tokens(structured_prompt, model_name)
+            repo_root = _resolve_repo_root(data, tool_input)
+            structured_prompt, stats = _build_structured_prompt(
+                manager,
+                history,
+                latest,
+                tool_input,
+                repo_root=repo_root,
+                summarizer_mode=summarizer_mode,
+                model_name=model_name,
+            )
+
+            compressed_prompt = structured_prompt
+            compress_targets = [
+                r"(?s)(\[BLOCK_2_SEMI_STATIC\]\n)(.*?)(\n\n\[BLOCK_3_DYNAMIC_HISTORY\]\n)",
+                r"(?s)(\[BLOCK_3_DYNAMIC_HISTORY\]\n)(.*?)(\n\n\[BLOCK_1B_TOKEN_BUDGET_GUARDRAIL\]\n)",
+                r"(?s)(\[BLOCK_4_ULTRA_DYNAMIC\]\n)(.*)\Z",
+            ]
+            for pattern in compress_targets:
+                match = re.search(pattern, compressed_prompt)
+                if not match:
+                    continue
+                prefix, body = match.group(1), match.group(2)
+                suffix = match.group(3) if match.lastindex and match.lastindex >= 3 else ""
+                tags = _content_tags(body)
+                if len(body) < min_chars:
+                    continue
+                compacted, used_claw, used_lingua, compression_backend = _compress_dynamic_block(
+                    body, rate, tags
+                )
+                used_claw_compactor = used_claw_compactor or used_claw
+                used_llmlingua = used_llmlingua or used_lingua
+                replacement = f"{prefix}{compacted}{suffix}"
+                compressed_prompt = (
+                    compressed_prompt[: match.start()]
+                    + replacement
+                    + compressed_prompt[match.end() :]
+                )
+            before_chars = len(structured_prompt)
+            before_tokens = estimate_tokens(structured_prompt, model_name)
+            git_cache_hit = bool(stats.get("cache_hit"))
 
     updated_input = dict(tool_input)
     updated_input["prompt"] = compressed_prompt
@@ -684,11 +720,14 @@ def main() -> None:
             compression_backend=compression_backend,
             compacted_history=int(stats.get("compacted", 0)),
             summarizer_mode=summarizer_mode,
-            git_cache_hit=bool(stats.get("cache_hit")),
+            git_cache_hit=git_cache_hit,
             structured_prompt=structured_prompt,
             stats=stats,
             compression_mode=compression_mode,
+            model_name=model_name,
+            ab_group=ab_group,
         )
+
         _debug_log("telemetry_ok")
     except Exception as e:
         _debug_log("telemetry_error", error=str(e), error_type=type(e).__name__)

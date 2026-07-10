@@ -55,7 +55,7 @@ def _get_code_compressor():
 
             class LocalCodeCompressor:
                 def compress(self, text: str) -> str:
-                    lines = []
+                    lines: list[str] = []
                     for line in text.splitlines():
                         line_stripped = line.rstrip()
                         if not line_stripped:

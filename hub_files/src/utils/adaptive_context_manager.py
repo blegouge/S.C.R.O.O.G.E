@@ -93,19 +93,20 @@ except ImportError:
             return max(1, (len(text) + 3) // 4)
 
 
-def estimate_messages_tokens(messages: list[Message]) -> int:
+def estimate_messages_tokens(messages: list[Message], model_name: str | None = None) -> int:
     """Approximate token volume for a message list."""
     total = 0
     for message in messages:
         content = message.get("content")
         if isinstance(content, str):
-            total += estimate_tokens(content)
+            total += estimate_tokens(content, model_name)
         elif isinstance(content, list):
             for item in content:
                 if isinstance(item, dict):
                     text = item.get("text")
                     if isinstance(text, str):
-                        total += estimate_tokens(text)
+                        total += estimate_tokens(text, model_name)
+
     return total
 
 
@@ -372,9 +373,11 @@ class AdaptiveContextManager:
         self.summarize_fn = summarize_fn or local_kv_summarizer
         self.git_cache = git_cache or GitPreflightCache()
 
-    def should_compact(self, history_messages: list[Message]) -> bool:
+    def should_compact(
+        self, history_messages: list[Message], model_name: str | None = None
+    ) -> bool:
         message_count = len(history_messages)
-        token_count = estimate_messages_tokens(history_messages)
+        token_count = estimate_messages_tokens(history_messages, model_name=model_name)
         return (
             message_count > self.config.message_threshold
             or token_count > self.config.token_threshold
@@ -508,6 +511,7 @@ class AdaptiveContextManager:
         *,
         repo_root: Path | str | None = None,
         summarizer_mode: str = "",
+        model_name: str | None = None,
     ) -> tuple[list[Message], StateDict, dict[str, int | bool | str]]:
         """
         Compact old messages into key-value state when thresholds are exceeded.
@@ -518,8 +522,8 @@ class AdaptiveContextManager:
         if not history_messages:
             return [], previous_state, {"compacted": False, "tokens": 0, "messages": 0}
 
-        token_count = estimate_messages_tokens(history_messages)
-        if not self.should_compact(history_messages):
+        token_count = estimate_messages_tokens(history_messages, model_name=model_name)
+        if not self.should_compact(history_messages, model_name=model_name):
             return (
                 history_messages,
                 previous_state,
