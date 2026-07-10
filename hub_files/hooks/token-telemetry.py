@@ -34,6 +34,7 @@ from telemetry_common import (  # pylint: disable=import-error
     correlation_fields,
     enrich_correlation,
     estimate_tokens,
+    estimate_tokens_with_source,
     extract_skill_hint,
     extract_tool_label,
     int_field,
@@ -117,11 +118,13 @@ def _populate_subagent_stop_row(
     else:
         model_name = model_name[:240]
 
-    row["approx_tokens"] = (
-        estimate_tokens(output_text, model_name)
+    approx, source = (
+        estimate_tokens_with_source(output_text, model_name)
         if output_text
-        else estimate_tokens(raw, model_name)
+        else estimate_tokens_with_source(raw, model_name)
     )
+    row["approx_tokens"] = approx
+    row["measurement_source"] = source
 
     subagent_type = (
         data.get("subagent_type")
@@ -397,12 +400,13 @@ def _build_row(
         model_name = os.environ.get("CODEX_MODEL") or os.environ.get("CURSOR_MODEL") or None
     else:
         model_name = model_name[:240]
-    approx = estimate_tokens(raw, model_name) if raw else estimate_tokens(str(data), model_name)
+    approx, source = estimate_tokens_with_source(raw, model_name) if raw else estimate_tokens_with_source(str(data), model_name)
 
     row: dict[str, object] = {
         "ts": _dt.datetime.now(_dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "event": event,
         "approx_tokens": approx,
+        "measurement_source": source,
         "text_chars": text_chars,
         "raw_chars": raw_chars,
         "tool": _tool_label(data) if event == "postToolUse" else "",
@@ -450,6 +454,7 @@ def _build_row(
         row.update(_usage_fields(data))
         if row.get("billed_total_tokens") is not None:
             row["approx_tokens"] = row["billed_total_tokens"]
+            row["measurement_source"] = "api_usage"
     elif event == "subagentStop":
         _populate_subagent_stop_row(row, data=data, raw=raw, source="hook")
     elif event == "postToolUse" and _tool_label(data) == "Task":

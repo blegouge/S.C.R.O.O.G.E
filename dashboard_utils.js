@@ -97,7 +97,7 @@ export function rowGitCacheHit(e) {
   return e.compression_git_cache_hit === true || e.git_cache_hit === true;
 }
 
-export function rowGitCacheTokensPreserved(e) {
+export function rowGitCacheTokensPreserved(e, sessionUsage) {
   const keys = [
     'git_cache_block2_tokens_preserved',
     'compression_block2_tokens_preserved',
@@ -106,6 +106,18 @@ export function rowGitCacheTokensPreserved(e) {
   for (const key of keys) {
     const v = Number(e[key]);
     if (Number.isFinite(v) && v > 0) return v;
+  }
+  if (sessionUsage) {
+    for (const k of ['generation_id', 'session_id', 'conversation_id']) {
+      const refId = e[k];
+      if (typeof refId === 'string' && refId.trim()) {
+        const usageRow = sessionUsage[refId.trim()];
+        if (usageRow) {
+          const cRead = Number(usageRow.cache_read_tokens);
+          if (Number.isFinite(cRead)) return cRead;
+        }
+      }
+    }
   }
   if (rowGitCacheHit(e)) {
     const after = Number(e.compression_after_tokens || e.approx_tokens || 0);
@@ -244,11 +256,11 @@ export function makeOptBadge(label, className, title) {
   return pill;
 }
 
-export function renderLaunchOptBadges(launch, container) {
+export function renderLaunchOptBadges(launch, container, sessionUsage) {
   container.replaceChildren();
   const parts = [];
   if (rowGitCacheHit(launch)) {
-    const preserved = rowGitCacheTokensPreserved(launch);
+    const preserved = rowGitCacheTokensPreserved(launch, sessionUsage);
     parts.push(
       makeOptBadge(
         'Git Cache Hit',

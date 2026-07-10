@@ -14,11 +14,23 @@ import {
 } from './dashboard_utils.js';
 
 export function summarizeStackKpis(events) {
+  const sessionUsage = {};
+  events.forEach((e) => {
+    if (e.event === 'afterAgentResponse') {
+      for (const k of ['generation_id', 'session_id', 'conversation_id']) {
+        const refId = e[k];
+        if (typeof refId === 'string' && refId.trim()) {
+          sessionUsage[refId.trim()] = e;
+        }
+      }
+    }
+  });
+
   const launches = events.filter(isSubagentLaunch);
   const gitHits = launches.filter(rowGitCacheHit).length;
   const gitPreserved = launches
     .filter(rowGitCacheHit)
-    .reduce((sum, e) => sum + rowGitCacheTokensPreserved(e), 0);
+    .reduce((sum, e) => sum + rowGitCacheTokensPreserved(e, sessionUsage), 0);
   const intercepts = launches.filter(rowGuardrailIntercepted).length;
   const halts = launches.filter(rowGuardrailLoopHalt).length;
   const avoided = launches.reduce((sum, e) => sum + rowGuardrailAvoidedTokens(e), 0);

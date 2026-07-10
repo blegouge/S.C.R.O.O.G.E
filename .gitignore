@@ -17,3 +17,6 @@ __pycache__/
 /hub_files/compression.env
 /hub_files/projects/ccr_cache/
 /hub_files/token-telemetry/telemetry.db
+/hub_files/token-telemetry/events.jsonl
+/analysis/
+

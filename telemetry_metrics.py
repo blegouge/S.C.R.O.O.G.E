@@ -59,7 +59,7 @@ def row_git_cache_hit(row: dict[str, Any]) -> bool:
     return row.get("git_cache_hit") is True
 
 
-def row_git_cache_tokens_preserved(row: dict[str, Any]) -> int:
+def row_git_cache_tokens_preserved_with_source(row: dict[str, Any], session_usage: dict[str, dict[str, Any]] | None = None) -> tuple[int, str]:
     for key in (
         "git_cache_block2_tokens_preserved",
         "compression_block2_tokens_preserved",
@@ -67,11 +67,26 @@ def row_git_cache_tokens_preserved(row: dict[str, Any]) -> int:
     ):
         value = row.get(key)
         if isinstance(value, (int, float)) and value > 0:
-            return int(value)
+            return int(value), "api_usage"
+
+    if session_usage:
+        for k in ("generation_id", "session_id", "conversation_id"):
+            ref_id = row.get(k)
+            if isinstance(ref_id, str) and ref_id.strip():
+                usage_row = session_usage.get(ref_id.strip())
+                if usage_row:
+                    c_read = usage_row.get("cache_read_tokens")
+                    if isinstance(c_read, (int, float)):
+                        return int(c_read), "api_usage"
+
     if row_git_cache_hit(row):
         after = int(row.get("compression_after_tokens") or row.get("approx_tokens") or 0)
-        return max(0, int(after * config.git_cache_savings_coefficient)) if after else 0
-    return 0
+        return max(0, int(after * config.git_cache_savings_coefficient)) if after else 0, "coefficient"
+    return 0, "coefficient"
+
+
+def row_git_cache_tokens_preserved(row: dict[str, Any], session_usage: dict[str, dict[str, Any]] | None = None) -> int:
+    return row_git_cache_tokens_preserved_with_source(row, session_usage)[0]
 
 
 def row_guardrail_loop_halt(row: dict[str, Any]) -> bool:
@@ -110,13 +125,13 @@ def row_idempotent_context_injected(row: dict[str, Any]) -> bool:
     return row.get("idempotent_context_injected") is True
 
 
-def summarize_stack_kpis(rows: list[dict[str, Any]]) -> dict[str, int]:
+def summarize_stack_kpis(rows: list[dict[str, Any]], session_usage: dict[str, dict[str, Any]] | None = None) -> dict[str, int]:
     """Aggregate Git cache, guardrail, and idempotency KPIs from launch events."""
     launches = [r for r in rows if is_subagent_launch(r)]
     light_launches = sum(1 for r in launches if str(r.get("compression_mode") or "") == "light")
     total_overhead = sum(hook_overhead_tokens(r) for r in launches)
     git_hits = sum(1 for r in launches if row_git_cache_hit(r))
-    git_preserved = sum(row_git_cache_tokens_preserved(r) for r in launches if row_git_cache_hit(r))
+    git_preserved = sum(row_git_cache_tokens_preserved(r, session_usage) for r in launches if row_git_cache_hit(r))
     guardrail_intercepts = sum(1 for r in launches if row_guardrail_intercepted(r))
     guardrail_halts = sum(1 for r in launches if row_guardrail_loop_halt(r))
     guardrail_avoided = sum(row_guardrail_avoided_tokens(r) for r in launches)
@@ -439,6 +454,23 @@ def _cache_read_weight(model_name: str | None) -> float:
 
 def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Single source of truth for report.py and dashboard /api/report-summary."""
+    # Build session/generation correlation mapping to actual API usage metrics
+    session_usage: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        if r.get("event") == "afterAgentResponse":
+            g_id = r.get("generation_id")
+            if isinstance(g_id, str) and g_id.strip():
+                session_usage[g_id.strip()] = r
+            s_id = r.get("session_id")
+            if isinstance(s_id, str) and s_id.strip():
+                session_usage[s_id.strip()] = r
+            c_id = r.get("conversation_id")
+            if isinstance(c_id, str) and c_id.strip():
+                session_usage[c_id.strip()] = r
+
+    # Distribution of measurement sources
+    source_counts = {"api_usage": 0, "tokenizer": 0, "coefficient": 0, "proxy": 0}
+
     agent_la = agent_lr = agent_pass = tab_n = tab_la = 0
     hook_runs = hook_saved = hook_claw = hook_llm = 0
     sub_launch = sub_stop = sub_prompt_tok = sub_out_tok = 0
@@ -501,6 +533,11 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 w = _cache_read_weight(r.get("model"))
                 adj_in = max(0.0, float(in_tok - c_read)) + float(c_read) * w
                 adjusted_billed_sum += int(adj_in + out_tok)
+                source_counts["api_usage"] += 1
+            else:
+                approx_src = r.get("measurement_source") or "tokenizer"
+                if approx_src in source_counts:
+                    source_counts[approx_src] += 1
 
         ev = str(r.get("event", ""))
         if ev == "codeReviewGraph":
@@ -516,16 +553,23 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 hook_llm += 1
             sub_launch += 1
             sub_prompt_tok += int(r.get("compression_after_tokens") or r.get("approx_tokens") or 0)
+            if row_git_cache_hit(r):
+                _, git_src = row_git_cache_tokens_preserved_with_source(r, session_usage)
+                if git_src in source_counts:
+                    source_counts[git_src] += 1
         if ev == "subagentStop":
             sub_stop += 1
             sub_out_tok += int(r.get("approx_tokens") or 0)
+            approx_src = r.get("measurement_source") or "tokenizer"
+            if approx_src in source_counts:
+                source_counts[approx_src] += 1
             src = str(r.get("subagent_stop_source") or "")
             if src == "hook":
                 sub_stop_hook += 1
             elif src == "postToolUse_fallback":
                 sub_stop_fallback += 1
 
-    stack = summarize_stack_kpis(rows)
+    stack = summarize_stack_kpis(rows, session_usage)
     launches = stack["subagent_launches"]
     idem = stack["idempotent_context_injected"]
     idem_pct = (100 * idem // launches) if launches else 0
@@ -581,6 +625,7 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
     return {
         "event_count": len(rows),
+        "measurement_sources": source_counts,
         "edit": {
             "lines_added": agent_la,
             "lines_removed": agent_lr,

@@ -39,6 +39,7 @@ import { renderTables, renderComplianceTable, renderCrgTable } from './dashboard
 // Controller/Module state
 let currentEvents = [];
 let rtkGainData = null;
+let globalSessionUsage = {};
 let refreshTimerId = null;
 let refreshIntervalMs = 0;
 let fileOverride = false;
@@ -357,7 +358,7 @@ function renderSubagentTable(events) {
     cBadges.style.display = 'flex';
     cBadges.style.flexWrap = 'wrap';
     cBadges.style.gap = '0.25rem';
-    renderLaunchOptBadges(launch, cBadges);
+    renderLaunchOptBadges(launch, cBadges, globalSessionUsage);
 
     const cCompress = document.createElement('div');
     const comp = compressionSummary(launch);
@@ -737,6 +738,18 @@ function renderStackKpis(events) {
 }
 
 function renderAll(events) {
+  globalSessionUsage = {};
+  events.forEach((e) => {
+    if (e.event === 'afterAgentResponse') {
+      for (const k of ['generation_id', 'session_id', 'conversation_id']) {
+        const refId = e[k];
+        if (typeof refId === 'string' && refId.trim()) {
+          globalSessionUsage[refId.trim()] = e;
+        }
+      }
+    }
+  });
+
   const sumTok = events.reduce((s, e) => s + (e.approx_tokens || 0), 0);
   const sumTc = events.reduce((s, e) => s + (e.text_chars || 0), 0);
 

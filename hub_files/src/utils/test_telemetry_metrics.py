@@ -371,6 +371,34 @@ class TelemetryMetricsTests(unittest.TestCase):
         self.assertEqual(ab["treatment"]["saved_tokens"], 2000)
         self.assertEqual(ab["treatment"]["saved_pct"], 66.67)
 
+    def test_summarize_report_correlated_cache_read(self) -> None:
+        rows = [
+            {
+                "event": "subagentLaunch",
+                "session_id": "session-xyz",
+                "compression_git_cache_hit": True,
+                "compression_after_tokens": 1000,
+                "approx_tokens": 1000,
+            },
+            {
+                "event": "afterAgentResponse",
+                "session_id": "session-xyz",
+                "billed_total_tokens": 1200,
+                "input_tokens": 1000,
+                "output_tokens": 200,
+                "cache_read_tokens": 450,
+                "cache_write_tokens": 50,
+                "model": "claude-3-5-sonnet",
+            }
+        ]
+        res = telemetry_metrics.summarize_report(rows)
+        # Git cache block2 preserved tokens should be correlated with cache_read_tokens = 450
+        # instead of the coefficient-based 1000 * 0.12 = 120
+        self.assertEqual(res["stack"]["git_cache_block2_tokens_preserved"], 450)
+        # Verify measurement sources distribution
+        self.assertEqual(res["measurement_sources"]["api_usage"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()
+
