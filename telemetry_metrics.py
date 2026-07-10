@@ -59,7 +59,9 @@ def row_git_cache_hit(row: dict[str, Any]) -> bool:
     return row.get("git_cache_hit") is True
 
 
-def row_git_cache_tokens_preserved_with_source(row: dict[str, Any], session_usage: dict[str, dict[str, Any]] | None = None) -> tuple[int, str]:
+def row_git_cache_tokens_preserved_with_source(
+    row: dict[str, Any], session_usage: dict[str, dict[str, Any]] | None = None
+) -> tuple[int, str]:
     for key in (
         "git_cache_block2_tokens_preserved",
         "compression_block2_tokens_preserved",
@@ -81,11 +83,15 @@ def row_git_cache_tokens_preserved_with_source(row: dict[str, Any], session_usag
 
     if row_git_cache_hit(row):
         after = int(row.get("compression_after_tokens") or row.get("approx_tokens") or 0)
-        return max(0, int(after * config.git_cache_savings_coefficient)) if after else 0, "coefficient"
+        return max(
+            0, int(after * config.git_cache_savings_coefficient)
+        ) if after else 0, "coefficient"
     return 0, "coefficient"
 
 
-def row_git_cache_tokens_preserved(row: dict[str, Any], session_usage: dict[str, dict[str, Any]] | None = None) -> int:
+def row_git_cache_tokens_preserved(
+    row: dict[str, Any], session_usage: dict[str, dict[str, Any]] | None = None
+) -> int:
     return row_git_cache_tokens_preserved_with_source(row, session_usage)[0]
 
 
@@ -125,13 +131,17 @@ def row_idempotent_context_injected(row: dict[str, Any]) -> bool:
     return row.get("idempotent_context_injected") is True
 
 
-def summarize_stack_kpis(rows: list[dict[str, Any]], session_usage: dict[str, dict[str, Any]] | None = None) -> dict[str, int]:
+def summarize_stack_kpis(
+    rows: list[dict[str, Any]], session_usage: dict[str, dict[str, Any]] | None = None
+) -> dict[str, int]:
     """Aggregate Git cache, guardrail, and idempotency KPIs from launch events."""
     launches = [r for r in rows if is_subagent_launch(r)]
     light_launches = sum(1 for r in launches if str(r.get("compression_mode") or "") == "light")
     total_overhead = sum(hook_overhead_tokens(r) for r in launches)
     git_hits = sum(1 for r in launches if row_git_cache_hit(r))
-    git_preserved = sum(row_git_cache_tokens_preserved(r, session_usage) for r in launches if row_git_cache_hit(r))
+    git_preserved = sum(
+        row_git_cache_tokens_preserved(r, session_usage) for r in launches if row_git_cache_hit(r)
+    )
     guardrail_intercepts = sum(1 for r in launches if row_guardrail_intercepted(r))
     guardrail_halts = sum(1 for r in launches if row_guardrail_loop_halt(r))
     guardrail_avoided = sum(row_guardrail_avoided_tokens(r) for r in launches)

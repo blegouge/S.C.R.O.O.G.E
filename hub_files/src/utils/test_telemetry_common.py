@@ -36,7 +36,9 @@ class TelemetryCommonTokenTests(unittest.TestCase):
 
     def test_estimate_tokens_claude_tokenizer(self) -> None:
         # Claude models should use Claude tokenizer from file
-        count, source = telemetry_common.estimate_tokens_with_source("Hello world!", "claude-3-5-sonnet")
+        count, source = telemetry_common.estimate_tokens_with_source(
+            "Hello world!", "claude-3-5-sonnet"
+        )
         # Since tokenizer.json is present in dev context, it should load and return 3 tokens
         self.assertEqual(source, "tokenizer")
         self.assertEqual(count, 3)
@@ -46,7 +48,9 @@ class TelemetryCommonTokenTests(unittest.TestCase):
         with patch("telemetry_common._resolve_claude_tokenizer_path", return_value=None):
             # Temporarily clear cached _claude_tokenizer
             with patch("telemetry_common._claude_tokenizer", None):
-                count, source = telemetry_common.estimate_tokens_with_source("Hello world!", "claude-3-5-sonnet")
+                count, source = telemetry_common.estimate_tokens_with_source(
+                    "Hello world!", "claude-3-5-sonnet"
+                )
                 # Should fallback to tiktoken (which is a tokenizer)
                 self.assertEqual(source, "tokenizer")
                 self.assertEqual(count, 3)
@@ -55,7 +59,9 @@ class TelemetryCommonTokenTests(unittest.TestCase):
         # Mock _get_tiktoken_encoding and _get_claude_tokenizer to return False/None
         with patch("telemetry_common._get_tiktoken_encoding", return_value=False):
             with patch("telemetry_common._get_claude_tokenizer", return_value=False):
-                count, source = telemetry_common.estimate_tokens_with_source("Hello world!", "unknown-model")
+                count, source = telemetry_common.estimate_tokens_with_source(
+                    "Hello world!", "unknown-model"
+                )
                 self.assertEqual(source, "proxy")
                 # "Hello world!" length is 12. (12 + 3) // 4 = 3
                 self.assertEqual(count, 3)

@@ -433,4 +433,3 @@ def estimate_tokens_with_source(text: str, model_name: str | None = None) -> tup
 def estimate_tokens(text: str, model_name: str | None = None) -> int:
     """Accurately estimate tokens using tiktoken/claude tokenizer, falling back to len/4 on failure."""
     return estimate_tokens_with_source(text, model_name)[0]
-

@@ -389,7 +389,7 @@ class TelemetryMetricsTests(unittest.TestCase):
                 "cache_read_tokens": 450,
                 "cache_write_tokens": 50,
                 "model": "claude-3-5-sonnet",
-            }
+            },
         ]
         res = telemetry_metrics.summarize_report(rows)
         # Git cache block2 preserved tokens should be correlated with cache_read_tokens = 450
@@ -401,4 +401,3 @@ class TelemetryMetricsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
