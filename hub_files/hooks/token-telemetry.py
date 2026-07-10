@@ -33,7 +33,6 @@ from telemetry_common import (  # pylint: disable=import-error
     append_event,
     correlation_fields,
     enrich_correlation,
-    estimate_tokens,
     estimate_tokens_with_source,
     extract_skill_hint,
     extract_tool_label,
