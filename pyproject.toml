@@ -94,4 +94,3 @@ testpaths = ["hub_files/src/utils"]
 pythonpath = ["hub_files/src", "."]
 python_files = ["test_*.py"]
 addopts = "--cov=hub_files/src/utils --cov-report=term-missing --cov-fail-under=80"
-

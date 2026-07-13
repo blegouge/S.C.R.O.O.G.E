@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -45,26 +46,56 @@ _PROVIDERS: dict[str, type[BaseProvider]] = {
 
 
 def detect_provider() -> BaseProvider:
-    """Detect the active provider from environment variables.
+    """Detect the active provider from environment variables and path context.
 
     Detection order (first match wins):
-    1. CLAUDE_TT_EVENT or CLAUDE_HOME → Claude Code
-    2. CODEX_TT_EVENT or CODEX_HOME → Codex
-    3. ANTIGRAVITY_TT_EVENT or ANTIGRAVITY_HOME → Antigravity
-    4. GEMINI_TT_EVENT or GEMINI_HOME → Gemini CLI
-    5. HERMES_TT_EVENT or HERMES_HOME → Hermes
-    6. Default → Cursor
+    1. SCROOGE_TELEMETRY_SOURCE override
+    2. Dynamic event variables (*_TT_EVENT)
+    3. Path-relative home directories matching the execution context
+    4. Default fallback → Cursor
     """
-    if os.environ.get("CLAUDE_TT_EVENT") or os.environ.get("CLAUDE_HOME"):
+    # 1. Explicit override
+    explicit = os.environ.get("SCROOGE_TELEMETRY_SOURCE", "").strip().lower()
+    if explicit in _PROVIDERS:
+        return _PROVIDERS[explicit]()
+
+    # 2. Dynamic event variables
+    if os.environ.get("CLAUDE_TT_EVENT"):
         return ClaudeProvider()
-    if os.environ.get("CODEX_TT_EVENT") or os.environ.get("CODEX_HOME"):
+    if os.environ.get("CODEX_TT_EVENT"):
         return CodexProvider()
-    if os.environ.get("ANTIGRAVITY_TT_EVENT") or os.environ.get("ANTIGRAVITY_HOME"):
+    if os.environ.get("ANTIGRAVITY_TT_EVENT"):
         return AntigravityProvider()
-    if os.environ.get("GEMINI_TT_EVENT") or os.environ.get("GEMINI_HOME"):
+    if os.environ.get("GEMINI_TT_EVENT"):
         return GeminiProvider()
-    if os.environ.get("HERMES_TT_EVENT") or os.environ.get("HERMES_HOME"):
+    if os.environ.get("HERMES_TT_EVENT"):
         return HermesProvider()
+    if os.environ.get("CURSOR_TT_EVENT"):
+        return CursorProvider()
+
+    # 3. Path-relative checks (detect which home folder the executing code lives in)
+    try:
+        this_file_dir = Path(__file__).resolve().parent
+        home_hints = (
+            ("CODEX_HOME", "codex"),
+            ("ANTIGRAVITY_HOME", "antigravity"),
+            ("CLAUDE_HOME", "claude"),
+            ("GEMINI_HOME", "gemini"),
+            ("HERMES_HOME", "hermes"),
+            ("CURSOR_HOME", "cursor"),
+        )
+        for env_name, source in home_hints:
+            val = os.environ.get(env_name, "").strip()
+            if val:
+                try:
+                    resolved_home = Path(val).expanduser().resolve()
+                    if this_file_dir.is_relative_to(resolved_home):
+                        return _PROVIDERS[source]()
+                except (ValueError, OSError):
+                    pass
+    except Exception:
+        pass
+
     # Default to Cursor
     return CursorProvider()
 
