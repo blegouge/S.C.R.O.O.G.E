@@ -10,3 +10,14 @@
   ```bash
   .venv-desktop/bin/pytest
   ```
+
+## 2. Rapport de consommation obligatoire
+Pour chaque réponse utilisateur dans cet espace de travail, vous devez obligatoirement ajouter le rapport de consommation (Consumption report) à la fin de votre réponse au format Markdown suivant :
+
+### Rapport de consommation
+- **Mode de travail**: direct tools only | single subagent | multiple subagents
+- **Activité outils**: N tool calls (list high-cost tools like shell, subagents, web, large reads)
+- **Niveau de risque tokens**: low | medium | high
+- **Principaux postes de coût**: 1-3 puces décrivant ce qui a consommé le plus
+- **Optimisations appliquées**: optimisations de tokens appliquées ce tour
+- exact token count unavailable in this environment

@@ -14,11 +14,16 @@ from typing import Any
 
 from telemetry_paths import resolve_log_file as _path_log_file
 
-# Add hub_files to sys.path for providers module
+# Add hub_files to sys.path for providers module (dev context), or parent dir (installed context)
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _HUB_FILES = _SCRIPT_DIR / "hub_files"
-if _HUB_FILES.exists() and str(_HUB_FILES) not in sys.path:
-    sys.path.insert(0, str(_HUB_FILES))
+if _HUB_FILES.exists():
+    if str(_HUB_FILES) not in sys.path:
+        sys.path.insert(0, str(_HUB_FILES))
+else:
+    _parent_dir = _SCRIPT_DIR.parent
+    if (_parent_dir / "providers").is_dir() and str(_parent_dir) not in sys.path:
+        sys.path.insert(0, str(_parent_dir))
 
 
 def _detect_source() -> str:
