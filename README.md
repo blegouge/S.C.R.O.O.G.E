@@ -92,6 +92,8 @@ python3 install_stack.py
 7. **Verification**: Executes [docs/verify_stack.py](docs/verify_stack.py) to validate all components.
 8. **Daemon Launch**: Offers to automatically start the dashboard daemon in the background on port `8765`.
 
+Dependency locks are platform-specific. The installer uses `requirements-desktop-macos.lock`, `requirements-desktop-linux.lock`, or `requirements-desktop-windows.lock` when available, and falls back to the portable `requirements-desktop.txt` otherwise. See [docs/DEPENDENCY_LOCKS.md](docs/DEPENDENCY_LOCKS.md).
+
 ---
 
 ## ⚙️ Configuration File Overview

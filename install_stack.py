@@ -39,7 +39,9 @@ DASHBOARD_RUNTIME_FILES = {
     "providers_config.yaml",
     "report.py",
     "requirements-desktop.txt",
-    "requirements-desktop.lock",
+    "requirements-desktop-linux.lock",
+    "requirements-desktop-macos.lock",
+    "requirements-desktop-windows.lock",
     "rtk_resolver.py",
     "serve_dashboard.py",
     "telemetry_common.py",
@@ -309,6 +311,27 @@ def merge_hook_lists(existing_list: list, template_list: list) -> int:
             existing_list.append(h_item)
             added += 1
     return added
+
+
+def select_desktop_requirements(token_telemetry_dir: Path) -> Path:
+    """Choose a requirements file compatible with the current platform.
+
+    Lock files are platform-specific because GUI dependencies such as PyObjC
+    are only valid on macOS. If a lock for the current platform is absent, fall
+    back to the portable input requirements and let pip resolve local wheels.
+    """
+    req_txt = token_telemetry_dir / "requirements-desktop.txt"
+    platform_lock_names = {
+        "darwin": "requirements-desktop-macos.lock",
+        "linux": "requirements-desktop-linux.lock",
+        "win32": "requirements-desktop-windows.lock",
+    }
+    req_lock = token_telemetry_dir / platform_lock_names.get(sys.platform, "")
+    if req_lock.is_file():
+        return req_lock
+    if req_txt.is_file():
+        return req_txt
+    return req_txt
 
 
 def copy_tree_idempotent(src: Path, dst: Path, ignore=None, overwrite: bool = True) -> None:
@@ -865,10 +888,7 @@ def main() -> int:
 
         # Create Python Virtual Environment (.venv-desktop)
         venv_dir = HUB / "token-telemetry" / ".venv-desktop"
-        req_lock = HUB / "token-telemetry" / "requirements-desktop.lock"
-        req_file = (
-            req_lock if req_lock.is_file() else HUB / "token-telemetry" / "requirements-desktop.txt"
-        )
+        req_file = select_desktop_requirements(HUB / "token-telemetry")
 
         print(f"Setting up Python venv at {venv_dir}...")
         try:
