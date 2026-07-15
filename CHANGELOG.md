@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dynamic environment variable resolution for model-aware token count estimation.
 - Local HTTP server security: strict validation of the `Host` header to block DNS rebinding.
 - Single-use session tokens randomly generated on startup to authenticate `/api/*` requests.
-- Virtual environment lockfile (`requirements-desktop.lock`) for reproducible deployments.
+- Platform-specific virtual environment lockfiles (`requirements-desktop-*.lock`) for reproducible deployments.
 - Enforced minimum test coverage gate at 80% with coverage tracking.
 - Added project governance documentation: `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`.
 
