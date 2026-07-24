@@ -17,18 +17,20 @@ _CONSUMPTION_HEADING_RE = re.compile(
 )
 
 _FIELD_PATTERNS: dict[str, re.Pattern[str]] = {
-    "work_mode": re.compile(r"(?im)^\s*[-*]\s*\*\*(?:Work mode|Mode(?: de travail)?)\*\*:\s*(.+)$"),
+    "work_mode": re.compile(
+        r"(?im)^\s*[-*]\s*\*\*(?:Work mode|Mode(?: de travail)?)\*\*\s*:\s*(.+)$"
+    ),
     "tool_activity": re.compile(
-        r"(?im)^\s*[-*]\s*\*\*(?:Tool activity|Activité outils?)\*\*:\s*(.+)$"
+        r"(?im)^\s*[-*]\s*\*\*(?:Tool activity|Activité outils?)\*\*\s*:\s*(.+)$"
     ),
     "token_risk": re.compile(
-        r"(?im)^\s*[-*]\s*\*\*(?:Token risk level|Niveau de risque tokens?)\*\*:\s*(.+)$"
+        r"(?im)^\s*[-*]\s*\*\*(?:Token risk level|Niveau de risque tokens?)\*\*\s*:\s*(.+)$"
     ),
     "cost_drivers": re.compile(
-        r"(?im)^\s*[-*]\s*\*\*(?:Main cost drivers|Principaux postes de coût)\*\*:\s*(.+)$"
+        r"(?im)^\s*[-*]\s*\*\*(?:Main cost drivers|Principaux postes de coût)\*\*\s*:\s*(.+)$"
     ),
     "optimization": re.compile(
-        r"(?im)^\s*[-*]\s*\*\*(?:Optimization applied|Optimisations appliquées?)\*\*:\s*(.+)$"
+        r"(?im)^\s*[-*]\s*\*\*(?:Optimization applied|Optimisations appliquées?)\*\*\s*:\s*(.+)$"
     ),
 }
 

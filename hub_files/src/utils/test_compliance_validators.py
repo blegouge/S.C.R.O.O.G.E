@@ -70,6 +70,19 @@ Answer body.
         self.assertFalse(status.complete)
         self.assertFalse(status.present)
 
+    def test_complete_report_french_with_spaces(self) -> None:
+        text = """
+### Rapport de consommation
+- **Mode de travail** : direct tools only
+- **Activité outils** : 3 tool calls
+- **Niveau de risque tokens** : low
+- **Principaux postes de coût** : one read
+- **Optimisations appliquées** : rtk grep
+- exact token count unavailable in this environment
+"""
+        status = analyze_consumption_report(text)
+        self.assertTrue(status.complete)
+
 
 if __name__ == "__main__":
     unittest.main()

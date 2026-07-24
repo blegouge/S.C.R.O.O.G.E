@@ -472,12 +472,20 @@ def _build_row(
 
 
 def _is_claude_code() -> bool:
-    """Detect if running under Claude Code (vs Cursor/Antigravity)."""
+    """Detect if running under Claude Code (vs Cursor/Cursor)."""
     return bool(
         os.environ.get("CLAUDE_TT_EVENT")
         or os.environ.get("CLAUDE_HOME")
         or "/.claude/" in str(_HOME_PATH)
     )
+
+
+def _append_synthetic_after_agent_response(raw: str, data: dict) -> None:
+    """Emit afterAgentResponse when the IDE only fires stop (Cursor cloud, etc.)."""
+    synthetic_row = _build_row("afterAgentResponse", raw, data)
+    synthetic_row["synthetic"] = True
+    synthetic_row["synthetic_source"] = "stop"
+    append_event(synthetic_row)
 
 
 def main() -> None:
@@ -498,8 +506,10 @@ def main() -> None:
     row = _build_row(event, raw, data)
     append_event(row)
 
+    if event == "stop":
+        _append_synthetic_after_agent_response(raw, data)
+
     # Claude Code compatibility: emit synthetic events for missing hooks
-    # This ensures dashboard metrics work even without afterFileEdit/afterAgentResponse hooks
     if _is_claude_code():
         tool = _tool_label(data)
 
@@ -508,13 +518,6 @@ def main() -> None:
             synthetic_row = _build_row("afterFileEdit", raw, data)
             synthetic_row["synthetic"] = True
             synthetic_row["synthetic_source"] = "postToolUse"
-            append_event(synthetic_row)
-
-        # Simulate afterAgentResponse on Stop event
-        elif event == "stop":
-            synthetic_row = _build_row("afterAgentResponse", raw, data)
-            synthetic_row["synthetic"] = True
-            synthetic_row["synthetic_source"] = "stop"
             append_event(synthetic_row)
 
 
