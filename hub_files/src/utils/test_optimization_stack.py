@@ -71,7 +71,15 @@ def _compression_env() -> dict[str, str]:
     root_dir = Path(__file__).resolve().parent.parent.parent.parent
     src_dir = root_dir / "hub_files" / "src"
     existing_pythonpath = env.get("PYTHONPATH", "")
-    new_pythonpath = [str(root_dir), str(src_dir)]
+    new_pythonpath = [
+        str(root_dir),
+        str(src_dir),
+        str(root_dir / "src" / "telemetry"),
+        str(root_dir / "src" / "compaction"),
+        str(root_dir / "src" / "bridge"),
+        str(root_dir / "dashboard"),
+        str(root_dir / "cli"),
+    ]
     if existing_pythonpath:
         new_pythonpath.append(existing_pythonpath)
     env["PYTHONPATH"] = os.path.pathsep.join(new_pythonpath)
