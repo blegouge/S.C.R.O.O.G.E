@@ -15,6 +15,9 @@ block_cipher = None
 datas = [
     (str(PACKAGE / "dashboard" / "dashboard.html"), "."),
     (str(PACKAGE / "dashboard" / "dashboard.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard_layout.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard_report.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard_render.js"), "."),
     (str(PACKAGE / "dashboard" / "dashboard_translations.js"), "."),
     (str(PACKAGE / "dashboard" / "dashboard_utils.js"), "."),
     (str(PACKAGE / "dashboard" / "dashboard_api.js"), "."),
