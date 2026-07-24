@@ -92,6 +92,10 @@ class ConfigManager:
         return self._get_env_str("TASK_BRIEF_ENFORCE", "deny").lower()
 
     @property
+    def token_budget_enforce(self) -> str:
+        return self._get_env_str("TOKEN_BUDGET_ENFORCE", "deny").lower()
+
+    @property
     def llmlingua_hook_rate(self) -> float:
         return self._get_env_float("LLMLINGUA_HOOK_RATE", 0.6)
 
@@ -118,6 +122,10 @@ class ConfigManager:
     @property
     def ccr_threshold_chars(self) -> int:
         return self._get_env_int("CCR_THRESHOLD_CHARS", 4000)
+
+    @property
+    def ccr_similarity_threshold(self) -> float:
+        return self._get_env_float("CCR_SIMILARITY_THRESHOLD", 0.85)
 
     @property
     def smart_crusher_n(self) -> int:

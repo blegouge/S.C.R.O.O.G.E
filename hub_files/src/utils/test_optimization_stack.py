@@ -18,7 +18,7 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-CURSOR_HOME = Path(os.environ.get("CURSOR_HOME", REPO_ROOT / "hub_files"))
+CURSOR_HOME = REPO_ROOT / "hub_files"
 SRC_DIR = CURSOR_HOME / "src"
 TELEMETRY_DIR = CURSOR_HOME / "token-telemetry"
 HOOKS_DIR = CURSOR_HOME / "hooks"
@@ -359,6 +359,23 @@ class SemanticCompressHookTests(unittest.TestCase):
         )
         self.assertEqual(rc, 0)
         self.assertEqual(out.get("permission"), "deny")
+
+    def test_token_budget_guardrail_enforce_deny(self) -> None:
+        payload = {
+            "tool_name": "Task",
+            "tool_input": {
+                "prompt": GOOD_BRIEF.strip() + "\n\nRetry again.",
+                "subagent_type": "explore",
+                "guardrail_state": {"failure_streak": 2, "last_failure_kind": "test_failure"},
+            },
+            "workspace_roots": [str(CURSOR_HOME)],
+        }
+        out, stderr, _, rc = _run_hook(
+            "semantic-compress-pretool.py", payload, env={"TOKEN_BUDGET_ENFORCE": "deny"}
+        )
+        self.assertEqual(rc, 0)
+        self.assertEqual(out.get("permission"), "deny", f"out={out}, stderr={stderr}")
+        self.assertIn("TOKEN BUDGET GUARDRAIL HALT", out.get("agent_message", ""))
 
 
 class WritePretoolHookTests(unittest.TestCase):

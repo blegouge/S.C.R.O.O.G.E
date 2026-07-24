@@ -97,6 +97,7 @@ DEFAULT_RECENT_WINDOW = int(os.getenv("ADAPTIVE_CTX_RECENT_WINDOW", "6"))
 DEFAULT_SUMMARIZER_MODE = os.getenv("ADAPTIVE_CTX_SUMMARIZER", "auto").strip().lower() or "auto"
 DEFAULT_COMPRESSION_BACKEND = config.compression_backend
 DEFAULT_TASK_BRIEF_ENFORCE = config.task_brief_enforce
+DEFAULT_TOKEN_BUDGET_ENFORCE = config.token_budget_enforce
 DEFAULT_STRUCTURE_MIN_INPUT_TOKENS = config.adaptive_ctx_structure_min_input_tokens
 
 STATIC_SYSTEM_BLOCK = build_global_static_block()
@@ -338,6 +339,67 @@ def main() -> None:
 
     input_chars = len(prompt)
     input_tokens = estimate_tokens(prompt, model_name)
+
+    # Token Budget Guardrail enforcement
+    guardrail_meta = analyze_guardrail_launch(
+        subagent_type=subagent_type,
+        prompt=prompt,
+        description=description,
+        tool_input=tool_input,
+        after_tokens=input_tokens,
+        model_name=model_name,
+    )
+
+    token_budget_enforce = DEFAULT_TOKEN_BUDGET_ENFORCE
+    if token_budget_enforce not in {"deny", "warn", "off"}:
+        token_budget_enforce = "deny"
+
+    if guardrail_meta.get("guardrail_loop_halt"):
+        if token_budget_enforce == "deny":
+            _debug_log(
+                "guardrail_halt_blocked",
+                failure_streak=guardrail_meta.get("guardrail_failure_streak"),
+            )
+            _append_telemetry(
+                hook_data=data,
+                tool_input=tool_input,
+                prompt=prompt,
+                input_chars=input_chars,
+                input_tokens=input_tokens,
+                before_chars=input_chars,
+                after_chars=input_chars,
+                before_tokens=input_tokens,
+                after_tokens=input_tokens,
+                rate=rate,
+                min_chars=min_chars,
+                message_threshold=message_threshold,
+                token_threshold=token_threshold,
+                recent_window=recent_window,
+                used_llmlingua=False,
+                used_claw_compactor=False,
+                compression_backend="none",
+                compacted_history=0,
+                summarizer_mode=summarizer_mode,
+                git_cache_hit=False,
+                structured_prompt="",
+                stats={},
+                compression_mode="control",
+                model_name=model_name,
+                ab_group="treatment",
+            )
+            _respond(
+                {
+                    "permission": "deny",
+                    "agent_message": f"TOKEN BUDGET GUARDRAIL HALT: Loop halt active. failure_streak={guardrail_meta.get('guardrail_failure_streak')}. Stop automatic retries.",
+                    "user_message": "Subagent Task blocked: boucle infinie détectée (failure_streak >= 2). Veuillez résumer l'impasse pour l'utilisateur.",
+                }
+            )
+            return
+        elif token_budget_enforce == "warn":
+            sys.stderr.write(
+                f"[token-budget] WARN: Loop halt active (streak={guardrail_meta.get('guardrail_failure_streak')}) but enforce mode is warn/off.\n"
+            )
+
     ab_group = "treatment"
     if config.ab_test_enabled:
         import random
