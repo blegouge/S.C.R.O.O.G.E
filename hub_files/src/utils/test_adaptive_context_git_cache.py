@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import json
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from utils.adaptive_context_manager import (
     AdaptiveContextConfig,
@@ -126,78 +126,69 @@ class AdaptiveContextManagerCacheTests(unittest.TestCase):
             calls.append(text)
             return local_kv_summarizer(text, max_items=max_items)
 
+        def mock_run_git(repo_root: Path, *args: str, timeout_sec: float = 2.0) -> str:
+            if "status" in args:
+                return ""
+            if "--abbrev-ref" in args:
+                return "main"
+            return "abc123commitsha"
+
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
-            subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
-            subprocess.run(
-                ["git", "config", "user.email", "test@example.com"],
-                cwd=repo,
-                check=True,
-                capture_output=True,
-            )
-            subprocess.run(
-                ["git", "config", "user.name", "Test"],
-                cwd=repo,
-                check=True,
-                capture_output=True,
-            )
             (repo / "README.md").write_text("hello\n", encoding="utf-8")
-            subprocess.run(["git", "add", "README.md"], cwd=repo, check=True, capture_output=True)
-            subprocess.run(
-                ["git", "commit", "-m", "init"],
-                cwd=repo,
-                check=True,
-                capture_output=True,
-            )
 
-            projects_dir = Path(self.temp_dir.name) / "cursor_projects"
-            manager = AdaptiveContextManager(
-                config=AdaptiveContextConfig(
-                    message_threshold=2,
-                    token_threshold=10,
-                    keep_recent_messages=1,
-                    enable_git_cache=True,
+            with (
+                patch("utils.adaptive_context_manager.find_git_repo_root", return_value=repo),
+                patch("utils.adaptive_context_manager._run_git", side_effect=mock_run_git),
+            ):
+                projects_dir = Path(self.temp_dir.name) / "cursor_projects"
+                manager = AdaptiveContextManager(
+                    config=AdaptiveContextConfig(
+                        message_threshold=2,
+                        token_threshold=10,
+                        keep_recent_messages=1,
+                        enable_git_cache=True,
+                        summarizer_mode="heuristic",
+                    ),
+                    summarize_fn=tracking_summarizer,
+                    git_cache=GitPreflightCache(projects_dir=projects_dir),
+                )
+
+                history = [
+                    {"role": "user", "content": "first question with enough text to count"},
+                    {"role": "assistant", "content": "first answer with enough text to count"},
+                    {"role": "user", "content": "second question with enough text to count"},
+                ]
+
+                _, state1, stats1 = manager.compact_history(
+                    history,
+                    {},
+                    repo_root=repo,
                     summarizer_mode="heuristic",
-                ),
-                summarize_fn=tracking_summarizer,
-                git_cache=GitPreflightCache(projects_dir=projects_dir),
-            )
+                )
+                self.assertTrue(stats1.get("compacted"))
+                self.assertFalse(stats1.get("cache_hit"))
+                self.assertEqual(len(calls), 1)
 
-            history = [
-                {"role": "user", "content": "first question with enough text to count"},
-                {"role": "assistant", "content": "first answer with enough text to count"},
-                {"role": "user", "content": "second question with enough text to count"},
-            ]
+                calls.clear()
+                _, state2, stats2 = manager.compact_history(
+                    history,
+                    {},
+                    repo_root=repo,
+                    summarizer_mode="heuristic",
+                )
+                self.assertTrue(stats2.get("cache_hit"))
+                self.assertTrue(stats2.get("summarizer_skipped"))
+                self.assertEqual(len(calls), 0)
+                self.assertEqual(state1, state2)
 
-            _, state1, stats1 = manager.compact_history(
-                history,
-                {},
-                repo_root=repo,
-                summarizer_mode="heuristic",
-            )
-            self.assertTrue(stats1.get("compacted"))
-            self.assertFalse(stats1.get("cache_hit"))
-            self.assertEqual(len(calls), 1)
-
-            calls.clear()
-            _, state2, stats2 = manager.compact_history(
-                history,
-                {},
-                repo_root=repo,
-                summarizer_mode="heuristic",
-            )
-            self.assertTrue(stats2.get("cache_hit"))
-            self.assertTrue(stats2.get("summarizer_skipped"))
-            self.assertEqual(len(calls), 0)
-            self.assertEqual(state1, state2)
-
-            snapshot = collect_git_repo_snapshot(repo)
-            self.assertIsNotNone(snapshot)
-            signature = compute_git_signature(snapshot)  # type: ignore[arg-type]
-            cache_file = projects_dir / f"cache_{signature}.json"
-            self.assertTrue(cache_file.is_file())
-            payload = json.loads(cache_file.read_text(encoding="utf-8"))
-            self.assertIn("global_state_kv", payload)
+                snapshot = collect_git_repo_snapshot(repo)
+                self.assertIsNotNone(snapshot)
+                signature = compute_git_signature(snapshot)  # type: ignore[arg-type]
+                cache_file = projects_dir / f"cache_{signature}.json"
+                self.assertTrue(cache_file.is_file())
+                payload = json.loads(cache_file.read_text(encoding="utf-8"))
+                self.assertIn("global_state_kv", payload)
 
 
 if __name__ == "__main__":

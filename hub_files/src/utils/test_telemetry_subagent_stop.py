@@ -10,12 +10,20 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-CURSOR_HOME = Path(os.environ.get("CURSOR_HOME", Path.home() / ".cursor"))
+REPO_ROOT = Path(__file__).resolve().parents[3]
+CURSOR_HOME = Path(os.environ.get("CURSOR_HOME", REPO_ROOT / "hub_files"))
 TELEMETRY_DIR = CURSOR_HOME / "token-telemetry"
 SRC_DIR = CURSOR_HOME / "src"
-for path in (TELEMETRY_DIR, SRC_DIR):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+
+LOCAL_TELEMETRY = REPO_ROOT / "src" / "telemetry"
+LOCAL_SRC = REPO_ROOT / "hub_files" / "src"
+
+for path in (TELEMETRY_DIR, SRC_DIR, LOCAL_TELEMETRY, LOCAL_SRC):
+    if str(path) in sys.path:
+        sys.path.remove(str(path))
+
+sys.path.insert(0, str(LOCAL_SRC))
+sys.path.insert(0, str(LOCAL_TELEMETRY))
 
 from telemetry_common import extract_tool_label, tool_output_text  # noqa: E402
 

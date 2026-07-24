@@ -133,7 +133,7 @@ _RTK_GAIN_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _RTK_CACHE_TTL = 30.0
 
 
-def load_rtk_gain(project: bool = False, source: str = "cursor") -> dict[str, object]:
+def load_rtk_gain(project: bool = False, source: str = "cursor") -> dict[str, Any]:
     cache_key = f"{project}:{source}"
     now = time.time()
     with _RTK_GAIN_LOCK:
@@ -248,9 +248,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path.startswith("/api/"):
             token = self.headers.get("X-Telemetry-Token")
-            if not token:
-                query = urllib.parse.parse_qs(parsed.query)
-                token = query.get("token", [None])[0]
             if token != _security_token:
                 self.send_error(403, "Forbidden: Invalid security token")
                 return False

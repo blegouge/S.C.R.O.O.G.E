@@ -8,7 +8,11 @@ import sys
 import unittest
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+for sub in ["src/telemetry", "src/compaction", "src/bridge", "hub_files/src"]:
+    p = PROJECT_ROOT / sub
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 

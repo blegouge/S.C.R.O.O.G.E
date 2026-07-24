@@ -288,11 +288,16 @@ def create_summarizer(mode: str | None = None) -> SummarizerFn:
     if selected == "heuristic":
         return local_kv_summarizer
     if selected == "flash":
-        return lambda text, max_items=12: (
-            flash_kv_summarize(text, max_items=max_items, config=runtime_config)
-            or local_kv_summarizer(text, max_items=max_items)
-        )
+
+        def _flash_sum(text: str, max_items: int) -> StateDict:
+            return flash_kv_summarize(
+                text, max_items=max_items, config=runtime_config
+            ) or local_kv_summarizer(text, max_items=max_items)
+
+        return _flash_sum
+
     # auto (default)
-    return lambda text, max_items=12: hybrid_kv_summarizer(
-        text, max_items=max_items, config=runtime_config
-    )
+    def _auto_sum(text: str, max_items: int) -> StateDict:
+        return hybrid_kv_summarizer(text, max_items=max_items, config=runtime_config)
+
+    return _auto_sum

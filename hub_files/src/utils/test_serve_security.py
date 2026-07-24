@@ -52,13 +52,14 @@ class TestServeSecurity(unittest.TestCase):
         result = DashboardHandler.validate_request(handler)
         self.assertTrue(result)
 
-    def test_validate_request_api_with_query_token(self) -> None:
+    def test_validate_request_api_with_query_token_is_rejected(self) -> None:
         handler = MagicMock(spec=DashboardHandler)
         handler.headers = {"Host": "localhost:8765"}
         handler.path = f"/api/events?token={_security_token}"
 
         result = DashboardHandler.validate_request(handler)
-        self.assertTrue(result)
+        self.assertFalse(result)
+        handler.send_error.assert_called_once_with(403, "Forbidden: Invalid security token")
 
     def test_validate_request_api_with_invalid_token(self) -> None:
         handler = MagicMock(spec=DashboardHandler)

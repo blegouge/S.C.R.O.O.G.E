@@ -9,7 +9,11 @@ import urllib.error
 from pathlib import Path
 from unittest.mock import patch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+for sub in ["src/telemetry", "src/compaction", "src/bridge", "hub_files/src"]:
+    p = PROJECT_ROOT / sub
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -168,12 +172,12 @@ class HybridAndFactoryTests(unittest.TestCase):
         fn = fk.create_summarizer("flash")
         with patch.object(fk, "flash_kv_summarize", return_value={}):
             with patch.object(fk, "local_kv_summarizer", return_value={"L": "1"}):
-                self.assertEqual(fn(_LONG), {"L": "1"})
+                self.assertEqual(fn(_LONG, 12), {"L": "1"})
 
     def test_create_summarizer_auto(self) -> None:
         fn = fk.create_summarizer("auto")
         with patch.object(fk, "flash_kv_summarize", return_value={"A": "1"}):
-            self.assertEqual(fn(_LONG), {"A": "1"})
+            self.assertEqual(fn(_LONG, 12), {"A": "1"})
 
 
 if __name__ == "__main__":

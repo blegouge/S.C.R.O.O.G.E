@@ -1,6 +1,6 @@
 [project]
 name = "telemetry-token"
-version = "1.0.0"
+version = "1.1.0"
 description = "Token Optimization Stack"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -68,25 +68,10 @@ check_untyped_defs = true
 warn_unused_ignores = false
 warn_redundant_casts = false
 files = [
+    "src",
+    "hub_files/src/utils",
     "dashboard/serve_dashboard.py",
-    "src/telemetry/telemetry_db.py",
-    "src/telemetry/telemetry_config.py",
-    "src/telemetry/telemetry_paths.py",
-    "src/telemetry/providers_config.py",
-    "src/telemetry/telemetry_common.py",
-    "src/telemetry/telemetry_metrics.py",
-    "src/compaction/token_compactor.py",
-    "src/compaction/smart_crusher.py",
-    "cli/report.py",
-    "src/compaction/claw_compactor_adapter.py",
-    "src/compaction/headroom_adapter.py",
-    "hub_files/src/utils/adaptive_context_manager.py",
-    "hub_files/src/utils/consumption_report_validator.py",
-    "hub_files/src/utils/diff_applier.py",
-    "hub_files/src/utils/static_prompt_registry.py",
-    "hub_files/src/utils/summarizer_factory.py",
-    "hub_files/src/utils/task_brief_validator.py",
-    "hub_files/src/utils/token_budget_guardrail.py"
+    "cli/report.py"
 ]
 
 [tool.pytest.ini_options]

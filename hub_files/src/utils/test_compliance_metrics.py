@@ -8,9 +8,13 @@ import unittest
 from pathlib import Path
 
 # Setup path so telemetry_metrics can be imported from local project root
-project_root = Path(__file__).resolve().parents[4]
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+for sub in ["src/telemetry", "src/compaction", "src/bridge", "hub_files/src"]:
+    p = PROJECT_ROOT / sub
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from telemetry_metrics import summarize_compliance_kpis  # noqa: E402
 
