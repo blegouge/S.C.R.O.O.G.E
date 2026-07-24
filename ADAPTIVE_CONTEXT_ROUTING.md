@@ -6,6 +6,11 @@ This workspace now uses a hybrid token optimization pipeline:
 2. Adaptive state compaction for long histories
 3. Optional LLMLingua compression on large dynamic sections
 
+> **Paths in this document** use the *installed hub* layout (e.g. `~/.cursor/src/utils/…`,
+> `~/.cursor/hooks/…`). In this repository the same files live under `hub_files/` — for
+> instance `hub_files/src/utils/adaptive_context_manager.py` and
+> `hub_files/hooks/semantic-compress-pretool.py`.
+
 ## Core modules
 
 - `src/utils/adaptive_context_manager.py`
@@ -16,8 +21,8 @@ This workspace now uses a hybrid token optimization pipeline:
   - deterministic static block builder from global `rules/*.mdc` + `skills/**/SKILL.md`
 - `hooks/semantic-compress-pretool.py`
   - global Cursor automation for `Task` tool (subagents, all workspaces)
-- `token-telemetry/compression_middleware.py`
-  - app-level integration for OpenAI/Anthropic payload builders
+- `examples/compression_middleware.py`
+  - reference app-level integration for OpenAI/Anthropic payload builders
 
 ## Final request block order
 

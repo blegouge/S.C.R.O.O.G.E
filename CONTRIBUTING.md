@@ -39,7 +39,7 @@ We enforce strict linting, formatting, and typing checks:
 
 ## Running Tests
 
-All unit tests must pass, and the minimum test coverage is set at **80%**.
+All unit tests must pass, and the minimum test coverage is set at **85%**.
 
 ```bash
 pytest

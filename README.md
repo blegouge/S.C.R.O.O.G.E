@@ -34,6 +34,7 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
    - **RTK Gain**: Integrates with shell command savings (saves up to 98% on command runs, estimated).
    - **Diff-Only Protocol**: Applies SEARCH/REPLACE delta patching to avoid rewriting large source files, saving up to 95% of output tokens (estimated).
    - **Claw Compactor & LLMLingua**: Reduces dynamic context size by pruning low-information tokens before sending payloads.
+   - **Headroom local engines**: `SmartCrusher` (structural pruning) and `CCR` (Compress-Cache-Retrieve) for large logs/blocks.
 
 3. **🔄 Adaptive Context Routing**
    - Assembles requests deterministically:
@@ -42,7 +43,7 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
      3. `BLOCK_2`: Git & Workspace state.
      4. `BLOCK_3`: Compacted dynamic message history.
      5. `BLOCK_4`: Latest query.
-   - Automatically compresses history above 8 messages or 3000 tokens.
+   - Compacts history above the configured thresholds (code defaults: 8 messages / 3000 tokens; the shipped `compression.env` raises them to 10 / 4000). See [ADAPTIVE_CONTEXT_ROUTING.md](ADAPTIVE_CONTEXT_ROUTING.md).
 
 4. **⚡ Git Pre-flight Cache**
    - Computes a signature based on `git branch + HEAD SHA + modified files`.
@@ -57,16 +58,21 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 
 ## 📂 Repository Structure
 
-| File / Directory | Description |
+The Python core lives under `src/` (packaged, unit-tested), the UI under `dashboard/`, and everything deployed into an agent/IDE hub (`~/.cursor`, `~/.codex`, `~/.gemini/antigravity`, …) lives under `hub_files/`.
+
+| Path | Description |
 |---|---|
 | 🛠️ [install_stack.py](install_stack.py) | Interactive, idempotent, and automated setup script. |
-| 📁 [src/telemetry/](file:///Users/blegouge/www/private/TelemetryToken/src/telemetry/) | Database manager ([telemetry_db.py](file:///Users/blegouge/www/private/TelemetryToken/src/telemetry/telemetry_db.py)), paths ([telemetry_paths.py](file:///Users/blegouge/www/private/TelemetryToken/src/telemetry/telemetry_paths.py)), config management, and token metrics. |
-| 📁 [src/compaction/](file:///Users/blegouge/www/private/TelemetryToken/src/compaction/) | Context compression logic ([token_compactor.py](file:///Users/blegouge/www/private/TelemetryToken/src/compaction/token_compactor.py)), headroom adapters, and smart reducers. |
-| 📁 [src/bridge/](file:///Users/blegouge/www/private/TelemetryToken/src/bridge/) | Telemetry bridge integrations ([hermes_telemetry_bridge.py](file:///Users/blegouge/www/private/TelemetryToken/src/bridge/hermes_telemetry_bridge.py)). |
-| 📁 [dashboard/](file:///Users/blegouge/www/private/TelemetryToken/dashboard/) | Frontend UI components ([dashboard.html](file:///Users/blegouge/www/private/TelemetryToken/dashboard/dashboard.html), JS/CSS) and backend server ([serve_dashboard.py](file:///Users/blegouge/www/private/TelemetryToken/dashboard/serve_dashboard.py)). |
-| 📁 [cli/](file:///Users/blegouge/www/private/TelemetryToken/cli/) | CLI reporting utilities ([report.py](file:///Users/blegouge/www/private/TelemetryToken/cli/report.py)). |
-| 📁 [docs/](file:///Users/blegouge/www/private/TelemetryToken/docs/) | Documentation and verify script ([verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py)). |
-
+| 📁 [src/telemetry/](src/telemetry/) | Telemetry core: SQLite manager ([telemetry_db.py](src/telemetry/telemetry_db.py)), path/provider resolution ([telemetry_paths.py](src/telemetry/telemetry_paths.py), [providers_config.py](src/telemetry/providers_config.py)), config ([telemetry_config.py](src/telemetry/telemetry_config.py)), KPI aggregation ([telemetry_metrics.py](src/telemetry/telemetry_metrics.py)), measured-vs-modeled taxonomy ([measurement_source.py](src/telemetry/measurement_source.py)), RTK binary resolver ([rtk_resolver.py](src/telemetry/rtk_resolver.py)), shared helpers ([telemetry_common.py](src/telemetry/telemetry_common.py)). |
+| 📁 [src/compaction/](src/compaction/) | Compression engines: LLMLingua ([token_compactor.py](src/compaction/token_compactor.py)), Claw adapter ([claw_compactor_adapter.py](src/compaction/claw_compactor_adapter.py)), Headroom adapter ([headroom_adapter.py](src/compaction/headroom_adapter.py)), SmartCrusher ([smart_crusher.py](src/compaction/smart_crusher.py)), CCR cache ([ccr_manager.py](src/compaction/ccr_manager.py)). |
+| 📁 [src/bridge/](src/bridge/) | External log ingestion into telemetry ([hermes_telemetry_bridge.py](src/bridge/hermes_telemetry_bridge.py)). |
+| 📁 [dashboard/](dashboard/) | Web SPA ([dashboard.html](dashboard/dashboard.html), JS/CSS), HTTP backend ([serve_dashboard.py](dashboard/serve_dashboard.py)), and native window loader ([dashboard_app.py](dashboard/dashboard_app.py)). |
+| 📁 [cli/](cli/) | CLI reporting utilities ([report.py](cli/report.py)). |
+| 📁 [hub_files/](hub_files/) | Agent/IDE integration layer deployed to the hub: `hooks/` (telemetry, Diff-Only, RTK, semantic compression, compliance), `providers/` (per-IDE detection), `rules/` (`*.mdc`), `skills/`, `src/utils/` (adaptive context manager, diff applier, guardrails, summarizers + their unit tests), and `bin/` (helper scripts). |
+| 📁 [docs/](docs/) | Documentation and post-install verifier ([verify_stack.py](docs/verify_stack.py)). |
+| 📁 [examples/](examples/) | Integration samples: compression middleware and flash summarizer smoke test. |
+| 📁 [native_app/](native_app/) | PyInstaller spec ([SCROOGE.spec](native_app/SCROOGE.spec)) for the macOS `.app` bundle. |
+| 📦 [build_macos_app.sh](build_macos_app.sh) | Builds `dist/SCROOGE.app` (PyInstaller + ad-hoc signature). |
 
 ---
 
@@ -95,15 +101,21 @@ Dependency locks are platform-specific. The installer uses `requirements-desktop
 ## ⚙️ Configuration File Overview
 
 ### 1. `compression.env`
-Defines parameters and thresholds for context compression:
+Defines parameters and thresholds for context compression (see [hub_files/compression.env.example](hub_files/compression.env.example)):
 ```ini
 # Token optimization context compression configuration
 COMPRESSION_BACKEND=claw
-TASK_BRIEF_ENFORCE=deny
+# deny = block invalid briefs, warn = log only, off = skip validation
+TASK_BRIEF_ENFORCE=warn
 LLMLINGUA_HOOK_RATE=0.5
+LLMLINGUA_HOOK_MIN_CHARS=2500
 ADAPTIVE_CTX_TOKEN_THRESHOLD=4000
 ADAPTIVE_CTX_MESSAGE_THRESHOLD=10
+ADAPTIVE_CTX_STRUCTURE_MIN_INPUT_TOKENS=2500
 CCR_ENABLED=1
+CCR_THRESHOLD_CHARS=4000
+SMART_CRUSHER_N=10
+SMART_CRUSHER_M=10
 ```
 
 ### 2. `mcp.secrets.env`
@@ -122,15 +134,15 @@ Located in your IDE/agent hub folder (e.g. `~/.cursor/` or `~/.codex/`), they de
 ## 🖥️ Usage
 
 ### Terminal Report
-Run the report CLI to see a summary of your session consumption:
+Run the report CLI (from the repository root) to see a summary of your session consumption:
 ```bash
-python3 report.py
+python3 cli/report.py
 ```
 
 ### Start the Dashboard Server
 If you chose not to start it during installation, run:
 ```bash
-python3 serve_dashboard.py
+python3 dashboard/serve_dashboard.py
 # Open http://127.0.0.1:8765/
 ```
 

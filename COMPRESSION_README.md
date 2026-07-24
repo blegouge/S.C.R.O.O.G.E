@@ -1,5 +1,9 @@
 # Semantic Prompt Compression (Claw Compactor + LLMLingua)
 
+> **Paths in this document** use the *installed hub* layout (e.g. `~/.cursor/src/utils/…`).
+> In this repository the compression engines live under `src/compaction/` and the utility
+> modules under `hub_files/src/utils/` (e.g. `hub_files/src/utils/adaptive_context_manager.py`).
+
 ## Installation
 
 ```bash
@@ -84,7 +88,7 @@ Add `~/.cursor/bin` to your `PATH` if you want `claw-compactor` without the full
 
 ## Middleware
 
-- File: `compression_middleware.py`
+- File: `examples/compression_middleware.py`
 - Class: `PromptCompressionMiddleware`
 - Use `before_llm_call(payload)` to:
   - route messages through `AdaptiveContextManager`,

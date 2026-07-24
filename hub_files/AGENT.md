@@ -85,5 +85,5 @@ Run through mentally or in a short chat: (1) narrow factual question → no suba
 
 ## Onboarding (new team members)
 
-- **Runbook:** `docs/ONBOARDING-RUNBOOK.md` — phased setup (hub, secrets, venv, hooks, CRG, RTK, télémétrie, smoke tests).
+- **Setup:** `python3 install_stack.py` — automated phased setup (hub, secrets, venv, hooks, CRG, RTK, telemetry). See the repository root `README.md`.
 - **Health check:** `bin/health-check-hub.sh` (`--full` for unit tests, `--json` for automation).
