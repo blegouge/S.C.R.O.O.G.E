@@ -92,6 +92,7 @@ def _compression_env() -> dict[str, str]:
     new_pythonpath = [
         str(root_dir),
         str(src_dir),
+        str(root_dir / "src"),
         str(root_dir / "src" / "telemetry"),
         str(root_dir / "src" / "compaction"),
         str(root_dir / "src" / "bridge"),
