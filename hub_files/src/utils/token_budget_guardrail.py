@@ -138,7 +138,7 @@ def build_upstream_guardrail_report(
             "MANDATORY_GATES:",
             "1. ROI: Before Read>500 lines or explore Task — prove rtk grep/find or scoped read failed.",
             "2. LOOP: failure_streak>=2 → STOP; summarize impasse; ask human (no auto 3rd try).",
-            "4. OUTPUT: code edits → StrReplace or SEARCH/REPLACE blocks; Write blocked on existing files.",
+            "4. OUTPUT: try StrReplace, ApplyPatch, then Edit when exposed; otherwise exact SEARCH/REPLACE response blocks are mandatory. Do not stop or delegate solely for a missing editor; Write remains blocked on existing files.",
         ]
     )
     if loop_halt:
