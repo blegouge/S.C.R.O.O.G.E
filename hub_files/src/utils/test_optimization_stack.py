@@ -17,21 +17,39 @@ import tempfile
 import unittest
 from pathlib import Path
 
-CURSOR_HOME = Path(os.environ.get("CURSOR_HOME", Path.home() / ".cursor"))
+REPO_ROOT = Path(__file__).resolve().parents[3]
+CURSOR_HOME = Path(os.environ.get("CURSOR_HOME", REPO_ROOT / "hub_files"))
 SRC_DIR = CURSOR_HOME / "src"
 TELEMETRY_DIR = CURSOR_HOME / "token-telemetry"
 HOOKS_DIR = CURSOR_HOME / "hooks"
-REPO_ROOT = Path(__file__).resolve().parents[3]
 
 _TEST_LOG_DIR: tempfile.TemporaryDirectory[str] | None = None
 _TEST_LOG_PATH: Path | None = None
 
+# Avoid loading stale code from ~/.cursor/ by inserting local workspace folders at index 0
+LOCAL_TELEMETRY = REPO_ROOT / "src" / "telemetry"
+LOCAL_COMPACTION = REPO_ROOT / "src" / "compaction"
+LOCAL_BRIDGE = REPO_ROOT / "src" / "bridge"
 LOCAL_SRC = REPO_ROOT / "hub_files" / "src"
-for path in (TELEMETRY_DIR, SRC_DIR, REPO_ROOT, LOCAL_SRC):
+
+for path in (
+    TELEMETRY_DIR,
+    SRC_DIR,
+    REPO_ROOT,
+    LOCAL_SRC,
+    LOCAL_TELEMETRY,
+    LOCAL_COMPACTION,
+    LOCAL_BRIDGE,
+):
     path_str = str(path)
     if path_str in sys.path:
         sys.path.remove(path_str)
-    sys.path.insert(0, path_str)
+
+sys.path.insert(0, str(LOCAL_SRC))
+sys.path.insert(0, str(LOCAL_TELEMETRY))
+sys.path.insert(0, str(LOCAL_COMPACTION))
+sys.path.insert(0, str(LOCAL_BRIDGE))
+sys.path.insert(0, str(REPO_ROOT))
 
 from telemetry_metrics import (  # noqa: E402
     hook_overhead_tokens,
