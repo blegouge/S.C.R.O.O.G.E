@@ -23,33 +23,35 @@ HUB_FILES = REPO_ROOT / "hub_files"
 CODEX_FILES = HUB_FILES / "codex"
 
 DASHBOARD_RUNTIME_FILES = {
-    ".env",
-    ".env.example",
-    "dashboard.html",
-    "dashboard.css",
-    "dashboard.js",
-    "dashboard_translations.js",
-    "dashboard_utils.js",
-    "dashboard_api.js",
-    "dashboard_charts.js",
-    "dashboard_stats.js",
-    "dashboard_tables.js",
-    "dashboard_app.py",
-    "providers_config.py",
-    "providers_config.yaml",
-    "report.py",
-    "requirements-desktop.txt",
-    "requirements-desktop-linux.lock",
-    "requirements-desktop-macos.lock",
-    "requirements-desktop-windows.lock",
-    "rtk_resolver.py",
-    "serve_dashboard.py",
-    "telemetry_common.py",
-    "telemetry_config.py",
-    "telemetry_db.py",
-    "telemetry_metrics.py",
-    "telemetry_paths.py",
+    # File name -> Relative source directory in repo
+    ".env": ".",
+    ".env.example": ".",
+    "dashboard.html": "dashboard",
+    "dashboard.css": "dashboard",
+    "dashboard.js": "dashboard",
+    "dashboard_translations.js": "dashboard",
+    "dashboard_utils.js": "dashboard",
+    "dashboard_api.js": "dashboard",
+    "dashboard_charts.js": "dashboard",
+    "dashboard_stats.js": "dashboard",
+    "dashboard_tables.js": "dashboard",
+    "dashboard_app.py": "dashboard",
+    "providers_config.py": "src/telemetry",
+    "providers_config.yaml": "src/telemetry",
+    "report.py": "cli",
+    "requirements-desktop.txt": ".",
+    "requirements-desktop-linux.lock": ".",
+    "requirements-desktop-macos.lock": ".",
+    "requirements-desktop-windows.lock": ".",
+    "rtk_resolver.py": "src/telemetry",
+    "serve_dashboard.py": "dashboard",
+    "telemetry_common.py": "src/telemetry",
+    "telemetry_config.py": "src/telemetry",
+    "telemetry_db.py": "src/telemetry",
+    "telemetry_metrics.py": "src/telemetry",
+    "telemetry_paths.py": "src/telemetry",
 }
+
 
 TOKEN_TELEMETRY_PRESERVE_NAMES = {
     ".venv-desktop",
@@ -391,8 +393,8 @@ def copy_tree_idempotent(src: Path, dst: Path, ignore=None, overwrite: bool = Tr
 def deploy_token_telemetry_runtime(repo_root: Path, dst: Path) -> None:
     """Deploy only dashboard/runtime files into <HUB>/token-telemetry."""
     dst.mkdir(parents=True, exist_ok=True)
-    for name in DASHBOARD_RUNTIME_FILES:
-        src = repo_root / name
+    for name, rel_dir in DASHBOARD_RUNTIME_FILES.items():
+        src = repo_root / rel_dir / name
         if src.is_file():
             shutil.copy2(src, dst / name)
 

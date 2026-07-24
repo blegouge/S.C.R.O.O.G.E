@@ -55,13 +55,13 @@ if str(PROVIDERS_DIR.parent) not in sys.path:
     sys.path.insert(0, str(PROVIDERS_DIR.parent))
 
 from providers import detect_provider  # pylint: disable=import-error
-
 from telemetry_common import (  # pylint: disable=import-error
     append_event,
     enrich_correlation,
     estimate_tokens,
     extract_skill_hint,
 )
+
 from telemetry_config import config
 from utils.adaptive_context_manager import (  # pylint: disable=import-error
     AdaptiveContextConfig,

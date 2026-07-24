@@ -59,7 +59,7 @@ ignore = [
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-first-party = ["utils", "telemetry_db", "telemetry_config", "telemetry_paths", "providers_config"]
+known-first-party = ["utils", "telemetry_db", "telemetry_config", "telemetry_paths", "providers_config", "src"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -68,18 +68,18 @@ check_untyped_defs = true
 warn_unused_ignores = false
 warn_redundant_casts = false
 files = [
-    "serve_dashboard.py",
-    "telemetry_db.py",
-    "telemetry_config.py",
-    "telemetry_paths.py",
-    "providers_config.py",
-    "telemetry_common.py",
-    "telemetry_metrics.py",
-    "token_compactor.py",
-    "smart_crusher.py",
-    "report.py",
-    "claw_compactor_adapter.py",
-    "headroom_adapter.py",
+    "dashboard/serve_dashboard.py",
+    "src/telemetry/telemetry_db.py",
+    "src/telemetry/telemetry_config.py",
+    "src/telemetry/telemetry_paths.py",
+    "src/telemetry/providers_config.py",
+    "src/telemetry/telemetry_common.py",
+    "src/telemetry/telemetry_metrics.py",
+    "src/compaction/token_compactor.py",
+    "src/compaction/smart_crusher.py",
+    "cli/report.py",
+    "src/compaction/claw_compactor_adapter.py",
+    "src/compaction/headroom_adapter.py",
     "hub_files/src/utils/adaptive_context_manager.py",
     "hub_files/src/utils/consumption_report_validator.py",
     "hub_files/src/utils/diff_applier.py",
@@ -91,6 +91,6 @@ files = [
 
 [tool.pytest.ini_options]
 testpaths = ["hub_files/src/utils"]
-pythonpath = ["hub_files/src", "."]
+pythonpath = ["hub_files/src", "src/telemetry", "src/compaction", "src/bridge", "dashboard", "cli", "."]
 python_files = ["test_*.py"]
 addopts = "--cov=hub_files/src/utils --cov-report=term-missing --cov-fail-under=80"

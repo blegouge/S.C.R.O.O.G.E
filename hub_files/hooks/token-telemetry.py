@@ -39,6 +39,7 @@ from telemetry_common import (  # pylint: disable=import-error
     int_field,
     tool_output_text,
 )
+
 from utils.consumption_report_validator import (
     analyze_consumption_report,  # pylint: disable=import-error
 )

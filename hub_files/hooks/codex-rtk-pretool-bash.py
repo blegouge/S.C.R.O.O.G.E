@@ -29,6 +29,7 @@ for _path in (_HOME_PATH / "token-telemetry", _HOME_PATH / "src"):
 
 try:
     from telemetry_common import append_event, enrich_correlation
+
     from utils.hook_utils import (
         extract_tool_input,
         extract_tool_name,

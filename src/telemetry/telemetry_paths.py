@@ -61,9 +61,13 @@ def load_telemetry_env() -> None:
 # Load env configurations immediately on import
 load_telemetry_env()
 
-from providers_config import get_data_dir
+_this_dir = Path(__file__).resolve().parent
+if _this_dir.name == "telemetry" and _this_dir.parent.name == "src":
+    DEFAULT_APP_DIR = _this_dir.parent.parent
+else:
+    DEFAULT_APP_DIR = _this_dir
 
-DEFAULT_APP_DIR = Path(__file__).resolve().parent
+from providers_config import get_data_dir
 
 
 def _path_is_relative_to(path: Path, parent: Path) -> bool:

@@ -13,23 +13,30 @@ webview_datas, webview_binaries, webview_hidden = collect_all("webview")
 block_cipher = None
 
 datas = [
-    (str(PACKAGE / "dashboard.html"), "."),
-    (str(PACKAGE / "dashboard.js"), "."),
-    (str(PACKAGE / "dashboard_translations.js"), "."),
-    (str(PACKAGE / "dashboard_utils.js"), "."),
-    (str(PACKAGE / "dashboard_api.js"), "."),
-    (str(PACKAGE / "dashboard_stats.js"), "."),
-    (str(PACKAGE / "dashboard_charts.js"), "."),
-    (str(PACKAGE / "dashboard_tables.js"), "."),
-    (str(PACKAGE / "dashboard.css"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard.html"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard_translations.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard_utils.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard_api.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard_stats.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard_charts.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard_tables.js"), "."),
+    (str(PACKAGE / "dashboard" / "dashboard.css"), "."),
     (str(PACKAGE / "docs" / "fr" / "assets" / "icon.jpg"), "."),
-    (str(PACKAGE / "providers_config.yaml"), "."),
+    (str(PACKAGE / "src" / "telemetry" / "providers_config.yaml"), "."),
 ] + webview_datas
 
 
 a = Analysis(
-    [str(PACKAGE / "dashboard_app.py")],
-    pathex=[str(PACKAGE)],
+    [str(PACKAGE / "dashboard" / "dashboard_app.py")],
+    pathex=[
+        str(PACKAGE),
+        str(PACKAGE / "src" / "telemetry"),
+        str(PACKAGE / "src" / "compaction"),
+        str(PACKAGE / "src" / "bridge"),
+        str(PACKAGE / "dashboard"),
+        str(PACKAGE / "cli"),
+    ],
     binaries=webview_binaries,
     datas=datas,
     hiddenimports=list(webview_hidden),

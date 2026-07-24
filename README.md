@@ -60,17 +60,13 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 | File / Directory | Description |
 |---|---|
 | 🛠️ [install_stack.py](install_stack.py) | Interactive, idempotent, and automated setup script. |
-| 🌐 [serve_dashboard.py](serve_dashboard.py) | Light HTTP backend serving the dashboard API and HTML interface. |
-| 🖥️ [dashboard_app.py](dashboard_app.py) | Native desktop window loader utilizing `pywebview`. |
-| 🎨 [dashboard.html](dashboard.html) | Modern dark-theme SPA with dynamic layouts and real-time refresh. |
-| 🎨 [dashboard.css](dashboard.css) | Extracted standalone style sheets for the dashboard SPA. |
-| ⚡ [dashboard.js](dashboard.js) | Full client application logic, including interactive Chart.js charts. |
-| 🗄️ [telemetry_db.py](telemetry_db.py) | SQLite database manager coordinating incremental background sync. |
-| ⚙️ [telemetry_config.py](telemetry_config.py) | Centralized ConfigManager unifying env and compression settings. |
-| 📊 [report.py](report.py) | Command line utility to display usage summary directly in the terminal. |
-| 📁 [docs/verify_stack.py](docs/verify_stack.py) | Post-installation automated test suite checking all components. |
-| ⚙️ [providers_config.py](providers_config.py) | Providers and directory mapping logic. |
-| ⚙️ [providers_config.yaml](providers_config.yaml) | YAML definition for IDE directories and price configurations. |
+| 📁 [src/telemetry/](file:///Users/blegouge/www/private/TelemetryToken/src/telemetry/) | Database manager ([telemetry_db.py](file:///Users/blegouge/www/private/TelemetryToken/src/telemetry/telemetry_db.py)), paths ([telemetry_paths.py](file:///Users/blegouge/www/private/TelemetryToken/src/telemetry/telemetry_paths.py)), config management, and token metrics. |
+| 📁 [src/compaction/](file:///Users/blegouge/www/private/TelemetryToken/src/compaction/) | Context compression logic ([token_compactor.py](file:///Users/blegouge/www/private/TelemetryToken/src/compaction/token_compactor.py)), headroom adapters, and smart reducers. |
+| 📁 [src/bridge/](file:///Users/blegouge/www/private/TelemetryToken/src/bridge/) | Telemetry bridge integrations ([hermes_telemetry_bridge.py](file:///Users/blegouge/www/private/TelemetryToken/src/bridge/hermes_telemetry_bridge.py)). |
+| 📁 [dashboard/](file:///Users/blegouge/www/private/TelemetryToken/dashboard/) | Frontend UI components ([dashboard.html](file:///Users/blegouge/www/private/TelemetryToken/dashboard/dashboard.html), JS/CSS) and backend server ([serve_dashboard.py](file:///Users/blegouge/www/private/TelemetryToken/dashboard/serve_dashboard.py)). |
+| 📁 [cli/](file:///Users/blegouge/www/private/TelemetryToken/cli/) | CLI reporting utilities ([report.py](file:///Users/blegouge/www/private/TelemetryToken/cli/report.py)). |
+| 📁 [docs/](file:///Users/blegouge/www/private/TelemetryToken/docs/) | Documentation and verify script ([verify_stack.py](file:///Users/blegouge/www/private/TelemetryToken/docs/verify_stack.py)). |
+
 
 ---
 

@@ -24,6 +24,7 @@ for _path in (SRC_DIR, TOKEN_TELEMETRY_DIR):
         sys.path.insert(0, str(_path))
 
 from telemetry_common import append_event  # pylint: disable=import-error
+
 from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
 from utils.hook_utils import (
     extract_tool_input,
