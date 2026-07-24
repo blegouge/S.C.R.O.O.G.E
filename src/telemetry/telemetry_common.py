@@ -330,14 +330,20 @@ _claude_tokenizer: Any = None
 def _resolve_claude_tokenizer_path() -> Path | None:
     """Resolve absolute path to the offline Claude tokenizer.json file."""
     base_dir = Path(__file__).resolve().parent
-    # In installed context: token-telemetry/telemetry_common.py -> src/utils/claude_tokenizer/tokenizer.json
-    path_installed = base_dir.parent / "src" / "utils" / "claude_tokenizer" / "tokenizer.json"
-    if path_installed.is_file():
-        return path_installed
-    # In dev context: telemetry_common.py -> hub_files/src/utils/claude_tokenizer/tokenizer.json
-    path_dev = base_dir / "hub_files" / "src" / "utils" / "claude_tokenizer" / "tokenizer.json"
-    if path_dev.is_file():
-        return path_dev
+    if base_dir.name == "telemetry" and base_dir.parent.name == "src":
+        repo_root = base_dir.parent.parent
+    else:
+        repo_root = base_dir.parent
+
+    # Candidates for offline Claude tokenizer
+    candidates = [
+        base_dir.parent / "src" / "utils" / "claude_tokenizer" / "tokenizer.json",
+        repo_root / "hub_files" / "src" / "utils" / "claude_tokenizer" / "tokenizer.json",
+        base_dir / "src" / "utils" / "claude_tokenizer" / "tokenizer.json",
+    ]
+    for p in candidates:
+        if p.is_file():
+            return p
     return None
 
 

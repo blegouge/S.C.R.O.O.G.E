@@ -8,9 +8,19 @@ import json
 import json as _json
 import os
 import pathlib
+import sys
+
+# Setup path for dev structure
+_this_dir = pathlib.Path(__file__).resolve().parent
+if (_this_dir.parent / "src").is_dir():
+    for _sub in ("telemetry", "compaction", "bridge"):
+        _p = str(_this_dir.parent / "src" / _sub)
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
 
 from rtk_resolver import resolve_rtk_command
 from telemetry_metrics import summarize_layer_kpis, summarize_report, summarize_stack_kpis
+
 from telemetry_paths import resolve_log_file
 
 

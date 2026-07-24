@@ -15,8 +15,17 @@ import sys
 from http.server import SimpleHTTPRequestHandler
 from typing import Any
 
-from providers_config import get_data_dir, get_enabled_providers, get_rtk_cwd
+# Setup path for dev structure
+_this_dir = pathlib.Path(__file__).resolve().parent
+if (_this_dir.parent / "src").is_dir():
+    for _sub in ("telemetry", "compaction", "bridge"):
+        _p = str(_this_dir.parent / "src" / _sub)
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
+
 from telemetry_metrics import summarize_layer_kpis, summarize_report
+
+from providers_config import get_data_dir, get_enabled_providers, get_rtk_cwd
 
 
 def package_root() -> pathlib.Path:
@@ -39,7 +48,7 @@ def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
 
 DASH = package_root() / "dashboard.html"
 ICON = package_root() / "icon.jpg"  # app logo / favicon (JPEG)
-ICON_FALLBACK = package_root() / "docs" / "fr" / "assets" / "icon.jpg"
+ICON_FALLBACK = package_root().parent / "docs" / "fr" / "assets" / "icon.jpg"
 JS = package_root() / "dashboard.js"
 CSS = package_root() / "dashboard.css"
 HOST = os.environ.get("TELEMETRY_HOST", "127.0.0.1")

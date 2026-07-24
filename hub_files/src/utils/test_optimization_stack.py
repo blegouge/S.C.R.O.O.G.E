@@ -40,6 +40,7 @@ from telemetry_metrics import (  # noqa: E402
     rtk_hook_saved_tokens,
     summarize_layer_kpis,
 )
+
 from utils.static_prompt_registry import (  # noqa: E402
     PromptRegistryPaths,
     build_global_static_block,

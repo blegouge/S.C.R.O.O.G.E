@@ -15,6 +15,9 @@ import threading
 
 _ROOT = pathlib.Path(__file__).resolve().parent
 _REQ = _ROOT / "requirements-desktop.txt"
+if not _REQ.is_file() and (_ROOT.parent / "requirements-desktop.txt").is_file():
+    _REQ = _ROOT.parent / "requirements-desktop.txt"
+
 
 try:
     import webview

@@ -26,7 +26,11 @@ class ConfigManager:
             if home_dir:
                 self._home_path = pathlib.Path(home_dir).resolve()
             else:
-                self._home_path = pathlib.Path(__file__).resolve().parent.parent
+                _this_file = pathlib.Path(__file__).resolve()
+                if _this_file.parent.name == "telemetry" and _this_file.parents[1].name == "src":
+                    self._home_path = _this_file.parents[2]
+                else:
+                    self._home_path = _this_file.parent.parent
 
         self._load_compression_env()
 

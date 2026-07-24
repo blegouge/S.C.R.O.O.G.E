@@ -26,6 +26,7 @@ for path in (SRC_DIR, TOKEN_TELEMETRY_DIR):
         sys.path.insert(0, str(path))
 
 from telemetry_common import append_event  # pylint: disable=import-error
+
 from utils.consumption_report_validator import (  # pylint: disable=import-error
     analyze_consumption_report,
     build_consumption_followup,
