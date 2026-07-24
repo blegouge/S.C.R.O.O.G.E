@@ -95,9 +95,9 @@ pythonpath = ["hub_files/src", "src/telemetry", "src/compaction", "src/bridge", 
 python_files = ["test_*.py"]
 # Coverage spans the real core (src/) plus hub_files/src/utils; test files are
 # excluded from the metric (see [tool.coverage.run]). cov-fail-under is an honest
-# ratchet floor: source-only coverage reached ~81% on 2026-07-24, gate set to 78%
+# ratchet floor: source-only coverage reached ~84% on 2026-07-24, gate set to 80%
 # to leave CI variance margin. Raise it as coverage improves (target: 85%+).
-addopts = "--cov=hub_files/src/utils --cov=src --cov-report=term-missing --cov-fail-under=78"
+addopts = "--cov=hub_files/src/utils --cov=src --cov-report=term-missing --cov-fail-under=80"
 
 [tool.coverage.run]
 # Measure production code only; unit tests must not inflate the coverage metric.
