@@ -479,7 +479,14 @@ def summarize_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 session_usage[c_id.strip()] = r
 
     # Distribution of measurement sources
-    source_counts = {"api_usage": 0, "tokenizer": 0, "coefficient": 0, "proxy": 0}
+    source_counts = {
+        "api_usage": 0,
+        "tokenizer": 0,
+        "tokenizer_exact": 0,
+        "tokenizer_approx": 0,
+        "coefficient": 0,
+        "proxy": 0,
+    }
 
     agent_la = agent_lr = agent_pass = tab_n = tab_la = 0
     hook_runs = hook_saved = hook_claw = hook_llm = 0

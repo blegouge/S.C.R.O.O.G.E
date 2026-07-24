@@ -35,10 +35,11 @@ Brief must include: *« Follow Diff-Only: return path + SEARCH/REPLACE blocks on
 
 ## Edits in repo (enforced)
 
-- **Existing files:** use `StrReplace` only (unique SEARCH snippet). `Write` is **blocked** by `preToolUse` hook on existing paths.
+- **Existing files:** use targeted editors in this order when exposed: `StrReplace`, `ApplyPatch`, then `Edit`. If one is unavailable or denied, continue to the next. `Write` remains **blocked** by the `preToolUse` hook on existing paths.
+- **Mandatory response fallback:** if no targeted editor is exposed or succeeds, emit exact SEARCH/REPLACE blocks in the response for deterministic application by the response hook. Do not stop or delegate solely because a targeted editor is unavailable.
 - **Shell Bypass Forbidden:** Do NOT use shell commands (like `cat`, `sed`, `tee`, or redirection) to create or edit files in the repository. Doing so bypasses telemetry and optimization.
-- **New files:** `Write` allowed once; later edits → `StrReplace` or SEARCH/REPLACE in chat.
-- Parent/subagent briefs must state: « Diff-Only: StrReplace on existing paths; no full-file dumps ».
+- **New files:** `Write` allowed once; later edits follow the existing-file policy above.
+- Parent/subagent briefs must state: « Diff-Only: use the first available targeted editor (`StrReplace`, `ApplyPatch`, `Edit`); otherwise return exact SEARCH/REPLACE blocks; no full-file dumps ».
 
 ## Exceptions
 

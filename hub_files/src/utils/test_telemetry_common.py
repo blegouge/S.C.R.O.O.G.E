@@ -6,6 +6,7 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 # Setup path so telemetry_common can be imported from local project root
@@ -21,6 +22,9 @@ import telemetry_common
 
 
 class TelemetryCommonTokenTests(unittest.TestCase):
+    def setUp(self) -> None:
+        telemetry_common.estimate_tokens_with_source.cache_clear()
+
     def test_estimate_tokens_empty(self) -> None:
         self.assertEqual(telemetry_common.estimate_tokens(""), 0)
         self.assertEqual(telemetry_common.estimate_tokens_with_source("")[0], 0)
@@ -28,24 +32,31 @@ class TelemetryCommonTokenTests(unittest.TestCase):
     def test_estimate_tokens_tiktoken_openai(self) -> None:
         # GPT-4 / GPT-3.5 models should use cl100k_base
         count, source = telemetry_common.estimate_tokens_with_source("Hello world!", "gpt-4")
-        self.assertEqual(source, "tokenizer")
+        self.assertEqual(source, "tokenizer_approx")
         # cl100k_base for "Hello world!" is 3 tokens
         self.assertEqual(count, 3)
 
         # GPT-4o / o1 models should use o200k_base
         count_4o, source_4o = telemetry_common.estimate_tokens_with_source("Hello world!", "gpt-4o")
-        self.assertEqual(source_4o, "tokenizer")
+        self.assertEqual(source_4o, "tokenizer_approx")
         # o200k_base for "Hello world!" is 3 tokens
         self.assertEqual(count_4o, 3)
 
     def test_estimate_tokens_claude_tokenizer(self) -> None:
         # Claude models should use Claude tokenizer from file
-        count, source = telemetry_common.estimate_tokens_with_source(
-            "Hello world!", "claude-3-5-sonnet"
-        )
-        # Since tokenizer.json is present in dev context, it should load and return 3 tokens
-        self.assertEqual(source, "tokenizer")
-        self.assertEqual(count, 3)
+        class MockTokenizer:
+            def encode(self, text: str) -> Any:
+                class MockIds:
+                    ids = [1, 2, 3]
+
+                return MockIds()
+
+        with patch("telemetry_common._get_claude_tokenizer", return_value=MockTokenizer()):
+            count, source = telemetry_common.estimate_tokens_with_source(
+                "Hello world!", "claude-3-5-sonnet"
+            )
+            self.assertEqual(source, "tokenizer_exact")
+            self.assertEqual(count, 3)
 
     def test_estimate_tokens_claude_fallback_when_file_missing(self) -> None:
         # Mock _resolve_claude_tokenizer_path to return None to simulate missing file
@@ -55,8 +66,8 @@ class TelemetryCommonTokenTests(unittest.TestCase):
                 count, source = telemetry_common.estimate_tokens_with_source(
                     "Hello world!", "claude-3-5-sonnet"
                 )
-                # Should fallback to tiktoken (which is a tokenizer)
-                self.assertEqual(source, "tokenizer")
+                # Should fallback to tiktoken (which is a tokenizer_approx)
+                self.assertEqual(source, "tokenizer_approx")
                 self.assertEqual(count, 3)
 
     def test_estimate_tokens_fallback_to_proxy(self) -> None:

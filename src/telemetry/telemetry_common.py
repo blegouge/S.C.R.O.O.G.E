@@ -410,12 +410,10 @@ def estimate_tokens_with_source(text: str, model_name: str | None = None) -> tup
     """Accurately estimate tokens, returning a tuple (count, source).
 
     source is one of:
-      - 'tokenizer' (either Claude tokenizer or tiktoken was used)
+      - 'tokenizer_exact' (Claude tokenizer was successfully used)
+      - 'tokenizer_approx' (tiktoken was successfully used)
       - 'proxy' (character-based fallback)
     """
-    if not text:
-        return 0, "tokenizer"
-
     # Check if this is a Claude model
     is_claude = False
     if model_name:
@@ -423,18 +421,21 @@ def estimate_tokens_with_source(text: str, model_name: str | None = None) -> tup
     else:
         is_claude = _detect_source() == "claude"
 
+    if not text:
+        return 0, "tokenizer_exact" if is_claude else "tokenizer_approx"
+
     if is_claude:
         tokenizer = _get_claude_tokenizer()
         if tokenizer:
             try:
-                return len(tokenizer.encode(text).ids), "tokenizer"
+                return len(tokenizer.encode(text).ids), "tokenizer_exact"
             except Exception:
                 pass
 
     enc = _get_tiktoken_encoding(model_name)
     if enc:
         try:
-            return len(enc.encode(text, disallowed_special=())), "tokenizer"
+            return len(enc.encode(text, disallowed_special=())), "tokenizer_approx"
         except Exception:
             pass
 

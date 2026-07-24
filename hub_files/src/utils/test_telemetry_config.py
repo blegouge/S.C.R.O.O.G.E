@@ -71,6 +71,7 @@ class TelemetryConfigTests(unittest.TestCase):
         self.assertEqual(config.adaptive_ctx_structure_min_input_tokens, 2500)
         self.assertTrue(config.ccr_enabled)
         self.assertEqual(config.ccr_threshold_chars, 4000)
+        self.assertEqual(config.ccr_similarity_threshold, 0.85)
         self.assertEqual(config.smart_crusher_n, 10)
         self.assertEqual(config.smart_crusher_m, 10)
         self.assertFalse(config.llmlingua_blocking_init)
@@ -82,6 +83,7 @@ class TelemetryConfigTests(unittest.TestCase):
         os.environ["LLMLINGUA_HOOK_RATE"] = "0.75"
         os.environ["LLMLINGUA_HOOK_MIN_CHARS"] = "3000"
         os.environ["CCR_ENABLED"] = "0"
+        os.environ["CCR_SIMILARITY_THRESHOLD"] = "0.95"
 
         try:
             config = ConfigManager(cursor_home=self.cursor_home)
@@ -90,6 +92,7 @@ class TelemetryConfigTests(unittest.TestCase):
             self.assertEqual(config.llmlingua_hook_rate, 0.75)
             self.assertEqual(config.llmlingua_hook_min_chars, 3000)
             self.assertFalse(config.ccr_enabled)
+            self.assertEqual(config.ccr_similarity_threshold, 0.95)
         finally:
             # Clean up env
             for k in (
@@ -98,6 +101,7 @@ class TelemetryConfigTests(unittest.TestCase):
                 "LLMLINGUA_HOOK_RATE",
                 "LLMLINGUA_HOOK_MIN_CHARS",
                 "CCR_ENABLED",
+                "CCR_SIMILARITY_THRESHOLD",
             ):
                 os.environ.pop(k, None)
 
@@ -109,7 +113,8 @@ class TelemetryConfigTests(unittest.TestCase):
             "TASK_BRIEF_ENFORCE=warn\n"
             "LLMLINGUA_HOOK_RATE=0.3\n"
             "# Comment line\n"
-            "ADAPTIVE_CTX_TOKEN_THRESHOLD=5000\n",
+            "ADAPTIVE_CTX_TOKEN_THRESHOLD=5000\n"
+            "CCR_SIMILARITY_THRESHOLD=0.92\n",
             encoding="utf-8",
         )
 
@@ -118,6 +123,7 @@ class TelemetryConfigTests(unittest.TestCase):
         self.assertEqual(config.task_brief_enforce, "warn")
         self.assertEqual(config.llmlingua_hook_rate, 0.3)
         self.assertEqual(config.adaptive_ctx_token_threshold, 5000)
+        self.assertEqual(config.ccr_similarity_threshold, 0.92)
 
 
 if __name__ == "__main__":

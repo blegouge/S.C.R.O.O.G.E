@@ -90,6 +90,43 @@ class CcrCompressTests(unittest.TestCase):
                 out, applied = ccr.ccr_compress(text, threshold_chars=20)
             self.assertFalse(applied)
 
+    def test_near_duplicate_reuse(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp)
+            block1 = "print('Hello World')\n" + "x" * 200
+            block2 = "print('Hello World!')\n" + "x" * 200  # slightly different
+
+            text1 = f"```python\n{block1}\n```"
+            text2 = f"```python\n{block2}\n```"
+
+            with patch.object(ccr, "get_ccr_cache_dir", return_value=cache):
+                out1, applied1 = ccr.ccr_compress(text1, threshold_chars=50)
+                self.assertTrue(applied1)
+
+                # Check that 1 file is written
+                files_before = sorted(cache.iterdir())
+                self.assertEqual(len(files_before), 1)
+
+                # Now compress the near-duplicate block2
+                out2, applied2 = ccr.ccr_compress(text2, threshold_chars=50)
+                self.assertTrue(applied2)
+
+                # Check that no new file is written
+                files_after = sorted(cache.iterdir())
+                self.assertEqual(len(files_after), 1)
+
+                # Check that out2 references the same sha256 as out1
+                sha1 = out1.split("[CCR_BLOCK: ")[1].split(" ")[0]
+                sha2 = out2.split("[CCR_BLOCK: ")[1].split(" ")[0]
+                self.assertEqual(sha1, sha2)
+                self.assertIn("near-duplicate", out2)
+
+    def test_jaccard_similarity_calculation(self) -> None:
+        t1 = "hello world python code test"
+        t2 = "hello world python code testing"
+        sim = ccr._compute_jaccard_similarity(t1, t2)
+        self.assertTrue(0.5 <= sim <= 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

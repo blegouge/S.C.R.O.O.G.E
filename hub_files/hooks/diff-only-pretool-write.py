@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-preToolUse hook: block Write on existing files — enforce StrReplace / Diff-Only.
+preToolUse hook: block Write on existing files and enforce targeted Diff-Only edits.
 """
 
 from __future__ import annotations
@@ -49,6 +49,27 @@ def _extract_target_path(tool_input: dict[str, Any]) -> str:
         if isinstance(value, str) and value.strip():
             return value.strip()
     return ""
+
+
+def _looks_like_targeted_edit(tool_input: dict[str, Any]) -> bool:
+    """Allow StrReplace/ApplyPatch-shaped payloads even if Cursor labels them Write."""
+    targeted_pairs = (
+        ("old_string", "new_string"),
+        ("oldString", "newString"),
+        ("search", "replace"),
+        ("SEARCH", "REPLACE"),
+    )
+    for left, right in targeted_pairs:
+        if left in tool_input and right in tool_input:
+            return True
+
+    for key in ("patch", "diff", "hunk", "edits", "changes"):
+        value = tool_input.get(key)
+        if isinstance(value, str) and value.strip():
+            return True
+        if isinstance(value, list) and value:
+            return True
+    return False
 
 
 def _resolve_target_file(
@@ -106,6 +127,10 @@ def main() -> None:
         _respond({"permission": "allow"})
         return
 
+    if _looks_like_targeted_edit(tool_input):
+        _respond({"permission": "allow"})
+        return
+
     target = _resolve_target_file(data, tool_input, rel_path)
     if target is None:
         _respond({"permission": "allow"})
@@ -121,7 +146,9 @@ def main() -> None:
     )
     message = (
         f"Write blocked on existing file `{target.name}` (Diff-Only policy).\n"
-        "Use StrReplace with a unique SEARCH snippet, or emit SEARCH/REPLACE blocks in chat.\n"
+        "Try targeted editors in order: StrReplace, ApplyPatch, then Edit; if one is unavailable or denied, continue to the next.\n"
+        "If none succeeds, emit exact SEARCH/REPLACE blocks in the response for deterministic application by the response hook.\n"
+        "Do not stop or delegate solely because a targeted editor is unavailable.\n"
         "Override: set CODEX_DIFF_ONLY_ALLOW_WRITE=1, ANTIGRAVITY_DIFF_ONLY_ALLOW_WRITE=1, "
         "or CURSOR_DIFF_ONLY_ALLOW_WRITE=1."
     )
@@ -129,7 +156,7 @@ def main() -> None:
         {
             "permission": "deny",
             "agent_message": message,
-            "user_message": f"Write refusé sur fichier existant : {target.name} — utiliser StrReplace.",
+            "user_message": f"Write blocked on existing file: {target.name} — use a targeted editor or exact SEARCH/REPLACE blocks.",
         }
     )
 
