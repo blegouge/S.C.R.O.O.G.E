@@ -91,11 +91,12 @@ python3 install_stack.py
 1. **Sélection du dossier cible (Hub)** : Détecte et déploie les templates de configuration dans `~/.cursor`, `~/.gemini/antigravity`, `~/.codex` ou un emplacement personnalisé.
 2. **Dossier de codebases** : Demande le chemin de votre dossier de projets pour configurer le MCP code-explorer.
 3. **Moteur de compression** : Configure l'utilisation de `claw`, `headroom`, les deux (`both`), ou désactive la compaction.
-4. **Configuration interactive des secrets** : Récupère vos clés d'API (Grafana, GitHub, MySQL, etc.) et les stocke dans un fichier `.env` sécurisé (`chmod 600`).
-5. **Environnement virtuel Python** : Crée un environnement dédié `.venv-desktop` et y installe les dépendances.
-6. **Normalisation des règles/skills** : Réécrit dynamiquement les références textuelles selon l'IDE cible (Cursor, Antigravity, Claude Code ou Codex).
-7. **Validation** : Exécute [docs/verify_stack.py](../verify_stack.py) pour valider l'état fonctionnel de chaque brique.
-8. **Lancement de service** : Propose de lancer automatiquement le démon du dashboard en tâche de fond sur le port `8765`.
+4. **uv / uvx** : Propose d’installer Astral uv (fournit uvx) s’il est absent, selon l’OS, avec confirmation.
+5. **Configuration interactive des secrets** : Récupère vos clés d'API (Grafana, GitHub, MySQL, etc.) et les stocke dans un fichier `.env` sécurisé (`chmod 600`).
+6. **Environnement virtuel Python** : Crée un environnement dédié `.venv-desktop` et y installe les dépendances.
+7. **Normalisation des règles/skills** : Réécrit dynamiquement les références textuelles selon l'IDE cible (Cursor, Antigravity, Claude Code ou Codex).
+8. **Validation** : Exécute [docs/verify_stack.py](../verify_stack.py) pour valider l'état fonctionnel de chaque brique.
+9. **Lancement de service** : Propose de lancer automatiquement le démon du dashboard en tâche de fond sur le port `8765`.
 
 ---
 

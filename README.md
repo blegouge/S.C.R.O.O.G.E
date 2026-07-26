@@ -88,11 +88,12 @@ python3 install_stack.py
 1. **Target Hub Selection**: Auto-detects and installs configuration templates to `~/.cursor`, `~/.gemini/antigravity`, `~/.codex`, or custom locations.
 2. **Codebase Directory**: Asks for your active workspace path to configure code-explorer.
 3. **Compression Backend**: Configures whether to use `claw`, `headroom`, `both`, or disable compaction.
-4. **Interactive Secret Setup**: Collects your API tokens once (Grafana, GitHub, MySQL, etc.) and writes them to a secure `.env` file (`chmod 600`).
-5. **Python Virtual Environment**: Creates a dedicated `.venv-desktop` environment and installs dependencies.
-6. **Rule/Skill Normalization**: Rewrites references to fit the target IDE/agent, including Codex-specific hooks and MCP config (Cursor, Antigravity, Claude Code, or Codex).
-7. **Verification**: Executes [docs/verify_stack.py](docs/verify_stack.py) to validate all components.
-8. **Daemon Launch**: Offers to automatically start the dashboard daemon in the background on port `8765`.
+4. **uv / uvx**: Offers to install Astral uv (provides uvx) if missing, OS-aware, with confirmation.
+5. **Interactive Secret Setup**: Collects your API tokens once (Grafana, GitHub, MySQL, etc.) and writes them to a secure `.env` file (`chmod 600`).
+6. **Python Virtual Environment**: Creates a dedicated `.venv-desktop` environment and installs dependencies.
+7. **Rule/Skill Normalization**: Rewrites references to fit the target IDE/agent, including Codex-specific hooks and MCP config (Cursor, Antigravity, Claude Code, or Codex).
+8. **Verification**: Executes [docs/verify_stack.py](docs/verify_stack.py) to validate all components.
+9. **Daemon Launch**: Offers to automatically start the dashboard daemon in the background on port `8765`.
 
 Dependency locks are platform-specific. The installer uses `requirements-desktop-macos.lock`, `requirements-desktop-linux.lock`, or `requirements-desktop-windows.lock` when available, and falls back to the portable `requirements-desktop.txt` otherwise. See [docs/DEPENDENCY_LOCKS.md](docs/DEPENDENCY_LOCKS.md).
 

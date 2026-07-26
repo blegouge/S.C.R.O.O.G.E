@@ -38,6 +38,204 @@ from install_helpers import (
 )
 
 
+def find_uvx() -> Path | None:
+    """Locate uvx on PATH or in common install dirs."""
+    found = shutil.which("uvx")
+    if found:
+        return Path(found).absolute()
+    names = ("uvx.exe", "uvx") if sys.platform == "win32" else ("uvx",)
+    candidates = [
+        Path.home() / ".local" / "bin",
+        Path.home() / ".cargo" / "bin",
+        Path("/opt/homebrew/bin"),
+        Path("/usr/local/bin"),
+    ]
+    if sys.platform == "win32":
+        local = os.environ.get("LOCALAPPDATA", "")
+        if local:
+            candidates.append(Path(local) / "Programs" / "uv")
+    for directory in candidates:
+        for name in names:
+            path = directory / name
+            if path.is_file():
+                return path.absolute()
+    return None
+
+
+def ensure_uv_uvx() -> Path | None:
+    """Idempotent: install uv (provides uvx) if missing, with user confirmation."""
+    print_header("uv / uvx")
+    existing = find_uvx()
+    if existing:
+        print(f"uvx already present: {existing}")
+        return existing
+
+    print("uv/uvx is required to launch the code-review-graph MCP server.")
+    if sys.platform == "darwin" and shutil.which("brew"):
+        method = "brew install uv"
+    elif sys.platform == "win32" and shutil.which("winget"):
+        method = "winget install -e --id astral-sh.uv"
+    elif sys.platform == "win32":
+        method = "PowerShell: irm https://astral.sh/uv/install.ps1 | iex"
+    else:
+        method = "curl -LsSf https://astral.sh/uv/install.sh | sh"
+    print(f"Proposed install ({sys.platform}): {method}")
+
+    answer = prompt_input("Install uv/uvx now? (y/n)", default="y")
+    if not answer.lower().startswith("y"):
+        print("Skipped uv/uvx install.")
+        return None
+
+    try:
+        if sys.platform == "darwin" and shutil.which("brew"):
+            subprocess.run(["brew", "install", "uv"], check=True)
+        elif sys.platform == "win32" and shutil.which("winget"):
+            subprocess.run(
+                [
+                    "winget",
+                    "install",
+                    "-e",
+                    "--id",
+                    "astral-sh.uv",
+                    "--accept-package-agreements",
+                    "--accept-source-agreements",
+                ],
+                check=True,
+            )
+        elif sys.platform == "win32":
+            subprocess.run(
+                "powershell -ExecutionPolicy ByPass -c "
+                '"irm https://astral.sh/uv/install.ps1 | iex"',
+                check=True,
+                shell=True,
+            )
+        else:
+            cmd = (
+                "curl -LsSf https://astral.sh/uv/install.sh | sh"
+                if shutil.which("curl")
+                else "wget -qO- https://astral.sh/uv/install.sh | sh"
+            )
+            subprocess.run(cmd, check=True, shell=True)
+    except (subprocess.CalledProcessError, OSError) as exc:
+        print(f"Warning: uv/uvx install failed: {exc}")
+        return None
+
+    # Refresh PATH for this process (official installer uses ~/.local/bin)
+    extras = [
+        str(Path.home() / ".local" / "bin"),
+        str(Path.home() / ".cargo" / "bin"),
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+    ]
+    os.environ["PATH"] = os.pathsep.join(extras + [os.environ.get("PATH", "")])
+    uvx = find_uvx()
+    if uvx:
+        print(f"uvx installed at {uvx}")
+    else:
+        print("Warning: install finished but uvx not found — open a new terminal and re-run.")
+    return uvx
+
+
+def find_npx() -> Path | None:
+    """Locate npx on PATH (absolute path required for IDE-launched MCP).
+
+    Do not Path.resolve() through symlinks: npm's ``npx`` often links to
+    ``npx-cli.js``, which is not a valid MCP ``command`` binary.
+    """
+    found = shutil.which("npx")
+    if found:
+        return Path(found).absolute()
+    return None
+
+
+def find_node_bin() -> Path | None:
+    """Directory containing ``node`` (needed because npx shebang uses env node)."""
+    found = shutil.which("node")
+    if found:
+        return Path(found).absolute().parent
+    npx = find_npx()
+    if npx is not None:
+        sibling = npx.parent / ("node.exe" if sys.platform == "win32" else "node")
+        if sibling.is_file():
+            return npx.parent
+    return None
+
+
+def mcp_path_env(node_bin: Path | None) -> str:
+    """PATH prefix so IDE-launched npx can find node."""
+    parts: list[str] = []
+    if node_bin is not None:
+        parts.append(str(node_bin))
+    parts.extend(
+        [
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "/usr/bin",
+            "/bin",
+        ]
+    )
+    # Dedupe preserving order
+    seen: set[str] = set()
+    out: list[str] = []
+    for p in parts:
+        if p not in seen:
+            seen.add(p)
+            out.append(p)
+    return os.pathsep.join(out)
+
+
+def ensure_mcp_git_tokens(secrets_file: Path) -> None:
+    """Prompt for empty GitHub/GitLab tokens; idempotent if already set."""
+    if not secrets_file.is_file():
+        return
+    data = load_env_file(secrets_file)
+    changed = False
+
+    print_header("MCP git host tokens")
+    print(f"Secrets file: {secrets_file}")
+
+    gh = (data.get("GITHUB_PERSONAL_ACCESS_TOKEN") or "").strip()
+    if not gh:
+        val = prompt_input(
+            "GitHub personal access token (empty to skip)",
+            default="",
+        ).strip()
+        if val:
+            data["GITHUB_PERSONAL_ACCESS_TOKEN"] = val
+            changed = True
+            print("GitHub token saved.")
+        else:
+            print("GitHub token left empty (github MCP will stay unavailable).")
+    else:
+        print("GitHub token already set (skipping).")
+
+    gl = (data.get("GITLAB_TOKEN") or "").strip()
+    if not gl:
+        val = prompt_input(
+            "GitLab token (empty to skip)",
+            default="",
+        ).strip()
+        if val:
+            data["GITLAB_TOKEN"] = val
+            changed = True
+            print("GitLab token saved.")
+        else:
+            print("GitLab token left empty (gitlab MCP will stay unavailable).")
+    else:
+        print("GitLab token already set (skipping).")
+
+    if changed:
+        save_env_file(
+            secrets_file,
+            data,
+            comment_header="# MCP secrets (managed by install_stack.py) — never commit",
+        )
+        try:
+            secrets_file.chmod(0o600)
+        except OSError:
+            pass
+
+
 def select_desktop_requirements(token_telemetry_dir: Path) -> Path:
     """Choose a requirements file compatible with the current platform.
 
@@ -160,6 +358,28 @@ def main() -> int:
     )
     print(f"Updated repository environment configuration at {repo_env_file}")
 
+    # Ensure uv/uvx for code-review-graph MCP (idempotent, confirmed)
+    uvx_path = ensure_uv_uvx()
+    if uvx_path is None:
+        uvx_path = (
+            Path.home() / ".local" / "bin" / ("uvx.exe" if sys.platform == "win32" else "uvx")
+        )
+
+    npx_path = find_npx()
+    if npx_path is None:
+        print("Warning: npx not found on PATH — shell-executor / code-explorer / git MCP may fail.")
+        npx_path = Path("npx")
+    else:
+        print(f"npx resolved at {npx_path}")
+
+    node_bin = find_node_bin()
+    if node_bin is None:
+        print("Warning: node bin dir not found — npx MCP servers need node on PATH.")
+        node_bin = Path("/usr/bin")
+    else:
+        print(f"node bin dir: {node_bin}")
+    mcp_path_value = mcp_path_env(node_bin)
+
     # Loop to install on each target HUB
     for HUB in hubs_to_install:
         print_header(f"Deploying Stack to Target: {HUB}")
@@ -264,6 +484,9 @@ def main() -> int:
             except Exception as exc:
                 print(f"Warning: Failed to set permissions on secrets file: {exc}")
 
+        if secrets_file.exists():
+            ensure_mcp_git_tokens(secrets_file)
+
         # Determine target name/type for replacements
         target_name = detect_target_name(HUB)
 
@@ -272,6 +495,9 @@ def main() -> int:
             content = content.replace("{{HUB}}", str(HUB))
             content = content.replace("{{CODEBASE_ROOT}}", str(codebase_root_path))
             content = content.replace("{{HOME}}", str(home))
+            content = content.replace("{{UVX}}", str(uvx_path))
+            content = content.replace("{{NPX}}", str(npx_path))
+            content = content.replace("{{NODE_BIN}}", str(node_bin))
 
             # Replace home folders or reference hub roots (legacy/fallbacks)
             content = content.replace("~/.cursor", str(HUB))
@@ -353,6 +579,62 @@ def main() -> int:
 
             if target_name == "codex":
                 append_codex_mcp_config(HUB / "config.toml", tpl_data)
+
+            # Repair absolute uvx/npx paths + PATH (node) on re-runs.
+            # Cursor launches MCP with a minimal PATH; npx shebang needs node.
+            if mcp_out.is_file():
+                try:
+                    mcp_data = json.loads(mcp_out.read_text(encoding="utf-8"))
+                    servers = mcp_data.get("mcpServers", {})
+                    repaired = False
+                    path_value = mcp_path_value
+                    for name, srv in servers.items():
+                        if not isinstance(srv, dict):
+                            continue
+                        cmd = srv.get("command")
+                        args = srv.get("args")
+                        if (
+                            name == "code-review-graph"
+                            and isinstance(uvx_path, Path)
+                            and uvx_path.is_file()
+                            and cmd != str(uvx_path)
+                        ):
+                            srv["command"] = str(uvx_path)
+                            repaired = True
+                        uses_npx = name in {"shell-executor", "code-explorer", "github", "gitlab"}
+                        if isinstance(npx_path, Path) and npx_path.is_file():
+                            if cmd in ("npx", "npx.cmd") or (
+                                isinstance(cmd, str) and cmd.endswith("/npx")
+                            ):
+                                uses_npx = True
+                                if cmd != str(npx_path):
+                                    srv["command"] = str(npx_path)
+                                    repaired = True
+                            if isinstance(args, list):
+                                new_args = [
+                                    str(npx_path) if a in ("npx", "npx.cmd") else a for a in args
+                                ]
+                                if new_args != args:
+                                    srv["args"] = new_args
+                                    repaired = True
+                                    uses_npx = True
+                        if uses_npx:
+                            env = srv.get("env")
+                            if not isinstance(env, dict):
+                                env = {}
+                                srv["env"] = env
+                            if env.get("PATH") != path_value:
+                                env["PATH"] = path_value
+                                repaired = True
+                            if isinstance(node_bin, Path) and node_bin.is_dir():
+                                if env.get("MCP_NODE_BIN") != str(node_bin):
+                                    env["MCP_NODE_BIN"] = str(node_bin)
+                                    repaired = True
+                    if repaired:
+                        mcp_out.write_text(json.dumps(mcp_data, indent=2), encoding="utf-8")
+                        print(f"Repaired absolute MCP binary paths in {mcp_out}")
+                except Exception as exc:
+                    print(f"Warning: could not repair MCP paths in mcp.json: {exc}")
 
         # 2) hooks.json (Cursor/Gemini/Codex) or settings.json (Claude Code)
         hooks_tpl = (
