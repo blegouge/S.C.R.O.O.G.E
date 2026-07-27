@@ -7,8 +7,28 @@ import os
 from pathlib import Path
 
 
+def ensure_extended_path() -> None:
+    """Ensure PATH contains common CLI binary directories (Homebrew, local bin, cargo) even in frozen app bundle."""
+    path_env = os.environ.get("PATH", "")
+    existing = path_env.split(os.pathsep) if path_env else []
+    extra_dirs = [
+        str(Path.home() / ".local" / "bin"),
+        str(Path.home() / ".cargo" / "bin"),
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        "/usr/bin",
+        "/bin",
+    ]
+    for d in extra_dirs:
+        if d and d not in existing:
+            existing.append(d)
+    os.environ["PATH"] = os.pathsep.join(existing)
+
+
 def load_telemetry_env() -> None:
     """Load configuration from .env file if present in the app directory or parents."""
+    ensure_extended_path()
+
     # 1. Check override
     app_override = (
         os.environ.get("SCROOGE_TOKEN_TELEMETRY_APP", "").strip()
@@ -36,7 +56,12 @@ def load_telemetry_env() -> None:
     # 4. Add default app directory and default home paths
     search_paths.append(Path.home() / ".cursor")
     search_paths.append(Path.home() / ".gemini" / "antigravity")
+    search_paths.append(Path.home() / ".gemini")
+    search_paths.append(Path.home() / ".claude")
+    search_paths.append(Path.home() / ".hermes")
     search_paths.append(Path.home() / ".codex")
+    search_paths.append(Path.home() / ".config" / "scrooge")
+    search_paths.append(Path.home() / ".scrooge")
 
     for path in search_paths:
         env_file = path / ".env"
@@ -60,6 +85,7 @@ def load_telemetry_env() -> None:
 
 # Load env configurations immediately on import
 load_telemetry_env()
+
 
 _this_dir = Path(__file__).resolve().parent
 if _this_dir.name == "telemetry" and _this_dir.parent.name == "src":

@@ -70,7 +70,9 @@ fi
 
 log "Running PyInstaller…"
 cd "${ROOT}"
+rm -rf "${HOME}/Library/Application Support/pyinstaller/bincache"* 2>/dev/null || true
 "${VENV}/bin/pyinstaller" "${SPEC}" --clean --noconfirm
+
 
 APP="${ROOT}/dist/SCROOGE.app"
 if [[ -d "${APP}" ]]; then

@@ -1245,3 +1245,298 @@ html.theme-light select.select-glass-flag option {
   background-color: #fff;
   color: #000;
 }
+
+/* Agent Status & Tooltip Popover */
+.agent-status-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.agent-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(107, 159, 255, 25%);
+  background: var(--glass);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.agent-status-btn:hover {
+  background: rgba(107, 159, 255, 12%);
+  border-color: rgba(107, 159, 255, 45%);
+  box-shadow: 0 4px 16px rgba(107, 159, 255, 20%);
+}
+
+.agent-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.dot-active {
+  background-color: #22c55e;
+  color: #22c55e;
+}
+
+.dot-installed {
+  background-color: #eab308;
+  color: #eab308;
+}
+
+.dot-missing {
+  background-color: #ef4444;
+  color: #ef4444;
+}
+
+.agent-info-ico {
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.agent-status-btn:hover .agent-info-ico {
+  opacity: 1;
+}
+
+.agent-status-popover[hidden] {
+  display: none !important;
+}
+
+/* Popover */
+.agent-status-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 320px;
+  background: rgba(18, 14, 32, 0.96);
+  border: 1px solid rgba(107, 159, 255, 25%);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 50%),
+    0 0 20px rgba(107, 159, 255, 15%);
+  backdrop-filter: blur(16px);
+  z-index: 100;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: popoverFadeIn 0.2s ease-out;
+}
+
+html.theme-light .agent-status-popover {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(91, 141, 255, 30%);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 15%);
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.popover-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 8%);
+  padding-bottom: 0.5rem;
+}
+
+html.theme-light .popover-header {
+  border-bottom-color: rgba(0, 0, 0, 8%);
+}
+
+.popover-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.popover-agent-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.popover-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(107, 159, 255, 15%);
+  color: var(--neon-blue, #6b9fff);
+  border: 1px solid rgba(107, 159, 255, 30%);
+}
+
+.popover-agent-path {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+  word-break: break-all;
+}
+
+.popover-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.agent-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(255, 255, 255, 2.5%);
+  transition: background 0.15s;
+}
+
+.agent-status-row:hover {
+  background: rgba(255, 255, 255, 6%);
+}
+
+html.theme-light .agent-status-row {
+  background: rgba(0, 0, 0, 2%);
+}
+
+html.theme-light .agent-status-row:hover {
+  background: rgba(0, 0, 0, 5%);
+}
+
+.status-row-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.status-row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-row-title {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.status-row-detail {
+  font-size: 0.65rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-pill {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+}
+
+.status-pill.status-active {
+  background: rgba(34, 197, 94, 15%);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 30%);
+}
+
+.status-pill.status-installed {
+  background: rgba(234, 179, 8, 15%);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 30%);
+}
+
+.status-pill.status-missing {
+  background: rgba(239, 68, 68, 12%);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 25%);
+}
+
+.popover-footer {
+  border-top: 1px solid rgba(255, 255, 255, 8%);
+  padding-top: 0.45rem;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.btn-install-component {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid rgba(107, 159, 255, 35%);
+  background: rgba(107, 159, 255, 12%);
+  color: var(--neon-blue, #6b9fff);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.install-icon-svg {
+  display: inline-block;
+  vertical-align: middle;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.btn-install-component:hover {
+  background: rgba(107, 159, 255, 30%);
+  border-color: rgba(107, 159, 255, 60%);
+  transform: scale(1.08);
+}
+
+.btn-install-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  margin-bottom: 0.45rem;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid rgba(34, 197, 94, 40%);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 20%), rgba(16, 185, 129, 15%));
+  color: #4ade80;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-install-all:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 35%), rgba(16, 185, 129, 25%));
+  border-color: rgba(34, 197, 94, 70%);
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 25%);
+  transform: translateY(-1px);
+}
+
+.btn-install-component.installing,
+.btn-install-all.installing {
+  opacity: 0.6;
+  pointer-events: none;
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}

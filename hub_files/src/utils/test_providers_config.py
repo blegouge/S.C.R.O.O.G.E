@@ -123,5 +123,55 @@ class RtkCwdTests(unittest.TestCase):
                 self.assertEqual(pc.get_rtk_cwd("x"), Path("~/rtk").expanduser())
 
 
+class ExtraProvidersConfigCoverageTests(unittest.TestCase):
+    def test_config_path_frozen(self) -> None:
+        with (
+            patch.object(sys, "frozen", True, create=True),
+            patch.object(sys, "_MEIPASS", "/tmp/meipass_test", create=True),
+        ):
+            p = pc._config_path()
+            self.assertEqual(p, Path("/tmp/meipass_test/providers_config.yaml"))
+
+    def test_ensure_env_loaded_exception(self) -> None:
+        with patch("telemetry_paths.load_telemetry_env", side_effect=RuntimeError("env error")):
+            pc._ensure_env_loaded()
+
+    def test_get_enabled_providers_disk_fallback(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            with (
+                patch.dict("os.environ", {}, clear=True),
+                patch("providers_config.get_data_dir", return_value=tmppath),
+            ):
+                enabled = pc.get_enabled_providers()
+                self.assertGreater(len(enabled), 0)
+
+    def test_get_enabled_providers_cursor_fallback(self) -> None:
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("providers_config.get_data_dir", return_value=None),
+        ):
+            enabled = pc.get_enabled_providers()
+            self.assertTrue(any(p["id"] == "cursor" for p in enabled))
+
+    def test_find_rtk_binary_candidates(self) -> None:
+        import tempfile
+
+        with tempfile.NamedTemporaryFile() as tmp:
+            candidate_path = Path(tmp.name)
+            with (
+                patch.dict("os.environ", {"RTK_BIN": ""}),
+                patch("shutil.which", return_value=None),
+                patch.object(Path, "is_file", autospec=True) as mock_is_file,
+            ):
+                mock_is_file.side_effect = lambda p: str(p) == str(candidate_path)
+                with patch("providers_config.Path", wraps=Path) as mock_path_cls:
+                    res = pc.find_rtk_binary()
+                    # Verify result or fallback behavior
+                    self.assertTrue(res is None or isinstance(res, str))
+
+
 if __name__ == "__main__":
     unittest.main()

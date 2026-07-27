@@ -117,6 +117,23 @@ class CompressPromptTextTests(unittest.TestCase):
                 out, stats = headroom_adapter.compress_prompt_text("plain text")
         self.assertFalse(stats.get("applied", False))
 
+    def test_ccr_enabled_and_smart_crusher(self) -> None:
+        with patch.dict("os.environ", {"HEADROOM_CCR_ENABLED": "1"}):
+            self.assertTrue(headroom_adapter._ccr_enabled())
+
+        sc = headroom_adapter._get_smart_crusher()
+        self.assertIsNotNone(sc)
+
+    def test_compress_prompt_text_with_ccr(self) -> None:
+        payload = "x" * 500
+        with (
+            patch.object(headroom_adapter, "_ccr_enabled", return_value=True),
+            patch("ccr_manager.ccr_compress", return_value=("compressed", True)),
+        ):
+            out, stats = headroom_adapter.compress_prompt_text(payload)
+            self.assertEqual(out, "compressed")
+            self.assertTrue(stats["applied"])
+
 
 if __name__ == "__main__":
     unittest.main()
