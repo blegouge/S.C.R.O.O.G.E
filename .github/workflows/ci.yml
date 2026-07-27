@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,7 +29,7 @@ jobs:
       - name: Install Python Quality Tools
         run: |
           python -m pip install --upgrade pip
-          pip install ruff==0.15.20 mypy==2.1.0 types-PyYAML
+          pip install ruff==0.15.20 mypy==2.1.0 types-PyYAML commitizen==3.29.0
 
       - name: Run Ruff Linter
         run: ruff check .
@@ -37,6 +39,11 @@ jobs:
 
       - name: Run Mypy Type Checking
         run: mypy
+
+      - name: Validate Conventional Commits
+        if: github.event_name == 'pull_request'
+        run: |
+          cz check --rev-range origin/${{ github.base_ref }}..HEAD
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -53,11 +60,6 @@ jobs:
       - name: Run Prettier Style Validation
         run: npm run format:check
 
-      - name: Validate Conventional Commits
-        if: github.event_name == 'pull_request'
-        uses: commitizen-tools/commitizen-action@master
-        with:
-          branch: ${{ github.base_ref }}
 
 
 
