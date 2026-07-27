@@ -13,11 +13,18 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@450;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="./vendor/chart.umd.min.js"></script>
+    <script>
+      if (typeof Chart === 'undefined') {
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>'
+        );
+      }
+    </script>
     <link rel="stylesheet" href="dashboard.css" />
   </head>
   <body>
-    <div class="app" style="opacity: 0; transition: opacity 0.2s">
+    <div class="app">
       <header class="nav-glass">
         <div class="brand">
           <img
@@ -34,17 +41,7 @@
             <span data-i18n="brandSub">Proxy consumption &amp; applied edits</span>
           </div>
         </div>
-        <div class="nav-meta">
-          <time id="navPeriod" class="nav-period" datetime="">—</time>
-          <button type="button" class="nav-info-btn" id="btnNavInfo" aria-describedby="navInfoTip">
-            i
-            <span class="nav-info-tip" id="navInfoTip" role="tooltip" data-i18n="navInfoTip">
-              Local telemetry — the chart compares observed consumption (billed by Cursor when
-              available) to an estimate without optimizations (real + RTK savings, Task compression,
-              Diff-Only).
-            </span>
-          </button>
-        </div>
+
         <div class="nav-actions">
           <input type="file" id="fileIn" accept=".jsonl,.json,text/plain" hidden />
           <select id="langSelect" class="select-glass-flag" title="Language / Langue">

@@ -7,8 +7,12 @@ import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-import yaml
+try:
+    import yaml
+except ImportError:
+    yaml = None  # type: ignore[assignment]
 
 
 @dataclass
@@ -33,14 +37,78 @@ def _config_path() -> Path:
     return Path(__file__).parent / "providers_config.yaml"
 
 
+def _parse_simple_yaml(text: str) -> dict[str, Any]:
+    """Fallback YAML parser for simple key-value/nested dict structure when PyYAML is missing."""
+    result: dict[str, Any] = {}
+    stack: list[tuple[int, dict[str, Any]]] = [(-1, result)]
+
+    for raw_line in text.splitlines():
+        line = raw_line
+        if "#" in line:
+            line = line.split("#", 1)[0]
+        line_stripped = line.rstrip()
+        if not line_stripped or line_stripped.isspace():
+            continue
+
+        indent = len(line) - len(line.lstrip())
+        content = line.strip()
+        if not content or ":" not in content:
+            continue
+
+        key, _, val = content.partition(":")
+        key = key.strip()
+        val = val.strip()
+
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+
+        parent = stack[-1][1]
+
+        if not val:
+            new_dict: dict[str, Any] = {}
+            parent[key] = new_dict
+            stack.append((indent, new_dict))
+        else:
+            if val in ("null", "None", "~"):
+                parsed_val: Any = None
+            elif val.lower() == "true":
+                parsed_val = True
+            elif val.lower() == "false":
+                parsed_val = False
+            elif (val.startswith('"') and val.endswith('"')) or (
+                val.startswith("'") and val.endswith("'")
+            ):
+                parsed_val = val[1:-1]
+            else:
+                parsed_val = val
+            parent[key] = parsed_val
+
+    return result
+
+
+def _ensure_env_loaded() -> None:
+    try:
+        from telemetry_paths import load_telemetry_env
+
+        load_telemetry_env()
+    except Exception:
+        pass
+
+
 def load_config() -> dict[str, ProviderConfig]:
     """Load and cache provider configuration from YAML."""
     global _config_cache
     if _config_cache is not None:
         return _config_cache
 
+    _ensure_env_loaded()
+
     with open(_config_path(), encoding="utf-8") as f:
-        raw = yaml.safe_load(f)
+        text = f.read()
+        if yaml is not None:
+            raw = yaml.safe_load(text)
+        else:
+            raw = _parse_simple_yaml(text)
 
     _config_cache = {}
     for name, cfg in raw.get("sources", {}).items():
@@ -76,10 +144,42 @@ def is_enabled(name: str) -> bool:
     return value in ("1", "true", "yes", "on")
 
 
-def get_enabled_providers() -> list[dict[str, str]]:
-    """Get list of all enabled providers as JSON-serializable dicts."""
-    providers = [p for p in load_config().values() if is_enabled(p.name)]
-    return [{"id": p.name, "label": p.label} for p in providers]
+def get_enabled_providers() -> list[dict[str, Any]]:
+    """Get list of all enabled providers as JSON-serializable dicts.
+
+    If no provider is explicitly enabled via environment variable, automatically enable
+    providers whose data directory exists on disk, or fall back to 'cursor'.
+    """
+    from telemetry_db import fetch_events_from_db
+
+    all_configs = load_config()
+    providers = [p for p in all_configs.values() if is_enabled(p.name)]
+
+    if not providers:
+        for p in all_configs.values():
+            d = get_data_dir(p.name)
+            if d is not None and d.is_dir():
+                providers.append(p)
+
+    if not providers:
+        cursor = get_provider("cursor")
+        if cursor:
+            providers = [cursor]
+
+    result = []
+    for p in providers:
+        try:
+            count = len(fetch_events_from_db(p.name))
+        except Exception:
+            count = 0
+        result.append(
+            {
+                "id": p.name,
+                "label": p.label,
+                "event_count": count,
+            }
+        )
+    return result
 
 
 def get_data_dir(name: str) -> Path | None:

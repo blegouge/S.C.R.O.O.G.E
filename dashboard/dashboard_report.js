@@ -2,6 +2,7 @@ import { getLanguage, t } from './dashboard_translations.js';
 import {
   fmtNum,
   fmtCompact,
+  safeSetText,
   parseTs,
   isSubagentLaunch,
   hookSavedTokens,
@@ -180,51 +181,67 @@ export function applyReportSummary(summary) {
   const billed = summary.parent_billed || {};
   const tour = summary.tour || {};
 
-  document.getElementById('kpiSubLaunch').textContent = fmtNum(sub.launch || 0);
-  document.getElementById('kpiSubStop').textContent = fmtNum(sub.stop || 0);
-  document.getElementById('kpiSubStopSub').textContent =
+  safeSetText('kpiSubLaunch', fmtNum(sub.launch || 0));
+  safeSetText('kpiSubStop', fmtNum(sub.stop || 0));
+  safeSetText(
+    'kpiSubStopSub',
     sub.stop > 0
       ? t('subStopSubVal', {
           hook: fmtNum(sub.stop_hook || 0),
           fallback: fmtNum(sub.stop_post_tool_fallback || 0),
         })
-      : 'subagentStop · postToolUse';
-  document.getElementById('kpiSubLaunchSub').textContent =
+      : 'subagentStop · postToolUse'
+  );
+  safeSetText(
+    'kpiSubLaunchSub',
     tour.launches !== sub.launch
       ? t('subLaunchSubVal', { tour: fmtNum(tour.launches) })
-      : t('alignedReport');
+      : t('alignedReport')
+  );
 
   if (billed.count) {
     if (billed.cache_read_sum > 0) {
-      document.getElementById('kpiParentBilled').textContent = fmtCompact(billed.adjusted_avg || 0);
-      document.getElementById('kpiParentBilledSub').textContent = t('avgSumLatestCacheAdjusted', {
-        sum: fmtCompact(billed.sum || 0),
-        adjSum: fmtCompact(billed.adjusted_sum || 0),
-        count: fmtNum(billed.count),
-        latest: fmtCompact(billed.latest || 0),
-        latestAdj: fmtCompact(billed.latest_adjusted || 0),
-      });
+      safeSetText('kpiParentBilled', fmtCompact(billed.adjusted_avg || 0));
+      safeSetText(
+        'kpiParentBilledSub',
+        t('avgSumLatestCacheAdjusted', {
+          sum: fmtCompact(billed.sum || 0),
+          adjSum: fmtCompact(billed.adjusted_sum || 0),
+          count: fmtNum(billed.count),
+          latest: fmtCompact(billed.latest || 0),
+          latestAdj: fmtCompact(billed.latest_adjusted || 0),
+        })
+      );
     } else {
-      document.getElementById('kpiParentBilled').textContent = fmtCompact(billed.avg || 0);
-      document.getElementById('kpiParentBilledSub').textContent = t('avgSumLatest', {
-        sum: fmtCompact(billed.sum || 0),
-        count: fmtNum(billed.count),
-        latest: fmtCompact(billed.latest || 0),
-      });
+      safeSetText('kpiParentBilled', fmtCompact(billed.avg || 0));
+      safeSetText(
+        'kpiParentBilledSub',
+        t('avgSumLatest', {
+          sum: fmtCompact(billed.sum || 0),
+          count: fmtNum(billed.count),
+          latest: fmtCompact(billed.latest || 0),
+        })
+      );
     }
   } else {
-    document.getElementById('kpiParentBilled').textContent = '—';
-    document.getElementById('kpiParentBilledSub').textContent = t('notExposed');
+    safeSetText('kpiParentBilled', '—');
+    safeSetText('kpiParentBilledSub', t('notExposed'));
   }
 
-  document.getElementById('kpiSubPromptTok').textContent = fmtCompact(sub.prompt_proxy_tokens || 0);
-  document.getElementById('kpiSubOutTok').textContent = fmtCompact(sub.out_proxy_tokens || 0);
-  document.getElementById('kpiSubPromptSub').textContent = t('launchCount', {
-    count: fmtNum(sub.launch || 0),
-  });
-  document.getElementById('kpiSubOutSub').textContent = t('stopCount', {
-    count: fmtNum(sub.stop || 0),
-  });
+  safeSetText('kpiSubPromptTok', fmtCompact(sub.prompt_proxy_tokens || 0));
+  safeSetText('kpiSubOutTok', fmtCompact(sub.out_proxy_tokens || 0));
+  safeSetText(
+    'kpiSubPromptSub',
+    t('launchCount', {
+      count: fmtNum(sub.launch || 0),
+    })
+  );
+  safeSetText(
+    'kpiSubOutSub',
+    t('stopCount', {
+      count: fmtNum(sub.stop || 0),
+    })
+  );
 }
 
 export function periodLabel(events) {

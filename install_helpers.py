@@ -25,6 +25,7 @@ DASHBOARD_RUNTIME_FILES = {
     "dashboard_stats.js": "dashboard",
     "dashboard_tables.js": "dashboard",
     "dashboard_app.py": "dashboard",
+    "vendor/chart.umd.min.js": "dashboard",
     "providers_config.py": "src/telemetry",
     "providers_config.yaml": "src/telemetry",
     "report.py": "cli",
@@ -56,6 +57,7 @@ TOKEN_TELEMETRY_PRESERVE_NAMES = {
     "telemetry.db",
     "telemetry.db-shm",
     "telemetry.db-wal",
+    "vendor",
     "__pycache__",
 }
 
@@ -327,8 +329,10 @@ def deploy_token_telemetry_runtime(repo_root: Path, dst: Path) -> None:
     dst.mkdir(parents=True, exist_ok=True)
     for name, rel_dir in DASHBOARD_RUNTIME_FILES.items():
         src = repo_root / rel_dir / name
+        target_file = dst / name
+        target_file.parent.mkdir(parents=True, exist_ok=True)
         if src.is_file():
-            shutil.copy2(src, dst / name)
+            shutil.copy2(src, target_file)
 
     icon_src = repo_root / "docs" / "fr" / "assets" / "icon.jpg"
     if icon_src.is_file():

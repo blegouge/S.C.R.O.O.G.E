@@ -42,6 +42,31 @@ class LoadConfigTests(unittest.TestCase):
     def test_get_provider_unknown(self) -> None:
         self.assertIsNone(pc.get_provider("__nope__"))
 
+    def test_parse_simple_yaml_fallback(self) -> None:
+        sample = """
+# Header comment
+sources:
+  test_prov:
+    env_enabled: TEST_ENABLED
+    data_dir: ~/.test/data
+    rtk_cwd: null
+    label: "Test Label"
+    flag: true
+"""
+        parsed = pc._parse_simple_yaml(sample)
+        self.assertIn("sources", parsed)
+        self.assertEqual(parsed["sources"]["test_prov"]["env_enabled"], "TEST_ENABLED")
+        self.assertIsNone(parsed["sources"]["test_prov"]["rtk_cwd"])
+        self.assertEqual(parsed["sources"]["test_prov"]["label"], "Test Label")
+        self.assertTrue(parsed["sources"]["test_prov"]["flag"])
+
+    def test_load_config_without_yaml_module(self) -> None:
+        with patch.object(pc, "yaml", None):
+            with patch.object(pc, "_config_cache", None):
+                config = pc.load_config()
+                self.assertIn("cursor", config)
+                self.assertEqual(config["cursor"].name, "cursor")
+
 
 class EnablementTests(unittest.TestCase):
     def test_is_enabled_unknown_false(self) -> None:
@@ -58,7 +83,7 @@ class EnablementTests(unittest.TestCase):
         with patch.object(pc, "load_config", return_value={"x": _fake()}):
             with patch.object(pc, "is_enabled", return_value=True):
                 out = pc.get_enabled_providers()
-        self.assertEqual(out, [{"id": "x", "label": "X"}])
+        self.assertEqual(out, [{"id": "x", "label": "X", "event_count": 0}])
 
 
 class DataDirTests(unittest.TestCase):

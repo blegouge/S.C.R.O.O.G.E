@@ -51,6 +51,11 @@ export function areaGradient(ctx, chartArea, isDark) {
 export function renderCharts(events, bucketMode, isDark, rtkGain) {
   destroyCharts();
 
+  if (typeof Chart === 'undefined') {
+    console.warn('Chart.js is not loaded; skipping chart rendering.');
+    return;
+  }
+
   let comp = buildConsumptionComparison(events, bucketMode, rtkGain);
   if (!comp.labels.length) {
     comp = { labels: ['∅'], actualData: [0], counterfactualData: [0], savingsData: [0] };

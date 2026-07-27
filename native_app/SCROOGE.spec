@@ -25,6 +25,7 @@ datas = [
     (str(PACKAGE / "dashboard" / "dashboard_charts.js"), "."),
     (str(PACKAGE / "dashboard" / "dashboard_tables.js"), "."),
     (str(PACKAGE / "dashboard" / "dashboard.css"), "."),
+    (str(PACKAGE / "dashboard" / "vendor" / "chart.umd.min.js"), "vendor"),
     (str(PACKAGE / "docs" / "fr" / "assets" / "icon.jpg"), "."),
     (str(PACKAGE / "src" / "telemetry" / "providers_config.yaml"), "."),
 ] + webview_datas

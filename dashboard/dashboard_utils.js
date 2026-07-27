@@ -27,6 +27,11 @@ export function fmtCompact(n) {
   return fmtNum(v);
 }
 
+export function safeSetText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
 export function parseTs(ts) {
   if (!ts) return null;
   const d = new Date(ts.endsWith('Z') ? ts : ts + 'Z');

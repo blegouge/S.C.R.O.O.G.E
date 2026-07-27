@@ -1,5 +1,6 @@
 import { getLanguage, setLanguage, t, applyTranslations } from './dashboard_translations.js';
-import { fmtNum, fmtCompact, updateNavPeriod } from './dashboard_report.js';
+import { updateNavPeriod } from './dashboard_report.js';
+import { fmtNum, fmtCompact, safeSetText } from './dashboard_utils.js';
 import {
   getSource,
   loadApi,
@@ -16,6 +17,7 @@ import {
   applySectionCollapsed,
   toggleDashSection,
   bindPointerSectionReorder,
+  resizeVisibleCharts,
 } from './dashboard_layout.js';
 import {
   renderSubagentStats,
@@ -42,10 +44,6 @@ let availableProviders = [];
 
 const LS_REFRESH = 'cursor_telemetry_auto_refresh_ms';
 
-function resizeVisibleCharts() {
-  window.dispatchEvent(new Event('resize-charts'));
-}
-
 // Bind custom events to decouple module actions
 window.addEventListener('sync-refresh-menu', (ev) => {
   syncRefreshMenuRadios(ev.detail);
@@ -71,9 +69,9 @@ function renderAll(events) {
   const sumTok = events.reduce((s, e) => s + (e.approx_tokens || 0), 0);
   const sumTc = events.reduce((s, e) => s + (e.text_chars || 0), 0);
 
-  document.getElementById('kpiEvents').textContent = fmtNum(events.length);
-  document.getElementById('kpiTokens').textContent = fmtNum(sumTok);
-  document.getElementById('kpiChars').textContent = fmtNum(sumTc);
+  safeSetText('kpiEvents', fmtNum(events.length));
+  safeSetText('kpiTokens', fmtNum(sumTok));
+  safeSetText('kpiChars', fmtNum(sumTc));
   updateNavPeriod(events);
 
   renderEditStats(events);
@@ -87,7 +85,10 @@ function renderAll(events) {
   const hookSummary = renderHookCompressionStats(events);
   renderRtkGainStats(rtkGainData, hookSummary.savedTokens);
   renderOptimizationKpis(events, rtkGainData);
-  loadLayerKpis().then((lp) => renderLayerKpis(lp));
+  loadLayerKpis()
+    .then((lp) => renderLayerKpis(lp))
+    .catch((err) => console.warn('loadLayerKpis error:', err));
+
   loadReportSummary()
     .then((summary) => renderAbTestKpis(events, summary))
     .catch((err) => {
@@ -96,7 +97,8 @@ function renderAll(events) {
     });
 
   const isDark = !document.documentElement.classList.contains('theme-light');
-  const bucket = document.getElementById('bucketSelect').value;
+  const bucketEl = document.getElementById('bucketSelect');
+  const bucket = bucketEl ? bucketEl.value : 'hour';
   renderCharts(events, bucket, isDark, rtkGainData);
   renderTables(events);
   resizeVisibleCharts();
@@ -367,17 +369,28 @@ function populateProviderSelect(providers, selectedId) {
   providers.forEach((provider) => {
     const option = document.createElement('option');
     option.value = provider.id;
-    option.textContent = provider.label;
+    const countStr =
+      typeof provider.event_count === 'number' ? ` (${fmtCompact(provider.event_count)} evt)` : '';
+    option.textContent = `${provider.label}${countStr}`;
     select.appendChild(option);
   });
 
-  if (providers.find((p) => p.id === selectedId)) {
+  const activeProvider = providers.find((p) => p.id === selectedId);
+  if (
+    activeProvider &&
+    (activeProvider.event_count > 0 || !providers.some((p) => p.event_count > 0))
+  ) {
     select.value = selectedId;
-  } else if (providers.length > 0) {
-    select.value = providers[0].id;
-    try {
-      localStorage.setItem('cursor_telemetry_source', providers[0].id);
-    } catch (_) {}
+  } else {
+    const bestProvider = [...providers].sort(
+      (a, b) => (b.event_count || 0) - (a.event_count || 0)
+    )[0];
+    if (bestProvider) {
+      select.value = bestProvider.id;
+      try {
+        localStorage.setItem('cursor_telemetry_source', bestProvider.id);
+      } catch (_) {}
+    }
   }
 }
 
@@ -418,10 +431,6 @@ document.getElementById('sourceSelect').addEventListener('change', () => {
   void switchSource();
 });
 
-window.addEventListener('resize-charts', () => {
-  resizeVisibleCharts();
-});
-
 (async function init() {
   const lang = getLanguage();
   applyTranslations(lang);
@@ -434,8 +443,9 @@ window.addEventListener('resize-charts', () => {
 
   const providers = await loadProviders();
 
-  if (providers.length === 0) {
+  if (!providers || providers.length === 0) {
     showNoProvidersError();
+    document.querySelector('.app').style.opacity = '1';
     return;
   }
 
@@ -452,6 +462,7 @@ window.addEventListener('resize-charts', () => {
   document.querySelector('.app').style.opacity = '1';
 
   await initDashboardSections();
+
   try {
     currentEvents = await loadApi();
     try {
@@ -459,6 +470,7 @@ window.addEventListener('resize-charts', () => {
     } catch (_) {
       rtkGainData = null;
     }
+
     renderAll(currentEvents);
     restoreRefreshFromStorage();
   } catch (e) {

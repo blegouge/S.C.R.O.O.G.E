@@ -2,6 +2,7 @@ import { t } from './dashboard_translations.js';
 import {
   fmtNum,
   fmtCompact,
+  safeSetText,
   parseTs,
   fmtDateUtcCell,
   eventColor,
@@ -269,10 +270,9 @@ export function renderCrgTable(events) {
     crgRiskSum += num(e.risk_score);
   });
 
-  document.getElementById('kpiCrgRuns').textContent = fmtNum(allCrg.length);
-  document.getElementById('kpiCrgSaved').textContent = fmtCompact(crgSaved);
-  document.getElementById('kpiCrgRisk').textContent =
-    allCrg.length > 0 ? (crgRiskSum / allCrg.length).toFixed(2) : '—';
+  safeSetText('kpiCrgRuns', fmtNum(allCrg.length));
+  safeSetText('kpiCrgSaved', fmtCompact(crgSaved));
+  safeSetText('kpiCrgRisk', allCrg.length > 0 ? (crgRiskSum / allCrg.length).toFixed(2) : '—');
 
   rows.forEach((e) => {
     const row = document.createElement('div');

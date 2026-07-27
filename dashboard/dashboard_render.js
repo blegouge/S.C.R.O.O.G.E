@@ -2,6 +2,7 @@ import { getLanguage, t } from './dashboard_translations.js';
 import {
   fmtNum,
   fmtCompact,
+  safeSetText,
   parseTs,
   isSubagentLaunch,
   hookSavedTokens,
@@ -153,36 +154,35 @@ export function renderHookCompressionStats(events) {
     avgPct = rows.reduce((sum, e) => sum + hookSavedPct(e), 0) / count;
   }
 
-  document.getElementById('kpiHookSaved').textContent = fmtCompact(savedTokens);
+  safeSetText('kpiHookSaved', fmtCompact(savedTokens));
   if (!count) {
-    document.getElementById('kpiHookSub').textContent = t('noHookMeasurements');
+    safeSetText('kpiHookSub', t('noHookMeasurements'));
   } else {
     const backendHint = Object.entries(backends)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 2)
       .map(([k, n]) => `${k}×${n}`)
       .join(' · ');
-    document.getElementById('kpiHookSub').textContent = t('hookSummarySub', {
-      count: fmtNum(count),
-      pct: avgPct.toFixed(1),
-      claw: fmtNum(usedClaw),
-      llm: fmtNum(usedLingu),
-      backend: backendHint ? ` · ${backendHint}` : '',
-    });
+    safeSetText(
+      'kpiHookSub',
+      t('hookSummarySub', {
+        count: fmtNum(count),
+        pct: Number(avgPct || 0).toFixed(1),
+        claw: fmtNum(usedClaw),
+        llm: fmtNum(usedLingu),
+        backend: backendHint ? ` · ${backendHint}` : '',
+      })
+    );
   }
   return { savedTokens };
 }
 
 export function renderRtkGainStats(rtkGain, hookSavedTokens) {
-  const savedEl = document.getElementById('kpiRtkSaved');
-  const subEl = document.getElementById('kpiRtkSub');
-  const totalEl = document.getElementById('kpiTotalSaved');
-  const totalSubEl = document.getElementById('kpiTotalSub');
   if (!rtkGain || typeof rtkGain !== 'object') {
-    savedEl.textContent = '—';
-    subEl.textContent = t('rtkUnavailable');
-    totalEl.textContent = fmtCompact(hookSavedTokens || 0);
-    totalSubEl.textContent = t('hookOnlyRtkUnavailable');
+    safeSetText('kpiRtkSaved', '—');
+    safeSetText('kpiRtkSub', t('rtkUnavailable'));
+    safeSetText('kpiTotalSaved', fmtCompact(hookSavedTokens || 0));
+    safeSetText('kpiTotalSub', t('hookOnlyRtkUnavailable'));
     return;
   }
 
@@ -192,32 +192,35 @@ export function renderRtkGainStats(rtkGain, hookSavedTokens) {
   const ps = p.summary || {};
 
   if (g.ok !== true || typeof gs.total_saved !== 'number') {
-    savedEl.textContent = '—';
+    safeSetText('kpiRtkSaved', '—');
     const err = String(g.error || t('globalUnavailable')).slice(0, 64);
-    subEl.textContent = t('globalUnavailableErr', { err });
-    totalEl.textContent = fmtCompact(hookSavedTokens || 0);
-    totalSubEl.textContent = t('hookOnlyGlobalUnavailable');
+    safeSetText('kpiRtkSub', t('globalUnavailableErr', { err }));
+    safeSetText('kpiTotalSaved', fmtCompact(hookSavedTokens || 0));
+    safeSetText('kpiTotalSub', t('hookOnlyGlobalUnavailable'));
     return;
   }
 
   const gSaved = Number(gs.total_saved || 0);
-  savedEl.textContent = fmtCompact(gSaved);
+  safeSetText('kpiRtkSaved', fmtCompact(gSaved));
   const totalSaved = gSaved + Number(hookSavedTokens || 0);
-  totalEl.textContent = fmtCompact(totalSaved);
+  safeSetText('kpiTotalSaved', fmtCompact(totalSaved));
 
   const gpct = Number(gs.avg_savings_pct || 0).toFixed(1);
   if (p.ok === true && typeof ps.total_saved === 'number') {
     const pSaved = Number(ps.total_saved || 0);
     const ppct = Number(ps.avg_savings_pct || 0).toFixed(1);
-    subEl.textContent = t('gProjects', {
-      gPct: gpct,
-      pSaved: fmtCompact(pSaved),
-      pPct: ppct,
-    });
-    totalSubEl.textContent = t('rtkGlobalHook', { hook: fmtCompact(hookSavedTokens || 0) });
+    safeSetText(
+      'kpiRtkSub',
+      t('gProjects', {
+        gPct: gpct,
+        pSaved: fmtCompact(pSaved),
+        pPct: ppct,
+      })
+    );
+    safeSetText('kpiTotalSub', t('rtkGlobalHook', { hook: fmtCompact(hookSavedTokens || 0) }));
   } else {
-    subEl.textContent = t('gOnly', { gPct: gpct });
-    totalSubEl.textContent = t('rtkGlobalHook', { hook: fmtCompact(hookSavedTokens || 0) });
+    safeSetText('kpiRtkSub', t('gOnly', { gPct: gpct }));
+    safeSetText('kpiTotalSub', t('rtkGlobalHook', { hook: fmtCompact(hookSavedTokens || 0) }));
   }
 }
 
@@ -231,31 +234,25 @@ export function renderEditStats(events) {
   const tabCount = tabEdits.length;
   const tabAdded = tabEdits.reduce((sum, e) => sum + Number(e.lines_added || 0), 0);
 
-  document.getElementById('kpiEditAdded').textContent = fmtNum(totalAdded);
-  document.getElementById('kpiEditRemoved').textContent = fmtNum(totalRemoved);
-  document.getElementById('kpiEditSub').textContent = t('editSummarySub', {
-    count: fmtNum(totalEdits),
-  });
-
-  document.getElementById('kpiTabAccepted').textContent = fmtNum(tabCount);
-  document.getElementById('kpiTabAdded').textContent = fmtNum(tabAdded);
-  document.getElementById('kpiTabSub').textContent = t('tabSummarySub', {
-    count: fmtNum(tabCount),
-  });
+  safeSetText('kpiAgentAdd', fmtNum(totalAdded));
+  safeSetText('kpiAgentRem', fmtNum(totalRemoved));
+  safeSetText('kpiAgentPass', fmtNum(totalEdits));
+  safeSetText('kpiTabN', fmtNum(tabCount));
+  safeSetText('kpiTabLines', fmtNum(tabAdded));
 }
 
 export function renderConsumptionStats(events) {
   const summary = computeReportSummary(events);
   const cov = summary.consumption_coverage || {};
 
-  document.getElementById('kpiResponseN').textContent = fmtNum(cov.responses || 0);
-  document.getElementById('kpiResponseWith').textContent = fmtNum(cov.with_report || 0);
-  document.getElementById('kpiResponseComplete').textContent = fmtNum(cov.complete || 0);
-
-  const missing = (cov.responses || 0) - (cov.with_report || 0);
-  document.getElementById('kpiResponseSub').textContent = t('responseCoverageSub', {
-    missing: fmtNum(missing),
-  });
+  safeSetText('kpiConso', fmtNum(cov.complete || 0));
+  safeSetText(
+    'kpiConsoSub',
+    t('responseCoverageSub', {
+      complete: fmtNum(cov.complete || 0),
+      total: fmtNum(cov.responses || 0),
+    })
+  );
 }
 
 export function setComplianceChipState(chipId, pct, warnBelow = 70) {
@@ -271,77 +268,154 @@ export function setComplianceChipState(chipId, pct, warnBelow = 70) {
 export function renderComplianceStats(events) {
   const compliance = summarizeComplianceKpis(events);
 
-  setComplianceChipState('kpiComplianceOverall', compliance.overall_score_pct);
-  setComplianceChipState('kpiComplianceMypy', compliance.mypy_run_pct);
-  setComplianceChipState('kpiCompliancePrecommit', compliance.precommit_run_pct);
-  setComplianceChipState('kpiComplianceConsumption', compliance.consumption_present_pct);
-  setComplianceChipState('kpiComplianceComplete', compliance.consumption_complete_pct);
+  setComplianceChipState('kpiConsoComplete', compliance.consumption_complete_pct);
+  setComplianceChipState('kpiConsoPresent', compliance.consumption_present_pct);
 
-  document.getElementById('kpiComplianceOverallSub').textContent = t('complianceSummaryScoreSub', {
-    score: compliance.overall_score_pct,
-  });
+  const followups = events.filter(
+    (e) => e.event === 'followup_message' || e.event === 'giveup'
+  ).length;
+  safeSetText('kpiConsoHookFollowups', fmtNum(followups));
 
-  const missing = compliance.total_responses - compliance.precommit_run_responses;
-  document.getElementById('kpiCompliancePrecommitSub').textContent = t('complianceMissingRuns', {
-    missing: fmtNum(missing),
-  });
+  const briefs = events.filter((e) => e.event === 'taskBriefValidation');
+  const passBriefs = briefs.filter(
+    (e) => e.status === 'pass' || e.passed === true || e.result === 'pass'
+  ).length;
+  const deniedBriefs = briefs.filter(
+    (e) => e.status === 'deny' || e.denied === true || e.result === 'deny'
+  ).length;
+
+  safeSetText('kpiBriefPass', `${passBriefs}/${briefs.length}`);
+  safeSetText('kpiBriefDenied', fmtNum(deniedBriefs));
 }
 
 export function renderAbTestKpis(events, abReportSummary) {
-  const elTotal = document.getElementById('kpiAbTotalSaved');
-  const elDelta = document.getElementById('kpiAbDelta');
-  const elDeltaSub = document.getElementById('kpiAbDeltaSub');
-
   if (!abReportSummary || abReportSummary.ok !== true) {
-    elTotal.textContent = '—';
-    elDelta.textContent = '—';
-    elDeltaSub.textContent = t('abTestNoSessionData');
+    safeSetText('kpiAbTotalSaved', '—');
+    safeSetText('kpiAbDelta', '—');
+    safeSetText('kpiAbDeltaSub', t('abTestNoSessionData'));
     return;
   }
 
   const s = abReportSummary.summary || {};
-  elTotal.textContent = fmtCompact(s.total_saved_tokens || 0);
+  safeSetText('kpiAbTotalSaved', fmtCompact(s.total_saved_tokens || 0));
   const delta = Number(s.savings_delta_pct || 0);
   const direction = delta >= 0 ? '+' : '';
-  elDelta.textContent = `${direction}${delta.toFixed(1)}%`;
-  elDeltaSub.textContent = t('abTestConfidenceSub', {
-    samples: fmtNum(s.treatment_samples || 0),
-    controlSamples: fmtNum(s.control_samples || 0),
-  });
+  safeSetText('kpiAbDelta', `${direction}${delta.toFixed(1)}%`);
+  safeSetText(
+    'kpiAbDeltaSub',
+    t('abTestConfidenceSub', {
+      samples: fmtNum(s.treatment_samples || 0),
+      controlSamples: fmtNum(s.control_samples || 0),
+    })
+  );
 }
 
 export function renderOptimizationKpis(events, rtkGain) {
   const summary = summarizeOptimizationTotals(events, rtkGain);
+  const observed = summary.observed ?? summary.total_observed ?? 0;
+  const counterfactual = summary.counterfactual ?? summary.total_counterfactual ?? 0;
+  const savings = summary.savings ?? summary.total_saved ?? 0;
+  const pct = Number(summary.pct ?? summary.avg_savings_pct ?? 0);
 
-  document.getElementById('kpiTotalSaved').textContent = fmtCompact(summary.total_saved);
-  if (summary.avg_savings_pct > 0) {
-    document.getElementById('kpiTotalSub').textContent = t('gainPercentageAvgSub', {
-      pct: summary.avg_savings_pct.toFixed(1),
-    });
+  safeSetText('kpiObserved', fmtCompact(observed));
+  safeSetText('kpiCounterfactual', fmtCompact(counterfactual));
+  safeSetText('kpiOptSaved', fmtCompact(savings));
+  safeSetText('kpiOptPct', `${pct.toFixed(1)}%`);
+
+  safeSetText('kpiTotalSaved', fmtCompact(savings));
+  if (pct > 0) {
+    safeSetText(
+      'kpiTotalSub',
+      t('gainPercentageAvgSub', {
+        pct: pct.toFixed(1),
+      })
+    );
   } else {
-    document.getElementById('kpiTotalSub').textContent = t('optimizationTotalsEmpty');
+    safeSetText('kpiTotalSub', t('optimizationTotalsEmpty'));
   }
 }
 
 export function renderLayerKpis(layerPayload) {
-  if (!layerPayload || layerPayload.ok !== true) {
-    document.getElementById('kpiStackProxySaved').textContent = '—';
-    document.getElementById('kpiStackProxySub').textContent = t('failedToResolveStackLayer');
+  const container = document.getElementById('kpiLayersTable');
+  if (!container) return;
+
+  if (!layerPayload || layerPayload.ok !== true || !layerPayload.layers) {
+    container.innerHTML = `<div class="empty-state">${t('failedToResolveStackLayer')}</div>`;
     return;
   }
-  const s = layerPayload.summary || {};
-  document.getElementById('kpiStackProxySaved').textContent = fmtCompact(s.total_saved_tokens || 0);
-  document.getElementById('kpiStackProxySub').textContent = t('stackSavedSub', {
-    saves: fmtNum(s.saves_count || 0),
+
+  const layers = layerPayload.layers;
+  const blended = layerPayload.blended || {};
+  const legacy = layerPayload.legacy_global || {};
+
+  const layerKeys = [
+    { key: 'rtk_shell', label: 'RTK Shell (gain -d)' },
+    { key: 'task_compression', label: 'Task Compression (LLMLingua / Claw)' },
+    { key: 'guardrail_read', label: 'Token Guardrail (Read ROI)' },
+    { key: 'guardrail_task', label: 'Token Guardrail (Subagent ROI)' },
+    { key: 'diff_only', label: 'Diff-Only (Compact diffs)' },
+    { key: 'code_review_graph', label: 'Code Review Graph (CRG)' },
+  ];
+
+  let html = `
+    <div class="layers-head">
+      <span>Layer</span>
+      <span>% Saved</span>
+      <span>Tokens Saved</span>
+      <span>Observed Tokens</span>
+    </div>
+  `;
+
+  layerKeys.forEach(({ key, label }) => {
+    const l = layers[key] || {};
+    const pct = typeof l.pct === 'number' ? `${l.pct.toFixed(1)}%` : '—';
+    const saved = fmtCompact(l.savings_tokens || 0);
+    const obs = fmtCompact(l.observed_tokens || 0);
+
+    html += `
+      <div class="layers-row">
+        <span>${label}</span>
+        <span class="badge-pct">${pct}</span>
+        <span>${saved}</span>
+        <span>${obs}</span>
+      </div>
+    `;
   });
+
+  if (blended && blended.pct !== undefined && blended.pct !== null) {
+    const blendedPct = Number(blended.pct || 0).toFixed(1);
+    html += `
+      <div class="layers-row layers-blend">
+        <span><strong>Blended Score (Tool/Subagent)</strong></span>
+        <span class="badge-pct highlight">${blendedPct}%</span>
+        <span><strong>${fmtCompact(blended.savings_tokens || 0)}</strong></span>
+        <span>${fmtCompact(blended.observed_tokens || 0)}</span>
+      </div>
+    `;
+  }
+
+  if (legacy && legacy.pct !== undefined && legacy.pct !== null) {
+    const legacyPct = Number(legacy.pct || 0).toFixed(1);
+    html += `
+      <div class="layers-row layers-legacy">
+        <span><em>Legacy Global (Includes Chat)</em></span>
+        <span>${legacyPct}%</span>
+        <span>${fmtCompact(legacy.savings_tokens || 0)}</span>
+        <span>${fmtCompact(legacy.observed_tokens || 0)}</span>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
 }
 
 export function renderStackKpis(events) {
   const stackSummary = summarizeStackKpis(events);
-  document.getElementById('kpiStackProxySaved').textContent = fmtCompact(
-    stackSummary.total_saved || 0
+  safeSetText('kpiGitCacheHits', fmtNum(stackSummary.gitHits || 0));
+  safeSetText(
+    'kpiGuardrailIntercepts',
+    `${stackSummary.intercepts || 0} / ${stackSummary.halts || 0}`
   );
-  document.getElementById('kpiStackProxySub').textContent = t('stackSavedSub', {
-    saves: fmtNum(stackSummary.saves || 0),
-  });
+  safeSetText('kpiGuardrailAvoided', fmtCompact(stackSummary.avoided || 0));
+  safeSetText('kpiIdempotent', fmtNum(stackSummary.idem || 0));
 }

@@ -3,6 +3,7 @@ import { persistLayoutPrefs } from './dashboard_api.js';
 export const DEFAULT_SECTION_ORDER = [
   'kpi-summary',
   'kpi-savings',
+  'kpi-layers',
   'kpi-editing',
   'kpi-subagents',
   'kpi-stack',
@@ -15,8 +16,8 @@ export const DEFAULT_SECTION_ORDER = [
   'tables-lists',
 ];
 
-function resizeVisibleCharts() {
-  window.dispatchEvent(new Event('resize-charts'));
+export function resizeVisibleCharts() {
+  window.dispatchEvent(new Event('resize'));
 }
 
 export function collectLayoutState(container) {
