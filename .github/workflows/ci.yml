@@ -55,9 +55,10 @@ jobs:
 
       - name: Validate Conventional Commits
         if: github.event_name == 'pull_request'
-        uses: commitizen-tools/commitizen-action@v0.23.1
+        uses: commitizen-tools/commitizen-action@master
         with:
           branch: ${{ github.base_ref }}
+
 
 
   security:
