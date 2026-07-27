@@ -40,11 +40,12 @@ class AgentInspectorTests(unittest.TestCase):
             self.assertIn(expected, item_ids)
 
     def test_get_home_dir_resolution(self) -> None:
-        home_antigravity = pc.get_home_dir("antigravity")
-        self.assertEqual(home_antigravity, Path.home() / ".gemini" / "antigravity")
+        with patch.dict("os.environ", {"CURSOR_HOME": "", "ANTIGRAVITY_HOME": ""}):
+            home_antigravity = pc.get_home_dir("antigravity")
+            self.assertEqual(home_antigravity, Path.home() / ".gemini" / "antigravity")
 
-        home_cursor = pc.get_home_dir("cursor")
-        self.assertEqual(home_cursor, Path.home() / ".cursor")
+            home_cursor = pc.get_home_dir("cursor")
+            self.assertEqual(home_cursor, Path.home() / ".cursor")
 
         with patch.dict("os.environ", {"ANTIGRAVITY_HOME": "/tmp/custom_ag"}, clear=False):
             self.assertEqual(pc.get_home_dir("antigravity"), Path("/tmp/custom_ag"))
