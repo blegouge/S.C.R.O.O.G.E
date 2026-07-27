@@ -419,3 +419,116 @@ export function renderStackKpis(events) {
   safeSetText('kpiGuardrailAvoided', fmtCompact(stackSummary.avoided || 0));
   safeSetText('kpiIdempotent', fmtNum(stackSummary.idem || 0));
 }
+
+export function renderAgentStatus(statusData) {
+  const dot = document.getElementById('agentStatusDot');
+  const label = document.getElementById('agentStatusLabel');
+  const nameEl = document.getElementById('popoverAgentName');
+  const pathEl = document.getElementById('popoverAgentPath');
+  const badgeEl = document.getElementById('popoverSummaryBadge');
+  const bodyEl = document.getElementById('popoverBody');
+
+  if (!statusData || !statusData.ok) {
+    if (dot) dot.className = 'agent-status-dot dot-missing';
+    if (label) label.textContent = 'Err';
+    return;
+  }
+
+  const { label: agentName, home, active_count, installed_count, total_count, items } = statusData;
+
+  if (nameEl) nameEl.textContent = agentName;
+  if (pathEl) pathEl.textContent = home || '';
+  if (label) label.textContent = `${active_count}/${total_count}`;
+  if (badgeEl)
+    badgeEl.textContent = `${active_count}/${total_count} ${t('statusActive') || 'Active'}`;
+
+  if (dot) {
+    if (active_count >= Math.ceil(total_count / 2)) {
+      dot.className = 'agent-status-dot dot-active';
+    } else if (installed_count > 0) {
+      dot.className = 'agent-status-dot dot-installed';
+    } else {
+      dot.className = 'agent-status-dot dot-missing';
+    }
+  }
+
+  if (bodyEl) {
+    bodyEl.replaceChildren();
+
+    items.forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'agent-status-row';
+
+      const iconCol = document.createElement('div');
+      iconCol.className = 'status-row-icon';
+      if (item.status === 'active') {
+        iconCol.innerHTML = '<span class="status-icon active-icon">🟢</span>';
+      } else if (item.status === 'installed') {
+        iconCol.innerHTML = '<span class="status-icon installed-icon">🟡</span>';
+      } else {
+        iconCol.innerHTML = '<span class="status-icon missing-icon">🔴</span>';
+      }
+
+      const contentCol = document.createElement('div');
+      contentCol.className = 'status-row-content';
+
+      const titleLine = document.createElement('div');
+      titleLine.className = 'status-row-title';
+      titleLine.textContent = t(item.label_key) || item.id;
+
+      const detailLine = document.createElement('div');
+      detailLine.className = 'status-row-detail';
+      detailLine.textContent = item.detail;
+
+      contentCol.appendChild(titleLine);
+      contentCol.appendChild(detailLine);
+
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `status-pill status-${item.status}`;
+      if (item.status === 'active') {
+        statusBadge.textContent = t('statusActive') || 'Active';
+      } else if (item.status === 'installed') {
+        statusBadge.textContent = t('statusInstalled') || 'Installed';
+      } else {
+        statusBadge.textContent = t('statusMissing') || 'Missing';
+      }
+
+      row.appendChild(iconCol);
+      row.appendChild(contentCol);
+      row.appendChild(statusBadge);
+
+      if (item.status !== 'active') {
+        const installBtn = document.createElement('button');
+        installBtn.type = 'button';
+        installBtn.className = 'btn-install-component';
+        installBtn.title = `${t('installRowBtn') || 'Deploy'} ${item.id}`;
+        installBtn.innerHTML = `<svg class="install-icon-svg" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+        installBtn.setAttribute('data-component', item.id);
+        installBtn.setAttribute('data-source', statusData.source);
+        row.appendChild(installBtn);
+      }
+
+      bodyEl.appendChild(row);
+    });
+  }
+
+  const footerEl = document.getElementById('popoverFooter');
+  if (footerEl) {
+    footerEl.replaceChildren();
+
+    const installAllBtn = document.createElement('button');
+    installAllBtn.type = 'button';
+    installAllBtn.id = 'btnInstallAllComponents';
+    installAllBtn.className = 'btn-install-all';
+    installAllBtn.innerHTML = `<svg class="install-icon-svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg><span>${t('installAllBtn') || 'Install Missing Components'}</span>`;
+    installAllBtn.setAttribute('data-source', statusData.source);
+
+    const tipSpan = document.createElement('span');
+    tipSpan.className = 'popover-tip';
+    tipSpan.textContent =
+      t('agentTip') || 'Tip: Run python install_stack.py to deploy missing components';
+
+    footerEl.appendChild(installAllBtn);
+    footerEl.appendChild(tipSpan);
+  }
+}

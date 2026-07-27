@@ -133,6 +133,11 @@ class CompressPromptContextTests(unittest.TestCase):
         self.assertTrue(applied)
         self.assertEqual(out, "keep me intact")
 
+    def test_warmup_compressor(self) -> None:
+        with patch.object(token_compactor, "_init_compressor", return_value=_FakeCompressor()):
+            token_compactor.warmup_compressor()
+            self.assertIsNotNone(token_compactor._LOADING_THREAD)
+
 
 if __name__ == "__main__":
     unittest.main()

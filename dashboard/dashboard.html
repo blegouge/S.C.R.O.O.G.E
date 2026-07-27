@@ -109,6 +109,52 @@
               <option value="hermes">Hermes</option>
               <option value="codex">Codex</option>
             </select>
+            <div class="agent-status-wrapper" id="agentStatusWrapper">
+              <button
+                type="button"
+                id="agentStatusBtn"
+                class="agent-status-btn"
+                title="Agent Status & Effective Capabilities"
+                data-i18n-title="agentStatusTitle"
+                aria-expanded="false"
+                aria-controls="agentStatusPopover"
+              >
+                <span class="agent-status-dot" id="agentStatusDot"></span>
+                <span class="agent-status-label" id="agentStatusLabel">--</span>
+                <svg
+                  class="agent-info-ico"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              </button>
+              <div class="agent-status-popover" id="agentStatusPopover" hidden>
+                <div class="popover-header">
+                  <div class="popover-title-row">
+                    <span class="popover-agent-name" id="popoverAgentName">Agent</span>
+                    <span class="popover-badge" id="popoverSummaryBadge">0/0 Active</span>
+                  </div>
+                  <div class="popover-agent-path" id="popoverAgentPath">~/.gemini/antigravity</div>
+                </div>
+                <div class="popover-body" id="popoverBody">
+                  <!-- Dynamic Checklist Items -->
+                </div>
+                <div class="popover-footer" id="popoverFooter">
+                  <span class="popover-tip" data-i18n="agentTip"
+                    >Tip: Run python install_stack.py to deploy missing components</span
+                  >
+                </div>
+              </div>
+            </div>
+
             <ul class="refresh-dropdown" id="refreshDropdown" role="menu" hidden>
               <li role="none">
                 <button
@@ -160,9 +206,6 @@
               </li>
             </ul>
           </div>
-          <button type="button" class="btn" id="btnTheme" data-i18n="toggleTheme">
-            Toggle theme
-          </button>
           <button type="button" class="btn btn-primary" id="btnReload" data-i18n="loadFile">
             Load file
           </button>

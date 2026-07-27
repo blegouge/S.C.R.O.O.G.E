@@ -17,15 +17,24 @@ from typing import Any
 
 # Setup path for dev structure
 _this_dir = pathlib.Path(__file__).resolve().parent
+if str(_this_dir.parent) not in sys.path:
+    sys.path.insert(0, str(_this_dir.parent))
 if (_this_dir.parent / "src").is_dir():
     for _sub in ("telemetry", "compaction", "bridge"):
         _p = str(_this_dir.parent / "src" / _sub)
         if _p not in sys.path:
             sys.path.insert(0, _p)
 
+
 from telemetry_metrics import summarize_layer_kpis, summarize_report
 
-from providers_config import get_data_dir, get_enabled_providers, get_rtk_cwd
+from providers_config import (
+    get_data_dir,
+    get_enabled_providers,
+    get_rtk_cwd,
+    inspect_agent_status,
+    install_agent_component,
+)
 
 
 def package_root() -> pathlib.Path:
@@ -335,6 +344,26 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload)
             return
+        if path == "/api/agent-status":
+            payload_obj = inspect_agent_status(source)
+            payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if path == "/api/install-agent-component":
+            component_id = query.get("component", ["all"])[0]
+            payload_obj = install_agent_component(source, component_id)
+            payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
         if path in ("/", "/index.html"):
             html_content = (
                 DASH.read_text(encoding="utf-8")
@@ -427,9 +456,30 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         log_path, layout_path = get_paths(source)
 
+        if path == "/api/install-agent-component":
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length) if length > 0 else b"{}"
+            try:
+                payload_in = json.loads(raw.decode("utf-8")) if raw else {}
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                payload_in = {}
+            if not isinstance(payload_in, dict):
+                payload_in = {}
+            source_id = str(payload_in.get("source") or source)
+            component_id = str(payload_in.get("component") or "all")
+            payload_obj = install_agent_component(source_id, component_id)
+            payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
         if path != "/api/dashboard-layout":
             self.send_error(404, "Not found")
             return
+
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:

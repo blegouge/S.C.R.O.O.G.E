@@ -48,6 +48,32 @@ export async function loadProviders() {
   }
 }
 
+export async function loadAgentStatus(source = getSource()) {
+  try {
+    const resp = await fetch('/api/agent-status?source=' + source);
+    if (!resp.ok) throw new Error('Agent status API ' + resp.status);
+    return resp.json();
+  } catch (e) {
+    console.error('Failed to load agent status:', e);
+    return { ok: false, error: String(e) };
+  }
+}
+
+export async function installAgentComponent(source = getSource(), component = 'all') {
+  try {
+    const resp = await fetch('/api/install-agent-component', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source, component }),
+    });
+    if (!resp.ok) throw new Error('Install component API ' + resp.status);
+    return resp.json();
+  } catch (e) {
+    console.error('Failed to install agent component:', e);
+    return { ok: false, error: String(e) };
+  }
+}
+
 export function persistLayoutPrefs(container, collectLayoutState) {
   const state = collectLayoutState(container);
   try {

@@ -9,7 +9,10 @@ import {
   loadReportSummary,
   loadProviders,
   loadLayoutPrefs,
+  loadAgentStatus,
+  installAgentComponent,
 } from './dashboard_api.js';
+
 import { renderCharts } from './dashboard_charts.js';
 import { renderTables, renderComplianceTable, renderCrgTable } from './dashboard_tables.js';
 import {
@@ -31,6 +34,7 @@ import {
   renderOptimizationKpis,
   renderLayerKpis,
   renderStackKpis,
+  renderAgentStatus,
 } from './dashboard_render.js';
 
 // Controller/Module state
@@ -201,6 +205,22 @@ async function silentRefreshFromApi() {
   }
 }
 
+async function refreshAgentStatus() {
+  try {
+    const data = await loadAgentStatus(getSource());
+    renderAgentStatus(data);
+  } catch (err) {
+    console.warn('Failed to load agent status:', err);
+  }
+}
+
+function setAgentPopoverExpanded(open) {
+  const popover = document.getElementById('agentStatusPopover');
+  const btn = document.getElementById('agentStatusBtn');
+  if (popover) popover.hidden = !open;
+  if (btn) btn.setAttribute('aria-expanded', String(open));
+}
+
 async function manualRefreshFromApi() {
   const svg = document.querySelector('#btnRefreshNow .refresh-ico');
   svg?.classList.add('refresh-ico-spin');
@@ -214,6 +234,7 @@ async function manualRefreshFromApi() {
     fileOverride = false;
     currentEvents = rows;
     renderAll(currentEvents);
+    void refreshAgentStatus();
     scheduleAutoRefreshLoop();
   } catch (e) {
     document.getElementById('kpiEvents').textContent = '!';
@@ -263,6 +284,52 @@ document.getElementById('btnRefreshMenu').addEventListener('click', (ev) => {
   setRefreshMenuExpanded(dd.hidden);
 });
 
+async function handleInstallComponent(source, component, btnEl) {
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.classList.add('installing');
+  }
+  try {
+    const res = await installAgentComponent(source, component);
+    if (res && res.ok) {
+      if (res.status) {
+        renderAgentStatus(res.status);
+      } else {
+        await refreshAgentStatus();
+      }
+    }
+  } catch (err) {
+    console.error('Install component error:', err);
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.classList.remove('installing');
+    }
+  }
+}
+
+document.getElementById('agentStatusBtn')?.addEventListener('click', (ev) => {
+  ev.stopPropagation();
+  const popover = document.getElementById('agentStatusPopover');
+  if (popover) setAgentPopoverExpanded(popover.hidden);
+});
+
+document.getElementById('agentStatusPopover')?.addEventListener('click', (ev) => {
+  ev.stopPropagation();
+  const installBtn = ev.target.closest('.btn-install-component');
+  if (installBtn) {
+    const comp = installBtn.getAttribute('data-component') || 'all';
+    const src = installBtn.getAttribute('data-source') || getSource();
+    void handleInstallComponent(src, comp, installBtn);
+    return;
+  }
+  const installAllBtn = ev.target.closest('#btnInstallAllComponents');
+  if (installAllBtn) {
+    const src = installAllBtn.getAttribute('data-source') || getSource();
+    void handleInstallComponent(src, 'all', installAllBtn);
+  }
+});
+
 document.querySelectorAll('#refreshDropdown button[data-interval-ms]').forEach((btn) => {
   btn.addEventListener('click', (ev) => {
     ev.stopPropagation();
@@ -275,15 +342,16 @@ document.querySelectorAll('#refreshDropdown button[data-interval-ms]').forEach((
 document.addEventListener('click', (ev) => {
   const split = document.getElementById('refreshSplit');
   if (split && !split.contains(ev.target)) setRefreshMenuExpanded(false);
+
+  const btn = document.getElementById('agentStatusBtn');
+  if (btn && !btn.contains(ev.target)) setAgentPopoverExpanded(false);
 });
 
 document.addEventListener('keydown', (ev) => {
-  if (ev.key === 'Escape') setRefreshMenuExpanded(false);
-});
-
-document.getElementById('btnTheme').addEventListener('click', () => {
-  document.documentElement.classList.toggle('theme-light');
-  if (currentEvents.length) renderAll(currentEvents);
+  if (ev.key === 'Escape') {
+    setRefreshMenuExpanded(false);
+    setAgentPopoverExpanded(false);
+  }
 });
 
 document.getElementById('btnReload').addEventListener('click', () => {
@@ -472,6 +540,7 @@ document.getElementById('sourceSelect').addEventListener('change', () => {
     }
 
     renderAll(currentEvents);
+    void refreshAgentStatus();
     restoreRefreshFromStorage();
   } catch (e) {
     document.getElementById('kpiEvents').textContent = '!';

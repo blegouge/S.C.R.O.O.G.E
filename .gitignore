@@ -20,3 +20,4 @@ __pycache__/
 /hub_files/token-telemetry/telemetry.db
 /hub_files/token-telemetry/events.jsonl
 /hub_files/token-telemetry/diff-only-last-text.txt
+/analysis/
