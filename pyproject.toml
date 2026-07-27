@@ -18,6 +18,7 @@ dev = [
     "pip-audit>=2.10.1",
     "types-PyYAML",
     "pre-commit>=4.6.0",
+    "commitizen>=3.29.0",
 ]
 desktop = [
     "pywebview>=5.0,<6",
@@ -89,3 +90,14 @@ addopts = "--cov=hub_files/src/utils --cov=src --cov-report=term-missing --cov-f
 omit = [
     "*/test_*.py",
 ]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "semver"
+version_provider = "pep621"
+version_files = [
+    "package.json:version"
+]
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"

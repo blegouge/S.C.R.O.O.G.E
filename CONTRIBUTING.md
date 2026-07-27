@@ -44,3 +44,24 @@ All unit tests must pass, and the minimum test coverage is set at **85%**.
 ```bash
 pytest
 ```
+
+## Commit Conventions & Automated Releases
+
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for all commit messages.
+
+### Message Format
+- `feat: ...` : A new feature (triggers a MINOR version release)
+- `fix: ...` : A bug fix (triggers a PATCH version release)
+- `docs: ...` : Documentation changes only
+- `style: ...` : Formatting, missing semi colons, etc.
+- `refactor: ...` : A code change that neither fixes a bug nor adds a feature
+- `test: ...` : Adding or updating tests
+- `chore: ...` : Maintenance tasks, updating dependencies, etc.
+- `FEAT!:` or `BREAKING CHANGE:` : Breaking change (triggers a MAJOR version release)
+
+### Pre-commit Verification
+Commits are validated automatically via `pre-commit` (`commitizen`).
+You can use `cz commit` for an interactive commit prompt, or write conventional commit messages directly.
+
+### CI/CD Releases
+Upon merging to `main`, GitHub Actions automatically calculates the new version bump, updates `CHANGELOG.md`, `pyproject.toml`, and `package.json`, creates a git tag, and publishes a GitHub Release.

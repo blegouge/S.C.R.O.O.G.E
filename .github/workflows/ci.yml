@@ -53,6 +53,13 @@ jobs:
       - name: Run Prettier Style Validation
         run: npm run format:check
 
+      - name: Validate Conventional Commits
+        if: github.event_name == 'pull_request'
+        uses: commitizen-tools/commitizen-action@v0.23.1
+        with:
+          branch: ${{ github.base_ref }}
+
+
   security:
     name: Security & Vulnerability Audits
     runs-on: ubuntu-latest

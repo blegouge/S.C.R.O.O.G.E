@@ -34,3 +34,9 @@ repos:
       - id: prettier
         types_or: [javascript, css, html]
         additional_dependencies: [prettier@3.9.4]
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.29.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
