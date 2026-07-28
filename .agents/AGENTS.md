@@ -1,23 +1,23 @@
-# Règles de développement pour les agents IA
+# Development Rules for AI Agents
 
-## 1. Qualité du Code, Linting et Formatage
-- **Formatage & Linting obligatoires** : Avant de terminer une tâche ou de créer un commit, vous devez obligatoirement formater et vérifier le code à l'aide des outils du projet.
-- **Utilisation de pre-commit** : Exécutez la commande suivante pour tout valider (formatage, imports, types) avant de commiter :
+## 1. Code Quality, Linting, and Formatting
+- **Mandatory Formatting & Linting**: Before completing a task or creating a commit, you must format and verify the code using the project's tools.
+- **Using pre-commit**: Run the following command to validate everything (formatting, imports, types) before committing:
   ```bash
   .venv-desktop/bin/pre-commit run --all-files
   ```
-- **Validation des tests** : Assurez-vous que tous les tests unitaires passent en exécutant `pytest` avant de déclarer la tâche terminée :
+- **Test Validation**: Ensure all unit tests pass by running `pytest` before declaring the task complete:
   ```bash
   .venv-desktop/bin/pytest
   ```
 
-## 2. Rapport de consommation obligatoire
-Pour chaque réponse utilisateur dans cet espace de travail, vous devez obligatoirement ajouter le rapport de consommation (Consumption report) à la fin de votre réponse au format Markdown suivant :
+## 2. Mandatory Consumption Report
+For every user response in this workspace, you must append the consumption report (Consumption report) at the end of your response in the following Markdown format:
 
-### Rapport de consommation
-- **Mode de travail**: direct tools only | single subagent | multiple subagents
-- **Activité outils**: N tool calls (list high-cost tools like shell, subagents, web, large reads)
-- **Niveau de risque tokens**: low | medium | high
-- **Principaux postes de coût**: 1-3 puces décrivant ce qui a consommé le plus
-- **Optimisations appliquées**: optimisations de tokens appliquées ce tour
+### Consumption report
+- **Working mode**: direct tools only | single subagent | multiple subagents
+- **Tool activity**: N tool calls (list high-cost tools like shell, subagents, web, large reads)
+- **Token risk level**: low | medium | high
+- **Main cost drivers**: 1-3 bullet points describing what consumed the most
+- **Applied optimizations**: token optimizations applied this turn
 - exact token count unavailable in this environment
