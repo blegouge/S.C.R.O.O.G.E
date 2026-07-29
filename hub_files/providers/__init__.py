@@ -45,59 +45,78 @@ _PROVIDERS: dict[str, type[BaseProvider]] = {
 }
 
 
+# Deployment roots, longest first: ~/.gemini/antigravity is nested in ~/.gemini.
+_HOME_HINTS: tuple[tuple[str, str, str], ...] = (
+    ("ANTIGRAVITY_HOME", ".gemini/antigravity", "antigravity"),
+    ("CODEX_HOME", ".codex", "codex"),
+    ("CLAUDE_HOME", ".claude", "claude"),
+    ("HERMES_HOME", ".hermes", "hermes"),
+    ("GEMINI_HOME", ".gemini", "gemini"),
+    ("CURSOR_HOME", ".cursor", "cursor"),
+)
+
+_EVENT_HINTS: tuple[tuple[str, str], ...] = (
+    ("ANTIGRAVITY_TT_EVENT", "antigravity"),
+    ("CODEX_TT_EVENT", "codex"),
+    ("CLAUDE_TT_EVENT", "claude"),
+    ("GEMINI_TT_EVENT", "gemini"),
+    ("HERMES_TT_EVENT", "hermes"),
+    ("CURSOR_TT_EVENT", "cursor"),
+)
+
+
+def source_from_install_path(path: Path) -> str | None:
+    """Map an install path to a provider, or None when it sits outside every root."""
+    for env_name, rel_home, source in _HOME_HINTS:
+        roots = []
+        configured = os.environ.get(env_name, "").strip()
+        if configured:
+            roots.append(Path(configured).expanduser())
+        roots.append(Path.home() / rel_home)
+        for root in roots:
+            try:
+                if path.is_relative_to(root.resolve()):
+                    return source
+            except (ValueError, OSError):
+                continue
+    return None
+
+
+def source_from_event_vars() -> str | None:
+    """Read *_TT_EVENT, but only when a single agent claims the event.
+
+    Hook wrappers broadcast every *_TT_EVENT variable so one script can be
+    deployed to all agents. Those variables carry the event name, not the
+    identity of the caller, so an ambiguous set must never pick a winner.
+    """
+    claimed = {source for env_name, source in _EVENT_HINTS if os.environ.get(env_name, "").strip()}
+    if len(claimed) == 1:
+        return claimed.pop()
+    return None
+
+
 def detect_provider() -> BaseProvider:
-    """Detect the active provider from environment variables and path context.
+    """Detect the active provider from the execution context.
 
     Detection order (first match wins):
     1. SCROOGE_TELEMETRY_SOURCE override
-    2. Dynamic event variables (*_TT_EVENT)
-    3. Path-relative home directories matching the execution context
+    2. Install path of this module — every agent has its own deployment root
+    3. *_TT_EVENT, only when a single agent claims the event
     4. Default fallback → Cursor
     """
-    # 1. Explicit override
     explicit = os.environ.get("SCROOGE_TELEMETRY_SOURCE", "").strip().lower()
     if explicit in _PROVIDERS:
         return _PROVIDERS[explicit]()
 
-    # 2. Dynamic event variables
-    if os.environ.get("CLAUDE_TT_EVENT"):
-        return ClaudeProvider()
-    if os.environ.get("CODEX_TT_EVENT"):
-        return CodexProvider()
-    if os.environ.get("ANTIGRAVITY_TT_EVENT"):
-        return AntigravityProvider()
-    if os.environ.get("GEMINI_TT_EVENT"):
-        return GeminiProvider()
-    if os.environ.get("HERMES_TT_EVENT"):
-        return HermesProvider()
-    if os.environ.get("CURSOR_TT_EVENT"):
-        return CursorProvider()
-
-    # 3. Path-relative checks (detect which home folder the executing code lives in)
+    source = None
     try:
-        this_file_dir = Path(__file__).resolve().parent
-        home_hints = (
-            ("CODEX_HOME", "codex"),
-            ("ANTIGRAVITY_HOME", "antigravity"),
-            ("CLAUDE_HOME", "claude"),
-            ("GEMINI_HOME", "gemini"),
-            ("HERMES_HOME", "hermes"),
-            ("CURSOR_HOME", "cursor"),
-        )
-        for env_name, source in home_hints:
-            val = os.environ.get(env_name, "").strip()
-            if val:
-                try:
-                    resolved_home = Path(val).expanduser().resolve()
-                    if this_file_dir.is_relative_to(resolved_home):
-                        return _PROVIDERS[source]()
-                except (ValueError, OSError):
-                    pass
-    except Exception:
+        source = source_from_install_path(Path(__file__).resolve().parent)
+    except OSError:
         pass
+    if source is None:
+        source = source_from_event_vars()
 
-    # Default to Cursor
-    return CursorProvider()
+    return _PROVIDERS.get(source or "cursor", CursorProvider)()
 
 
 def get_provider(name: str) -> BaseProvider:

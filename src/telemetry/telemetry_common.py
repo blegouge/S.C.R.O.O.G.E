@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from telemetry_paths import resolve_log_file as _path_log_file
+from telemetry_paths import infer_source as _path_infer_source, resolve_log_file as _path_log_file
 
 # Add hub_files to sys.path for providers module (dev context), or parent dir (installed context)
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -27,29 +27,48 @@ else:
 
 
 def _detect_source() -> str:
-    """Detect telemetry source from environment variables.
+    """Detect the telemetry source from the execution context.
 
-    Uses the providers module if available, falls back to legacy detection.
+    Uses the providers module when available and otherwise defers to
+    infer_source(), which applies the same install-path-first rules.
     """
+    explicit = os.environ.get("SCROOGE_TELEMETRY_SOURCE", "").strip().lower()
+    if explicit:
+        return explicit
     try:
         from providers import detect_provider
 
         return detect_provider().name
-    except (ImportError, Exception):
-        # Fallback to legacy detection if providers module is unavailable
-        if os.environ.get("CLAUDE_TT_EVENT") or os.environ.get("CLAUDE_HOME"):
-            return "claude"
-        if os.environ.get("ANTIGRAVITY_TT_EVENT") or os.environ.get("ANTIGRAVITY_HOME"):
-            return "antigravity"
-        if os.environ.get("GEMINI_TT_EVENT") or os.environ.get("GEMINI_HOME"):
-            return "gemini"
-        if os.environ.get("HERMES_TT_EVENT") or os.environ.get("HERMES_HOME"):
-            return "hermes"
-        # Default to cursor
+    except Exception:
+        return _path_infer_source()
+
+
+def _source_from_row(row: dict[str, Any]) -> str | None:
+    """Best-effort source attribution directly from event payload fields."""
+    payload_keys = row.get("payload_keys")
+    if isinstance(payload_keys, list) and "cursor_version" in payload_keys:
         return "cursor"
 
+    for key in ("transcript_path", "session_path", "hook_home"):
+        value = row.get(key)
+        if not isinstance(value, str) or not value:
+            continue
+        if "/.gemini/antigravity/" in value:
+            return "antigravity"
+        if "/.claude/" in value:
+            return "claude"
+        if "/.codex/" in value:
+            return "codex"
+        if "/.hermes/" in value:
+            return "hermes"
+        if "/.gemini/" in value:
+            return "gemini"
+        if "/.cursor/" in value:
+            return "cursor"
+    return None
 
-def resolve_log_file() -> Path:
+
+def resolve_log_file(row: dict[str, Any] | None = None) -> Path:
     """Telemetry log path (override with *_TOKEN_TELEMETRY_LOG for tests)."""
     override = (
         os.environ.get("SCROOGE_TOKEN_TELEMETRY_LOG", "").strip()
@@ -58,7 +77,9 @@ def resolve_log_file() -> Path:
     )
     if override:
         return Path(override).expanduser()
-    return _path_log_file(source=_detect_source())
+
+    source = _source_from_row(row or {}) or _detect_source()
+    return _path_log_file(source=source)
 
 
 def resolve_skills_dir() -> Path:
@@ -93,7 +114,7 @@ def utc_ts() -> str:
 
 def append_event(row: dict[str, Any]) -> None:
     row.setdefault("ts", utc_ts())
-    log_file = resolve_log_file()
+    log_file = resolve_log_file(row)
     log_file.parent.mkdir(parents=True, exist_ok=True)
     with log_file.open("a", encoding="utf-8") as fh:
         locked = False

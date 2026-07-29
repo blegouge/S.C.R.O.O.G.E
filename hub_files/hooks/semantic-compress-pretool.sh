@@ -4,7 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOME_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Export Claude Code event marker for telemetry routing
+# shellcheck source=scrooge-source.sh
+source "${SCRIPT_DIR}/scrooge-source.sh"
+scrooge_export_source "${HOME_DIR}"
+
+# Event markers are broadcast for cross-agent compatibility; attribution comes
+# from SCROOGE_TELEMETRY_SOURCE above.
 export ANTIGRAVITY_TT_EVENT=preToolUse
 export CURSOR_TT_EVENT=preToolUse
 export CLAUDE_TT_EVENT=preToolUse
