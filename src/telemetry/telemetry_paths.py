@@ -104,20 +104,47 @@ def _path_is_relative_to(path: Path, parent: Path) -> bool:
         return False
 
 
+# Deployment roots, longest first: ~/.gemini/antigravity is nested in ~/.gemini.
+_HOME_HINTS: tuple[tuple[str, str, str], ...] = (
+    ("ANTIGRAVITY_HOME", ".gemini/antigravity", "antigravity"),
+    ("CODEX_HOME", ".codex", "codex"),
+    ("CLAUDE_HOME", ".claude", "claude"),
+    ("HERMES_HOME", ".hermes", "hermes"),
+    ("GEMINI_HOME", ".gemini", "gemini"),
+    ("CURSOR_HOME", ".cursor", "cursor"),
+)
+
+_EVENT_HINTS: tuple[tuple[str, str], ...] = (
+    ("ANTIGRAVITY_TT_EVENT", "antigravity"),
+    ("CODEX_TT_EVENT", "codex"),
+    ("CLAUDE_TT_EVENT", "claude"),
+    ("GEMINI_TT_EVENT", "gemini"),
+    ("HERMES_TT_EVENT", "hermes"),
+    ("CURSOR_TT_EVENT", "cursor"),
+)
+
+
 def infer_source() -> str:
     """Infer the active telemetry provider from hook/runtime context."""
     explicit = os.environ.get("SCROOGE_TELEMETRY_SOURCE", "").strip().lower()
     if explicit:
         return explicit
 
-    event_hints = (
-        ("CODEX_TT_EVENT", "codex"),
-        ("ANTIGRAVITY_TT_EVENT", "antigravity"),
-        ("CURSOR_TT_EVENT", "cursor"),
-    )
-    for env_name, source in event_hints:
-        if os.environ.get(env_name, "").strip():
+    # The install path is the only unambiguous signal: every agent gets its own
+    # deployment root, whereas hook wrappers broadcast all *_TT_EVENT variables.
+    this_dir = Path(__file__).resolve().parent
+    for env_name, _rel_home, source in _HOME_HINTS:
+        configured = os.environ.get(env_name, "").strip()
+        if configured and _path_is_relative_to(this_dir, Path(configured)):
             return source
+    for _env_name, rel_home, source in _HOME_HINTS:
+        if _path_is_relative_to(this_dir, Path.home() / rel_home):
+            return source
+
+    # Event markers are trustworthy only when a single agent claims the event.
+    claimed = {source for env_name, source in _EVENT_HINTS if os.environ.get(env_name, "").strip()}
+    if len(claimed) == 1:
+        return claimed.pop()
 
     runtime_hints = (
         ("CODEX_THREAD_ID", "codex"),
@@ -125,26 +152,6 @@ def infer_source() -> str:
     )
     for env_name, source in runtime_hints:
         if os.environ.get(env_name, "").strip():
-            return source
-
-    this_dir = Path(__file__).resolve().parent
-    home_hints = (
-        ("CODEX_HOME", "codex"),
-        ("ANTIGRAVITY_HOME", "antigravity"),
-        ("CURSOR_HOME", "cursor"),
-    )
-    for env_name, source in home_hints:
-        value = os.environ.get(env_name, "").strip()
-        if value and _path_is_relative_to(this_dir, Path(value)):
-            return source
-
-    path_hints = (
-        (Path.home() / ".codex", "codex"),
-        (Path.home() / ".gemini" / "antigravity", "antigravity"),
-        (Path.home() / ".cursor", "cursor"),
-    )
-    for base, source in path_hints:
-        if _path_is_relative_to(this_dir, base):
             return source
 
     return "cursor"

@@ -44,10 +44,19 @@ def init_db() -> None:
                     event TEXT,
                     session_id TEXT,
                     conversation_id TEXT,
-                    payload TEXT
+                    payload TEXT,
+                    sync_source TEXT,
+                    line_no INTEGER
                 )
                 """
             )
+            # Databases created before deduplication lack the identity columns.
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(events)")}
+            if "sync_source" not in columns:
+                conn.execute("ALTER TABLE events ADD COLUMN sync_source TEXT")
+            if "line_no" not in columns:
+                conn.execute("ALTER TABLE events ADD COLUMN line_no INTEGER")
+
             # Create indexes for rapid querying
             conn.execute("CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_events_source ON events(source)")
@@ -55,6 +64,14 @@ def init_db() -> None:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id)")
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_events_conversation ON events(conversation_id)"
+            )
+            # (sync_source, line_no) identifies a log line and makes re-ingestion
+            # idempotent, so a truncated or rotated log can no longer duplicate
+            # rows. Legacy rows keep both columns NULL, which SQLite treats as
+            # distinct, so the index can be created without a prior cleanup.
+            conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_events_sync_line "
+                "ON events(sync_source, line_no)"
             )
 
             # Create sync_state table to track position in JSONL files
@@ -73,7 +90,7 @@ def init_db() -> None:
 def sync_source(source: str, log_file_path: pathlib.Path) -> int:
     """Sync a single JSONL log file to SQLite incrementally.
 
-    Returns the number of new events inserted.
+    Returns the number of log lines ingested, whether inserted or refreshed.
     """
     if not log_file_path.is_file():
         return 0
@@ -103,11 +120,12 @@ def sync_source(source: str, log_file_path: pathlib.Path) -> int:
             return 0  # Nothing new to sync
 
         new_lines = lines[last_line_count:]
-        inserted = 0
+        ingested = 0
 
         with conn:
-            for line in new_lines:
-                line = line.strip()
+            for offset, raw_line in enumerate(new_lines):
+                line_no = last_line_count + offset
+                line = raw_line.strip()
                 if not line:
                     continue
                 try:
@@ -125,10 +143,22 @@ def sync_source(source: str, log_file_path: pathlib.Path) -> int:
                 session_id = event_data.get("session_id", "")
                 conversation_id = event_data.get("conversation_id", "")
 
+                # Upsert on (sync_source, line_no): replaying a log line refreshes
+                # the row in place instead of appending a duplicate.
                 conn.execute(
                     """
-                    INSERT INTO events (ts, source, event, session_id, conversation_id, payload)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO events (
+                        ts, source, event, session_id, conversation_id, payload,
+                        sync_source, line_no
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(sync_source, line_no) DO UPDATE SET
+                        ts = excluded.ts,
+                        source = excluded.source,
+                        event = excluded.event,
+                        session_id = excluded.session_id,
+                        conversation_id = excluded.conversation_id,
+                        payload = excluded.payload
                     """,
                     (
                         ts,
@@ -137,9 +167,17 @@ def sync_source(source: str, log_file_path: pathlib.Path) -> int:
                         session_id,
                         conversation_id,
                         json.dumps(event_data, ensure_ascii=False),
+                        source,
+                        line_no,
                     ),
                 )
-                inserted += 1
+                ingested += 1
+
+            # Drop rows left behind by a log that shrank after truncation or rotation
+            conn.execute(
+                "DELETE FROM events WHERE sync_source = ? AND line_no >= ?",
+                (source, total_lines),
+            )
 
             # Update sync state atomically
             conn.execute(
@@ -151,7 +189,7 @@ def sync_source(source: str, log_file_path: pathlib.Path) -> int:
                 (source, total_lines, total_lines),
             )
 
-        return inserted
+        return ingested
     finally:
         conn.close()
 

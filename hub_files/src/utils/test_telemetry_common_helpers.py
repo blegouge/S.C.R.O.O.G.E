@@ -28,7 +28,8 @@ class DetectSourceTests(unittest.TestCase):
     def test_legacy_fallback_claude(self) -> None:
         with patch.dict(sys.modules, {"providers": None}):
             with patch.dict("os.environ", {"CLAUDE_HOME": "/x"}, clear=True):
-                self.assertEqual(tc._detect_source(), "claude")
+                with patch("telemetry_paths._path_is_relative_to", return_value=True):
+                    self.assertEqual(tc._detect_source(), "claude")
 
     def test_legacy_fallback_default_cursor(self) -> None:
         with patch.dict(sys.modules, {"providers": None}):

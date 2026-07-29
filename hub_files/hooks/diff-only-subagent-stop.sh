@@ -2,6 +2,10 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOME_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# shellcheck source=scrooge-source.sh
+source "${SCRIPT_DIR}/scrooge-source.sh"
+scrooge_export_source "${HOME_DIR}"
+
 export ANTIGRAVITY_DIFF_HOOK_EVENT=subagentStop
 export CURSOR_DIFF_HOOK_EVENT=subagentStop
 export CODEX_DIFF_HOOK_EVENT=subagentStop

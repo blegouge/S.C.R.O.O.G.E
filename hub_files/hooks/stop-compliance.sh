@@ -9,6 +9,10 @@ if [[ -f "${COMPRESSION_ENV}" ]]; then
   set +a
 fi
 
+# shellcheck source=scrooge-source.sh
+source "${SCRIPT_DIR}/scrooge-source.sh"
+scrooge_export_source "${HOME_DIR}"
+
 export ANTIGRAVITY_COMPLIANCE_HOOK_EVENT=stop
 export CURSOR_COMPLIANCE_HOOK_EVENT=stop
 export CODEX_COMPLIANCE_HOOK_EVENT=stop
