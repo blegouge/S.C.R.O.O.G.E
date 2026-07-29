@@ -133,10 +133,11 @@ def infer_source() -> str:
     # The install path is the only unambiguous signal: every agent gets its own
     # deployment root, whereas hook wrappers broadcast all *_TT_EVENT variables.
     this_dir = Path(__file__).resolve().parent
-    for env_name, rel_home, source in _HOME_HINTS:
+    for env_name, _rel_home, source in _HOME_HINTS:
         configured = os.environ.get(env_name, "").strip()
         if configured and _path_is_relative_to(this_dir, Path(configured)):
             return source
+    for _env_name, rel_home, source in _HOME_HINTS:
         if _path_is_relative_to(this_dir, Path.home() / rel_home):
             return source
 
