@@ -10,6 +10,7 @@ from pathlib import Path
 from diff_applier import (
     apply_blocks,
     apply_text,
+    extract_response_text,
     parse_blocks,
 )
 
@@ -123,6 +124,29 @@ class ApplyTextTests(unittest.TestCase):
             result = apply_text("no patches here", [Path(tmp)])
             self.assertTrue(result.ok)
             self.assertEqual(result.stats.blocks_parsed, 0)
+
+
+class ExtractResponseTextTests(unittest.TestCase):
+    def test_extracts_string_fields(self) -> None:
+        self.assertEqual(extract_response_text({"text": "hello"}), "hello")
+        self.assertEqual(extract_response_text({"summary": "sum"}), "sum")
+
+    def test_extracts_structured_dict_message(self) -> None:
+        payload = {
+            "message": {
+                "content": [
+                    {"type": "text", "text": "path: src/main.py"},
+                    {"type": "text", "text": "<<<<<<< SEARCH\nfoo\n=======\nbar\n>>>>>>> REPLACE"},
+                ]
+            }
+        }
+        extracted = extract_response_text(payload)
+        self.assertIn("path: src/main.py", extracted)
+        self.assertIn("<<<<<<< SEARCH", extracted)
+
+    def test_extracts_list_strings_message(self) -> None:
+        payload = {"message": {"content": ["line 1", "line 2"]}}
+        self.assertEqual(extract_response_text(payload), "line 1\nline 2")
 
 
 if __name__ == "__main__":

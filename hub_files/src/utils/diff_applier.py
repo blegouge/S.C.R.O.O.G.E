@@ -111,10 +111,31 @@ def _normalize_newlines(text: str) -> str:
 
 def extract_response_text(payload: dict) -> str:
     """Pull assistant/subagent text from hook JSON."""
-    for key in ("text", "summary", "response", "content", "message"):
+    for key in ("text", "summary", "response", "content"):
         value = payload.get(key)
         if isinstance(value, str) and value.strip():
             return value
+
+    message = payload.get("message")
+    if isinstance(message, str) and message.strip():
+        return message
+    if isinstance(message, dict):
+        for key in ("content", "text", "value"):
+            value = message.get(key)
+            if isinstance(value, str) and value.strip():
+                return value
+            if isinstance(value, list):
+                chunks: list[str] = []
+                for part in value:
+                    if isinstance(part, str) and part.strip():
+                        chunks.append(part)
+                    elif isinstance(part, dict):
+                        piece = part.get("text") or part.get("content")
+                        if isinstance(piece, str) and piece.strip():
+                            chunks.append(piece)
+                if chunks:
+                    return "\n".join(chunks)
+
     parts: list[str] = []
     for value in _walk_strings(payload):
         if MARKER_SEARCH in value or "path:" in value.lower():
