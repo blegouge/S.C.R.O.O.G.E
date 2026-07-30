@@ -92,13 +92,45 @@ def _cache_text(text: str) -> None:
         pass
 
 
+def _safe_append_telemetry(stats: Any, event: str, errors: list[str]) -> None:
+    try:
+        append_telemetry(stats, event, errors)
+    except OSError as exc:
+        sys.stderr.write(f"[diff-only] telemetry skip: {exc}\n")
+
+
+def _emit_skip(reason: str, event: str, **extra: Any) -> None:
+    try:
+        append_telemetry(
+            type(
+                "S",
+                (),
+                {
+                    "to_log_dict": lambda self: {
+                        "blocks_parsed": 0,
+                        "blocks_applied": 0,
+                        "files_touched": 0,
+                        "original_file_chars": 0,
+                        "patch_output_chars": 0,
+                        "replace_line_count": 0,
+                        "estimated_chars_saved": 0,
+                    }
+                },
+            )(),
+            f"diffOnlySkip:{event or 'unknown'}:{reason}",
+            [f"{k}={v}" for k, v in extra.items()][:8],
+        )
+    except Exception:
+        sys.stderr.write(f"[diff-only] skip reason={reason} event={event or 'unknown'} {extra}\n")
+
+
 def _respond_followup(message: str) -> None:
     payload = {"followup_message": message}
     sys.stdout.write(json.dumps(payload, ensure_ascii=False))
     sys.stdout.flush()
 
 
-@hook_fail_safe()
+@hook_fail_safe(fallback_json="{}")
 def main() -> int:
     if os.environ.get(DISABLE_ENV, "").strip().lower() in {"1", "true", "yes"}:
         return 0
@@ -107,6 +139,7 @@ def main() -> int:
     event = _hook_event(data)
 
     text = _gather_text(data, event)
+    # stop is the safety net: re-apply from last assistant text if payload is empty
     if not text.strip() and event == "stop":
         if LAST_TEXT_CACHE.is_file():
             try:
@@ -115,10 +148,13 @@ def main() -> int:
                 text = ""
 
     if not text.strip():
+        _emit_skip("empty_text", event)
         return 0
 
-    if not parse_blocks(text):
+    blocks = parse_blocks(text)
+    if not blocks:
         _cache_text(text)
+        _emit_skip("no_blocks", event, text_chars=len(text))
         return 0
 
     roots = resolve_workspace_roots(data)
@@ -130,10 +166,13 @@ def main() -> int:
         roots = resolve_workspace_roots({})
 
     result = apply_text(text, roots)
-    log_savings(result.stats)
+    try:
+        log_savings(result.stats)
+    except OSError:
+        pass
 
     telemetry_event = f"diffOnlyApply:{event or 'unknown'}"
-    append_telemetry(result.stats, telemetry_event, result.errors)
+    _safe_append_telemetry(result.stats, telemetry_event, result.errors)
 
     if result.errors:
         err_blob = "\n".join(f"- {e}" for e in result.errors[:12])

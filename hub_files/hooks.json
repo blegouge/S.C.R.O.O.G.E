@@ -30,8 +30,11 @@
     ],
     "stop": [
       {
+        "command": "{{HUB}}/hooks/diff-only-stop.sh"
+      },
+      {
         "command": "{{HUB}}/hooks/stop-compliance.sh",
-        "loop_limit": 2
+        "loop_limit": 0
       },
       {
         "command": "{{HUB}}/hooks/tt-stop.sh"

@@ -123,6 +123,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "{{HUB}}/hooks/diff-only-stop.sh",
+            "statusMessage": "Applying diff-only output on stop",
+            "timeout": 30
+          },
+          {
+            "type": "command",
             "command": "{{HUB}}/hooks/tt-after-response.sh",
             "statusMessage": "Recording response telemetry",
             "timeout": 30
