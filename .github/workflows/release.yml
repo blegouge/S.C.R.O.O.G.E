@@ -51,7 +51,7 @@ jobs:
             exit $exit_code
           else
             echo "bumped=true" >> $GITHUB_OUTPUT
-            NEW_TAG=$(cz version -project)
+            NEW_TAG=$(cz version --project)
             echo "tag=v${NEW_TAG}" >> $GITHUB_OUTPUT
           fi
 
