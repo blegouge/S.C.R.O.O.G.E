@@ -140,13 +140,15 @@ def main() -> int:
         sys.stderr.write(f"[diff-only] APPLY FAILED:\n{err_blob}\n")
         followup = (
             "Diff-Only apply failed. Fix SEARCH blocks (verbatim match, unique context) "
-            "and resend only the failed hunks:\n"
+            "and resend only the failed hunks (do not retry full-file Write):\n"
             f"{err_blob}"
         )
-        if event in {"subagentStop", "stop"} and data.get("status") == "completed":
-            loop_count = int(data.get("loop_count") or 0)
-            if loop_count < 3:
-                _respond_followup(followup)
+        if event in {"afterAgentResponse", "subagentStop", "stop"}:
+            status = data.get("status")
+            if status in (None, "completed", "success", "ok") or event == "afterAgentResponse":
+                loop_count = int(data.get("loop_count") or 0)
+                if loop_count < 3:
+                    _respond_followup(followup)
         return 0
 
     if result.stats.blocks_applied:
