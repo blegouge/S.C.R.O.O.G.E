@@ -21,3 +21,5 @@ For every user response in this workspace, you must append the consumption repor
 - **Main cost drivers**: 1-3 bullet points describing what consumed the most
 - **Applied optimizations**: token optimizations applied this turn
 - exact token count unavailable in this environment
+## 3. Communication Style & Tone
+- **No Emojis**: Do not use any emojis or emoticons in assistant responses, summaries, or messages. Maintain a professional, concise, plain text style at all times.
