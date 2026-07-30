@@ -379,7 +379,7 @@ class SemanticCompressHookTests(unittest.TestCase):
 
 
 class WritePretoolHookTests(unittest.TestCase):
-    def test_blocks_write_on_existing_file(self) -> None:
+    def test_soft_allows_write_on_existing_file_by_default(self) -> None:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
             tmp.write("existing content\n")
             tmp_path = tmp.name
@@ -392,7 +392,44 @@ class WritePretoolHookTests(unittest.TestCase):
             }
             out, _, _, rc = _run_hook("diff-only-pretool-write.py", payload)
             self.assertEqual(rc, 0)
+            self.assertEqual(out.get("permission"), "allow")
+            self.assertIn("Full-file Write on existing", out.get("agent_message", ""))
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def test_blocks_write_on_existing_file_in_strict_mode(self) -> None:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
+            tmp.write("existing content\n")
+            tmp_path = tmp.name
+
+        try:
+            payload = {
+                "tool_name": "Write",
+                "tool_input": {"path": tmp_path, "contents": "overwrite"},
+                "workspace_roots": [str(Path(tmp_path).parent)],
+            }
+            env = dict(os.environ, CURSOR_DIFF_ONLY_STRICT_WRITE="1")
+            out, _, _, rc = _run_hook("diff-only-pretool-write.py", payload, env=env)
+            self.assertEqual(rc, 0)
             self.assertEqual(out.get("permission"), "deny")
+            self.assertIn("Write blocked on existing file", out.get("user_message", ""))
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def test_allows_targeted_edits(self) -> None:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
+            tmp.write("existing content\n")
+            tmp_path = tmp.name
+
+        try:
+            payload = {
+                "tool_name": "Write",
+                "tool_input": {"path": tmp_path, "old_string": "existing", "new_string": "updated"},
+                "workspace_roots": [str(Path(tmp_path).parent)],
+            }
+            out, _, _, rc = _run_hook("diff-only-pretool-write.py", payload)
+            self.assertEqual(rc, 0)
+            self.assertEqual(out.get("permission"), "allow")
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 

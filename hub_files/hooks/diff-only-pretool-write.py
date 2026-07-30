@@ -128,6 +128,16 @@ def main() -> None:
         return
 
     if _looks_like_targeted_edit(tool_input):
+        try:
+            append_event(
+                {
+                    "event": "diffOnlyWriteAllowedAsTargetedEdit",
+                    "tool": "Write",
+                    "file_hint": rel_path[-80:],
+                }
+            )
+        except OSError:
+            pass
         _respond({"permission": "allow"})
         return
 
@@ -136,29 +146,48 @@ def main() -> None:
         _respond({"permission": "allow"})
         return
 
-    append_event(
-        {
-            "event": "diffOnlyWriteBlocked",
-            "tool": "Write",
-            "file_hint": target.name[:200],
-            "path": str(target)[:240],
-        }
+    strict = any(
+        os.environ.get(k, "").strip().lower() in {"1", "true", "yes"}
+        for k in (
+            "CURSOR_DIFF_ONLY_STRICT_WRITE",
+            "ANTIGRAVITY_DIFF_ONLY_STRICT_WRITE",
+            "CODEX_DIFF_ONLY_STRICT_WRITE",
+        )
     )
+    try:
+        append_event(
+            {
+                "event": "diffOnlyWriteBlocked" if strict else "diffOnlyWriteSoftNudge",
+                "tool": "Write",
+                "file_hint": target.name[:200],
+                "path": str(target)[:240],
+                "strict": strict,
+            }
+        )
+    except OSError:
+        pass
+
     message = (
-        f"Write blocked on existing file `{target.name}` (Diff-Only policy).\n"
-        "Try targeted editors in order: StrReplace, ApplyPatch, then Edit; if one is unavailable or denied, continue to the next.\n"
-        "If none succeeds, emit exact SEARCH/REPLACE blocks in the response for deterministic application by the response hook.\n"
-        "Do not stop or delegate solely because a targeted editor is unavailable.\n"
-        "Override: set CODEX_DIFF_ONLY_ALLOW_WRITE=1, ANTIGRAVITY_DIFF_ONLY_ALLOW_WRITE=1, "
-        "or CURSOR_DIFF_ONLY_ALLOW_WRITE=1."
+        f"Full-file Write on existing `{target.name}` (Diff-Only preference).\n"
+        "Prefer SEARCH/REPLACE hunks in the assistant reply (applied by afterAgentResponse), "
+        "or StrReplace/ApplyPatch/Edit with a unique SEARCH snippet.\n"
+        "Hard deny: CURSOR_DIFF_ONLY_STRICT_WRITE=1 (may also block StrReplace on Cursor)."
     )
-    _respond(
-        {
-            "permission": "deny",
-            "agent_message": message,
-            "user_message": f"Write blocked on existing file: {target.name} — use a targeted editor or exact SEARCH/REPLACE blocks.",
-        }
-    )
+    if strict:
+        _respond(
+            {
+                "permission": "deny",
+                "agent_message": message,
+                "user_message": (
+                    f"Write blocked on existing file: {target.name} — "
+                    "use a targeted editor or exact SEARCH/REPLACE blocks."
+                ),
+            }
+        )
+        return
+
+    # Soft mode: never brick StrReplace-as-Write; nudge toward Diff-Only.
+    _respond({"permission": "allow", "agent_message": message})
 
 
 if __name__ == "__main__":

@@ -35,11 +35,12 @@ Brief must include: *« Follow Diff-Only: return path + SEARCH/REPLACE blocks on
 
 ## Edits in repo (enforced)
 
-- **Existing files:** use targeted editors in this order when exposed: `StrReplace`, `ApplyPatch`, then `Edit`. If one is unavailable or denied, continue to the next. `Write` remains **blocked** by the `preToolUse` hook on existing paths.
-- **Mandatory response fallback:** if no targeted editor is exposed or succeeds, emit exact SEARCH/REPLACE blocks in the response for deterministic application by the response hook. Do not stop or delegate solely because a targeted editor is unavailable.
-- **Shell Bypass Forbidden:** Do NOT use shell commands (like `cat`, `sed`, `tee`, or redirection) to create or edit files in the repository. Doing so bypasses telemetry and optimization.
-- **New files:** `Write` allowed once; later edits follow the existing-file policy above.
-- Parent/subagent briefs must state: « Diff-Only: use the first available targeted editor (`StrReplace`, `ApplyPatch`, `Edit`); otherwise return exact SEARCH/REPLACE blocks; no full-file dumps ».
+- **Primary path (Diff-Only):** put `path:` + SEARCH/REPLACE hunks in the assistant reply — `diff-only-apply.py` writes them on `afterAgentResponse` / `subagentStop`.
+- **Mid-turn tools:** use `StrReplace` / `ApplyPatch` / `Edit` when available. Cursor may label them `Write`; the preToolUse guard soft-allows full-file Write by default (hard deny only if `CURSOR_DIFF_ONLY_STRICT_WRITE=1`).
+- **Mandatory response fallback:** if a tool fails, emit exact SEARCH/REPLACE blocks in the response. Do not stop solely because an editor looked blocked.
+- **Shell Bypass Forbidden:** Do NOT use shell (`cat`, `sed`, `tee`, redirection) to create/edit repo files.
+- **New files:** `Write` allowed; later edits follow the policy above.
+- Parent/subagent briefs must state: « Diff-Only: SEARCH/REPLACE in reply or targeted editor; no full-file dumps ».
 
 ## Exceptions
 
