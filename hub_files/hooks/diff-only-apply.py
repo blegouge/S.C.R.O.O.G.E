@@ -13,9 +13,11 @@ Writes files on disk as a side effect. On subagentStop/stop failures, may return
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -27,21 +29,29 @@ else:
     _HOME_PATH = Path(__file__).resolve().parent.parent
 
 SRC_DIR = _HOME_PATH / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
+# Fall back to the sibling src/ of this script: a misresolved HUB must never make the hook
+# crash, because a crashing hook can starve the rest of the event chain.
+_LOCAL_SRC = Path(__file__).resolve().parent.parent / "src"
+for _candidate in (SRC_DIR, _LOCAL_SRC):
+    if str(_candidate) not in sys.path:
+        sys.path.insert(0, str(_candidate))
 
-from utils.diff_applier import (  # pylint: disable=import-error
-    append_telemetry,
-    apply_text,
-    extract_response_text,
-    log_savings,
-    parse_blocks,
-    resolve_workspace_roots,
-)
-from utils.hook_utils import (
-    hook_fail_safe,
-    load_stdin_json,
-)
+try:
+    from utils.diff_applier import (  # pylint: disable=import-error
+        append_telemetry,
+        apply_text,
+        extract_response_text,
+        log_savings,
+        parse_blocks,
+        resolve_workspace_roots,
+    )
+    from utils.hook_utils import (
+        hook_fail_safe,
+        load_stdin_json,
+    )
+except ImportError as _exc:  # pragma: no cover - defensive: degraded HUB layout
+    sys.stderr.write(f"[diff-only] disabled: cannot import applier from {SRC_DIR} ({_exc})\n")
+    raise SystemExit(0) from None
 
 DISABLE_ENV = (
     "CODEX_DIFF_ONLY_DISABLE"
@@ -51,6 +61,13 @@ DISABLE_ENV = (
     else "CURSOR_DIFF_ONLY_DISABLE"
 )
 LAST_TEXT_CACHE = _HOME_PATH / "token-telemetry" / "diff-only-last-text.txt"
+# Fingerprints of responses already applied, so the `stop` safety net never replays a
+# response that `afterAgentResponse` already wrote (which used to surface as SEARCH errors).
+APPLIED_LEDGER = _HOME_PATH / "token-telemetry" / "diff-only-applied.txt"
+APPLIED_LEDGER_MAX = 50
+# Dedupe only inside one turn's event fan-out; a later turn resending the same hunks
+# (other workspace, reverted file) must still be applied.
+DEDUPE_TTL_SECONDS = int(os.environ.get("DIFF_ONLY_DEDUPE_TTL", "900") or 900)
 
 
 def _hook_event(data: dict[str, Any]) -> str:
@@ -82,6 +99,52 @@ def _gather_text(data: dict[str, Any], event: str) -> str:
     return ""
 
 
+def _fingerprint(text: str, roots: list[Path]) -> str:
+    seed = text.strip() + "\n" + "\n".join(sorted(str(root) for root in roots))
+    return hashlib.sha256(seed.encode("utf-8", "replace")).hexdigest()
+
+
+def _ledger_entries() -> list[tuple[str, float]]:
+    if not APPLIED_LEDGER.is_file():
+        return []
+    entries: list[tuple[str, float]] = []
+    try:
+        raw = APPLIED_LEDGER.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    for line in raw.splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        try:
+            stamp = float(parts[1]) if len(parts) > 1 else 0.0
+        except ValueError:
+            stamp = 0.0
+        entries.append((parts[0], stamp))
+    return entries
+
+
+def _already_processed(fingerprint: str) -> bool:
+    now = time.time()
+    return any(
+        fp == fingerprint and now - stamp < DEDUPE_TTL_SECONDS for fp, stamp in _ledger_entries()
+    )
+
+
+def _record_processed(fingerprint: str) -> None:
+    APPLIED_LEDGER.parent.mkdir(parents=True, exist_ok=True)
+    now = time.time()
+    fresh = [(fp, stamp) for fp, stamp in _ledger_entries() if now - stamp < DEDUPE_TTL_SECONDS]
+    fresh.append((fingerprint, now))
+    try:
+        APPLIED_LEDGER.write_text(
+            "\n".join(f"{fp} {stamp:.0f}" for fp, stamp in fresh[-APPLIED_LEDGER_MAX:]) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
 def _cache_text(text: str) -> None:
     if not text.strip():
         return
@@ -109,6 +172,7 @@ def _emit_skip(reason: str, event: str, **extra: Any) -> None:
                     "to_log_dict": lambda self: {
                         "blocks_parsed": 0,
                         "blocks_applied": 0,
+                        "blocks_already_applied": 0,
                         "files_touched": 0,
                         "original_file_chars": 0,
                         "patch_output_chars": 0,
@@ -165,6 +229,14 @@ def main() -> int:
         )
         roots = resolve_workspace_roots({})
 
+    fingerprint = _fingerprint(text, roots)
+    if _already_processed(fingerprint):
+        _emit_skip("already_processed", event, blocks=len(blocks))
+        return 0
+
+    # Cache before applying: if this event never fires again, `stop` can still replay it.
+    _cache_text(text)
+
     result = apply_text(text, roots)
     try:
         log_savings(result.stats)
@@ -195,8 +267,12 @@ def main() -> int:
             f"[diff-only] applied {result.stats.blocks_applied} block(s) "
             f"to {result.stats.files_touched} file(s)\n"
         )
+    if result.stats.blocks_already_applied:
+        sys.stderr.write(
+            f"[diff-only] {result.stats.blocks_already_applied} block(s) already on disk — no-op\n"
+        )
 
-    _cache_text(text)
+    _record_processed(fingerprint)
     return 0
 
 

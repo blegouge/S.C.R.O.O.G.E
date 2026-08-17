@@ -22,30 +22,35 @@
     ],
     "afterAgentResponse": [
       {
-        "command": "{{HUB}}/hooks/diff-only-after-response.sh"
+        "command": "{{HUB}}/hooks/tt-after-response.sh"
       },
       {
-        "command": "{{HUB}}/hooks/tt-after-response.sh"
+        "command": "{{HUB}}/hooks/diff-only-after-response.sh",
+        "timeout": 20
       }
     ],
     "stop": [
       {
-        "command": "{{HUB}}/hooks/diff-only-stop.sh"
+        "command": "{{HUB}}/hooks/tt-stop.sh"
+      },
+      {
+        "command": "{{HUB}}/hooks/diff-only-stop.sh",
+        "timeout": 20,
+        "loop_limit": 1
       },
       {
         "command": "{{HUB}}/hooks/stop-compliance.sh",
-        "loop_limit": 0
-      },
-      {
-        "command": "{{HUB}}/hooks/tt-stop.sh"
+        "loop_limit": 1
       }
     ],
     "subagentStop": [
       {
-        "command": "{{HUB}}/hooks/diff-only-subagent-stop.sh"
+        "command": "{{HUB}}/hooks/tt-subagent-stop.sh"
       },
       {
-        "command": "{{HUB}}/hooks/tt-subagent-stop.sh"
+        "command": "{{HUB}}/hooks/diff-only-subagent-stop.sh",
+        "timeout": 20,
+        "loop_limit": 1
       }
     ],
     "afterFileEdit": [

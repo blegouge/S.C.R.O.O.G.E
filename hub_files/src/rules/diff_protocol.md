@@ -35,10 +35,11 @@ path: relative/path/from/repo/root.ext
    - No SEARCH/REPLACE blocks. Prose only (still terse per Caveman unless overridden).
 
 6. **Tools vs chat (global hook)**
-   - `~/.gemini/antigravity/hooks/diff-only-apply.py` runs on **`afterAgentResponse`** and **`subagentStop`**, parses your blocks, writes files **without** a second LLM call.
-   - Prefer **SEARCH/REPLACE in the response** for code delivery; avoid duplicating the same hunk via `Write`/`StrReplace` (double-apply / SEARCH mismatch).
+   - **Edit with a targeted tool first** (`StrReplace`, `ApplyPatch`, `Edit`): a hunk costs the same tokens, but the write is immediate and reviewable. The preToolUse guard never denies these; a full-file `Write` on an existing file is only nudged, and hard deny requires the marker file `<HUB>/diff-only-strict`.
+   - `<HUB>/hooks/diff-only-apply.py` runs on **`afterAgentResponse`**, **`subagentStop`** and **`stop`**, parses blocks from the reply and writes files **without** a second LLM call. Use it when a tool is unavailable or denied.
+   - **Duplicates are safe:** a hunk whose `REPLACE` is already on disk is counted as `blocks_already_applied` and skipped, and each response is fingerprinted so `stop` never replays what `afterAgentResponse` applied.
    - **Subagent → parent:** return **only** `path:` + SEARCH/REPLACE blocks (+ 1-line summary). No file dumps.
-   - Disable hook: env `ANTIGRAVITY_DIFF_ONLY_DISABLE=1`.
+   - Disable hook: env `CURSOR_DIFF_ONLY_DISABLE=1` (aliases: `ANTIGRAVITY_`, `CODEX_`).
 
 ## Anti-patterns (reject)
 

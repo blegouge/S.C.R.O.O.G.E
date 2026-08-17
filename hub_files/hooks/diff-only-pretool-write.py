@@ -19,19 +19,25 @@ else:
 
 SRC_DIR = _HOME_PATH / "src"
 TOKEN_TELEMETRY_DIR = _HOME_PATH / "token-telemetry"
-for _path in (SRC_DIR, TOKEN_TELEMETRY_DIR):
+_LOCAL_ROOT = Path(__file__).resolve().parent.parent
+for _path in (SRC_DIR, TOKEN_TELEMETRY_DIR, _LOCAL_ROOT / "src", _LOCAL_ROOT / "token-telemetry"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from telemetry_common import append_event  # pylint: disable=import-error
+try:
+    from telemetry_common import append_event  # pylint: disable=import-error
 
-from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
-from utils.hook_utils import (
-    extract_tool_input,
-    extract_tool_name,
-    hook_fail_safe,
-    load_stdin_json,
-)
+    from utils.diff_applier import resolve_workspace_roots  # pylint: disable=import-error
+    from utils.hook_utils import (
+        extract_tool_input,
+        extract_tool_name,
+        hook_fail_safe,
+        load_stdin_json,
+    )
+except ImportError as _exc:  # pragma: no cover - defensive: never block edits on a broken HUB
+    sys.stderr.write(f"[diff-only] guard disabled: import failed from {SRC_DIR} ({_exc})\n")
+    sys.stdout.write('{"permission": "allow"}')
+    raise SystemExit(0) from None
 
 _IS_CODEX_HOME = _HOME_PATH.name == ".codex" or os.getenv("CODEX_HOME")
 DISABLE_ENV = "CODEX_DIFF_ONLY_DISABLE" if _IS_CODEX_HOME else "ANTIGRAVITY_DIFF_ONLY_DISABLE"
@@ -41,6 +47,14 @@ ALLOW_WRITE_ENV = (
 # Legacy Cursor env aliases
 _LEGACY_DISABLE = "CURSOR_DIFF_ONLY_DISABLE"
 _LEGACY_ALLOW = "CURSOR_DIFF_ONLY_ALLOW_WRITE"
+# Hard deny is opt-in through a per-HUB marker file, never through an inherited env var:
+# an exported STRICT flag used to deny every edit in every agent sharing the environment.
+STRICT_MARKER = _HOME_PATH / "diff-only-strict"
+
+
+def _strict_mode() -> bool:
+    """Hard deny requires the marker file; env flags alone only downgrade to a nudge."""
+    return STRICT_MARKER.is_file()
 
 
 def _extract_target_path(tool_input: dict[str, Any]) -> str:
@@ -146,14 +160,7 @@ def main() -> None:
         _respond({"permission": "allow"})
         return
 
-    strict = any(
-        os.environ.get(k, "").strip().lower() in {"1", "true", "yes"}
-        for k in (
-            "CURSOR_DIFF_ONLY_STRICT_WRITE",
-            "ANTIGRAVITY_DIFF_ONLY_STRICT_WRITE",
-            "CODEX_DIFF_ONLY_STRICT_WRITE",
-        )
-    )
+    strict = _strict_mode()
     try:
         append_event(
             {
@@ -169,9 +176,9 @@ def main() -> None:
 
     message = (
         f"Full-file Write on existing `{target.name}` (Diff-Only preference).\n"
-        "Prefer SEARCH/REPLACE hunks in the assistant reply (applied by afterAgentResponse), "
-        "or StrReplace/ApplyPatch/Edit with a unique SEARCH snippet.\n"
-        "Hard deny: CURSOR_DIFF_ONLY_STRICT_WRITE=1 (may also block StrReplace on Cursor)."
+        "Prefer a targeted edit (StrReplace/ApplyPatch/Edit) with a unique snippet; "
+        "SEARCH/REPLACE hunks in the reply are the fallback.\n"
+        f"Hard deny is opt-in: create the marker file {STRICT_MARKER}."
     )
     if strict:
         _respond(

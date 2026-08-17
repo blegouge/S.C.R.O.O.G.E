@@ -35,12 +35,13 @@ Brief must include: *« Follow Diff-Only: return path + SEARCH/REPLACE blocks on
 
 ## Edits in repo (enforced)
 
-- **Primary path (Diff-Only):** put `path:` + SEARCH/REPLACE hunks in the assistant reply — `diff-only-apply.py` writes them on `afterAgentResponse` / `subagentStop`.
-- **Mid-turn tools:** use `StrReplace` / `ApplyPatch` / `Edit` when available. Cursor may label them `Write`; the preToolUse guard soft-allows full-file Write by default (hard deny only if `CURSOR_DIFF_ONLY_STRICT_WRITE=1`).
-- **Mandatory response fallback:** if a tool fails, emit exact SEARCH/REPLACE blocks in the response. Do not stop solely because an editor looked blocked.
+- **Primary path — targeted editor:** apply the change yourself with `StrReplace` / `ApplyPatch` / `Edit`. Same token cost as a hunk, deterministic, visible diff. Cursor may label these `Write`; the preToolUse guard **allows** them.
+- **Diff-Only output is a delivery format, not a permission gate:** never claim Diff-Only forbids editing, and never end a turn with unapplied hunks when an editor tool was available.
+- **Response hunks (fallback / subagent → parent):** emit `path:` + SEARCH/REPLACE when an editor is denied, when a subagent returns a delta, or when the user asks for a patch. `diff-only-apply.py` applies them on `afterAgentResponse` / `subagentStop` / `stop`; re-application of an already-landed hunk is a logged no-op.
 - **Shell Bypass Forbidden:** Do NOT use shell (`cat`, `sed`, `tee`, redirection) to create/edit repo files.
 - **New files:** `Write` allowed; later edits follow the policy above.
-- Parent/subagent briefs must state: « Diff-Only: SEARCH/REPLACE in reply or targeted editor; no full-file dumps ».
+- **Hard deny is opt-in:** only the marker file `<HUB>/diff-only-strict` blocks a full-file Write. No env var denies edits.
+- Parent/subagent briefs must state: « Diff-Only: targeted editor first, SEARCH/REPLACE hunks otherwise; no full-file dumps ».
 
 ## Exceptions
 

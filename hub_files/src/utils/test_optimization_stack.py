@@ -397,7 +397,7 @@ class WritePretoolHookTests(unittest.TestCase):
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
-    def test_blocks_write_on_existing_file_in_strict_mode(self) -> None:
+    def test_strict_env_flag_alone_never_denies(self) -> None:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
             tmp.write("existing content\n")
             tmp_path = tmp.name
@@ -411,9 +411,30 @@ class WritePretoolHookTests(unittest.TestCase):
             env = dict(os.environ, CURSOR_DIFF_ONLY_STRICT_WRITE="1")
             out, _, _, rc = _run_hook("diff-only-pretool-write.py", payload, env=env)
             self.assertEqual(rc, 0)
+            self.assertEqual(out.get("permission"), "allow")
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def test_blocks_write_on_existing_file_with_strict_marker(self) -> None:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
+            tmp.write("existing content\n")
+            tmp_path = tmp.name
+        marker = CURSOR_HOME / "diff-only-strict"
+
+        try:
+            marker.write_text("test\n", encoding="utf-8")
+            payload = {
+                "tool_name": "Write",
+                "tool_input": {"path": tmp_path, "contents": "overwrite"},
+                "workspace_roots": [str(Path(tmp_path).parent)],
+            }
+            env = {"CURSOR_HOME": str(CURSOR_HOME)}
+            out, _, _, rc = _run_hook("diff-only-pretool-write.py", payload, env=env)
+            self.assertEqual(rc, 0)
             self.assertEqual(out.get("permission"), "deny")
             self.assertIn("Write blocked on existing file", out.get("user_message", ""))
         finally:
+            marker.unlink(missing_ok=True)
             Path(tmp_path).unlink(missing_ok=True)
 
     def test_allows_targeted_edits(self) -> None:
