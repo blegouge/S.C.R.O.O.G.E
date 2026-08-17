@@ -41,6 +41,10 @@ class AmbiguousSearchError(DiffApplyError):
     """SEARCH snippet matches more than once — add more context lines."""
 
 
+class AlreadyAppliedError(DiffApplyError):
+    """REPLACE content is already on disk (mid-turn edit or hook re-run) — treat as no-op."""
+
+
 class WorkspaceNotFoundError(DiffApplyError):
     """Could not resolve a workspace root for a relative path."""
 
@@ -61,6 +65,7 @@ class ApplyStats:
 
     blocks_parsed: int = 0
     blocks_applied: int = 0
+    blocks_already_applied: int = 0
     files_touched: int = 0
     original_file_chars: int = 0
     patch_output_chars: int = 0
@@ -71,6 +76,7 @@ class ApplyStats:
         return {
             "blocks_parsed": self.blocks_parsed,
             "blocks_applied": self.blocks_applied,
+            "blocks_already_applied": self.blocks_already_applied,
             "files_touched": self.files_touched,
             "original_file_chars": self.original_file_chars,
             "patch_output_chars": self.patch_output_chars,
@@ -337,6 +343,11 @@ def _apply_one(
         updated = norm_orig.replace(norm_search, norm_replace, 1)
         return updated, True
 
+    # SEARCH gone but REPLACE present: the edit already landed (targeted editor mid-turn,
+    # or a second hook event replaying the same response). Not an error.
+    if norm_replace.strip() and norm_replace in norm_orig:
+        raise AlreadyAppliedError(f"{file_path}: hunk already applied — nothing to do")
+
     raise SearchNotFoundError(f"{file_path}: SEARCH not found — verify verbatim copy from disk")
 
 
@@ -383,6 +394,8 @@ def apply_blocks(
             result.applied.append((block.path, target))
             touched_files.add(target)
             result.stats.blocks_applied += 1
+        except AlreadyAppliedError:
+            result.stats.blocks_already_applied += 1
         except SearchNotFoundError as exc:
             result.errors.append(f"{block.path} (line ~{block.line_number}): {exc}")
         except AmbiguousSearchError as exc:
@@ -436,9 +449,16 @@ def append_telemetry(stats: ApplyStats, event: str, errors: list[str]) -> None:
         "diff_only": stats.to_log_dict(),
         "diff_errors": errors[:20],
     }
-    log_dir = Path.home() / ".cursor" / "token-telemetry"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / "events.jsonl"
+    import os
+
+    # Honor the shared telemetry sink so hook rows land in the same log as the rest of the stack.
+    override = os.environ.get("CURSOR_TOKEN_TELEMETRY_LOG", "").strip()
+    log_file = (
+        Path(override).expanduser()
+        if override
+        else Path.home() / ".cursor" / "token-telemetry" / "events.jsonl"
+    )
+    log_file.parent.mkdir(parents=True, exist_ok=True)
     with log_file.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(row, ensure_ascii=False) + "\n")
 

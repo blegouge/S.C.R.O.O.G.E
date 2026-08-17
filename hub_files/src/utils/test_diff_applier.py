@@ -103,6 +103,37 @@ once
         self.assertFalse(result.ok)
         self.assertTrue(any("matches 2" in e for e in result.errors))
 
+    def test_already_applied_hunk_is_noop(self) -> None:
+        text = """path: hello.txt
+<<<<<<< SEARCH
+line2
+=======
+LINE2
+>>>>>>> REPLACE
+"""
+        first = apply_blocks(parse_blocks(text), [self.root])
+        self.assertTrue(first.ok)
+
+        replay = apply_blocks(parse_blocks(text), [self.root])
+        self.assertTrue(replay.ok, replay.errors)
+        self.assertEqual(replay.stats.blocks_applied, 0)
+        self.assertEqual(replay.stats.blocks_already_applied, 1)
+        self.assertEqual(self.file.read_text(encoding="utf-8"), "line1\nLINE2\nline3\n")
+
+    def test_missing_search_without_replace_on_disk_still_errors(self) -> None:
+        blocks = parse_blocks(
+            """path: hello.txt
+<<<<<<< SEARCH
+line9
+=======
+LINE9
+>>>>>>> REPLACE
+"""
+        )
+        result = apply_blocks(blocks, [self.root])
+        self.assertFalse(result.ok)
+        self.assertEqual(result.stats.blocks_already_applied, 0)
+
     def test_new_file_empty_search(self) -> None:
         blocks = parse_blocks(
             """path: new.txt

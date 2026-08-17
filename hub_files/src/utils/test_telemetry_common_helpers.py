@@ -72,11 +72,18 @@ class AppendEventTests(unittest.TestCase):
     def test_append_event_writes_line(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             log = Path(tmp) / "events.jsonl"
-            with patch.dict("os.environ", {"SCROOGE_TOKEN_TELEMETRY_LOG": str(log)}, clear=False):
+            with patch.dict(
+                "os.environ",
+                {"SCROOGE_TOKEN_TELEMETRY_LOG": str(log), "SCROOGE_SPAN_CONTEXT": "1"},
+                clear=False,
+            ):
                 tc.append_event({"event": "test", "value": 1})
             rows = [json.loads(x) for x in log.read_text().splitlines()]
             self.assertEqual(rows[0]["event"], "test")
             self.assertIn("ts", rows[0])
+            self.assertEqual(len(rows[0]["trace_id"]), 32)
+            self.assertEqual(len(rows[0]["span_id"]), 16)
+            self.assertIn("parent_span_id", rows[0])
 
 
 class CorrelationTests(unittest.TestCase):
