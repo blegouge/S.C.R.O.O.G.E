@@ -274,7 +274,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         log_path, layout_path = get_paths(source)
 
-        from telemetry_db import fetch_events_from_db, sync_source
+        from telemetry_db import (
+            fetch_events_from_db,
+            fetch_recent_traces,
+            fetch_trace_spans,
+            sync_source,
+        )
 
         try:
             sync_source(source, log_path)
@@ -284,6 +289,30 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if path == "/api/events":
             rows = fetch_events_from_db(source)
             payload = json.dumps(rows, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if path == "/api/traces":
+            try:
+                limit = max(1, min(200, int(query.get("limit", ["20"])[0])))
+            except ValueError:
+                limit = 20
+            payload_obj = {"ok": True, "traces": fetch_recent_traces(limit)}
+            payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if path == "/api/trace-spans":
+            trace_id = query.get("trace_id", [""])[0].strip()
+            spans = fetch_trace_spans(trace_id) if trace_id else []
+            payload_obj = {"ok": bool(trace_id), "trace_id": trace_id, "spans": spans}
+            payload = json.dumps(payload_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(payload)))

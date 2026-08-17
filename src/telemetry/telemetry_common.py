@@ -7,6 +7,7 @@ import functools
 import json
 import os
 import re
+import secrets
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -107,6 +108,30 @@ SKILLS_DIR = resolve_skills_dir()
 _SKILL_LINE = re.compile(r"(?im)^\s*Skill:\s*([a-z0-9][a-z0-9_-]*)\s*$")
 _KNOWN_SKILLS: set[str] | None = None
 
+# OTEL-shaped ids: trace = 16 bytes hex, span = 8 bytes hex.
+_SPAN_STATE_NAME = "span_state.json"
+_TURN_OPEN_EVENTS = frozenset(
+    {
+        "userPromptSubmit",
+        "UserPromptSubmit",
+        "sessionStart",
+        "SessionStart",
+    }
+)
+_TURN_CLOSE_EVENTS = frozenset(
+    {
+        "afterAgentResponse",
+        "stop",
+        "consumptionReportCompliance",
+    }
+)
+_TASK_LAUNCH_EVENTS = frozenset(
+    {
+        "subagentLaunch",
+        "preToolUseCompression",
+    }
+)
+
 
 def utc_ts() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -115,6 +140,11 @@ def utc_ts() -> str:
 def append_event(row: dict[str, Any]) -> None:
     row.setdefault("ts", utc_ts())
     log_file = resolve_log_file(row)
+    try:
+        attach_span_context(row, log_file=log_file)
+    except Exception:
+        # Span context is best-effort; a failure must never block telemetry writes.
+        pass
     log_file.parent.mkdir(parents=True, exist_ok=True)
     with log_file.open("a", encoding="utf-8") as fh:
         locked = False
@@ -198,6 +228,148 @@ def _parse_ts_seconds(ts: str) -> float | None:
         return datetime.fromisoformat(normalized).timestamp()
     except ValueError:
         return None
+
+
+def new_trace_id() -> str:
+    """Return a 32-char hex trace id (OTEL-compatible)."""
+    return secrets.token_hex(16)
+
+
+def new_span_id() -> str:
+    """Return a 16-char hex span id (OTEL-compatible)."""
+    return secrets.token_hex(8)
+
+
+def _span_state_path(log_file: Path) -> Path:
+    return log_file.parent / _SPAN_STATE_NAME
+
+
+def _conversation_key(row: dict[str, Any]) -> str:
+    for key in ("conversation_id", "session_id", "generation_id"):
+        value = row.get(key)
+        if isinstance(value, str) and value.strip():
+            return f"{key}:{value.strip()[:240]}"
+    return "anon"
+
+
+def _load_span_state(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _save_span_state(path: Path, state: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def _duration_ms_from_start(start_ts: str | None, end_ts: str) -> int | None:
+    start = _parse_ts_seconds(start_ts or "")
+    end = _parse_ts_seconds(end_ts)
+    if start is None or end is None:
+        return None
+    return int(max(0.0, (end - start) * 1000.0))
+
+
+def _clean_id(value: object, *, max_len: int) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value.strip()[:max_len]
+    return None
+
+
+def _int_or_none(value: object) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return int(value)
+
+
+def attach_span_context(row: dict[str, Any], *, log_file: Path | None = None) -> None:
+    """Attach trace_id / span_id / parent_span_id / duration_ms for waterfall correlation.
+
+    Turn hierarchy: userPromptSubmit (root) -> tool calls / subagent launches ->
+    subagentStop (child of its Task launch) -> afterAgentResponse.
+
+    State lives next to events.jsonl because each hook runs in its own process, so
+    parents cannot be held in memory. Ids already present on the row win.
+    """
+    if os.environ.get("SCROOGE_SPAN_CONTEXT", "1").strip().lower() in {"0", "false", "off"}:
+        return
+
+    log = log_file or resolve_log_file(row)
+    state_path = _span_state_path(log)
+    event = str(row.get("event") or "")
+    tool = str(row.get("tool") or "")
+    ts = str(row.get("ts") or utc_ts())
+    row.setdefault("ts", ts)
+
+    provided_trace = _clean_id(row.get("trace_id"), max_len=32)
+    provided_span = _clean_id(row.get("span_id"), max_len=16)
+    provided_parent = row.get("parent_span_id")
+
+    state = _load_span_state(state_path)
+    conv_key = _conversation_key(row)
+    if state.get("conversation_key") != conv_key:
+        state = {
+            "conversation_key": conv_key,
+            "trace_id": provided_trace or new_trace_id(),
+            "turn_span_id": "",
+            "turn_started_ts": "",
+            "last_task_span_id": "",
+        }
+    elif provided_trace:
+        state["trace_id"] = provided_trace
+    elif not _clean_id(state.get("trace_id"), max_len=32):
+        state["trace_id"] = new_trace_id()
+
+    span_id = provided_span or new_span_id()
+    turn_id = _clean_id(state.get("turn_span_id"), max_len=16) or ""
+    is_close = event in _TURN_CLOSE_EVENTS
+
+    if event in _TURN_OPEN_EVENTS or not turn_id:
+        # Root span of the turn: either an explicit prompt event or the first event seen.
+        turn_id = span_id
+        state["turn_span_id"] = turn_id
+        state["turn_started_ts"] = ts
+        state["last_task_span_id"] = ""
+        parent_span_id = ""
+    elif event == "subagentStop":
+        parent_span_id = _clean_id(state.get("last_task_span_id"), max_len=16) or turn_id
+    else:
+        parent_span_id = turn_id
+
+    if isinstance(provided_parent, str):
+        parent_span_id = provided_parent.strip()[:16]
+
+    duration_ms = _int_or_none(row.get("duration_ms"))
+    if duration_ms is None:
+        duration_ms = _int_or_none(row.get("task_duration_ms"))
+    if duration_ms is None and is_close:
+        duration_ms = _duration_ms_from_start(str(state.get("turn_started_ts") or ""), ts)
+
+    row["trace_id"] = str(state.get("trace_id") or new_trace_id())[:32]
+    row["span_id"] = span_id
+    row["parent_span_id"] = parent_span_id
+    if duration_ms is not None:
+        row["duration_ms"] = max(0, duration_ms)
+
+    if event in _TASK_LAUNCH_EVENTS or (event == "postToolUse" and tool == "Task"):
+        state["last_task_span_id"] = span_id
+
+    if is_close:
+        state["turn_span_id"] = ""
+        state["turn_started_ts"] = ""
+        state["last_task_span_id"] = ""
+
+    try:
+        _save_span_state(state_path, state)
+    except OSError:
+        pass
 
 
 def infer_correlation_from_log(max_age_seconds: int = 300, tail_lines: int = 80) -> dict[str, str]:
