@@ -27,6 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First public release of the S.C.R.O.O.G.E. agent telemetry stack.
 
+## v1.3.0 (2026-08-17)
+
+### Feat
+
+- **telemetry**: add OTEL-shaped span context for agent traces
+
+### Fix
+
+- **diff-only**: make apply hooks operational and idempotent
+
 ## v1.2.0 (2026-07-30)
 
 ### Feat
