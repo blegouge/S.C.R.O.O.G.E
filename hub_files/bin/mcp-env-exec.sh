@@ -4,8 +4,7 @@ set -euo pipefail
 # Prefer explicit hub env vars; otherwise use the hub that owns this script
 # (…/<hub>/bin/mcp-env-exec.sh → …/<hub>/mcp.secrets.env).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HUB_FROM_SCRIPT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-ACTIVE_HOME="${ANTIGRAVITY_HOME:-${CURSOR_HOME:-${CODEX_HOME:-${CLAUDE_HOME:-${HUB_FROM_SCRIPT}}}}}"
+ACTIVE_HOME="${CLAUDE_HOME:-${GEMINI_HOME:-${ANTIGRAVITY_HOME:-${HERMES_HOME:-${CODEX_HOME:-${CURSOR_HOME:-${HUB_FROM_SCRIPT}}}}}}}"
 SECRETS="${ACTIVE_HOME}/mcp.secrets.env"
 if [[ -f "${SECRETS}" ]]; then
   set -a

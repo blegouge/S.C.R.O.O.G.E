@@ -104,6 +104,8 @@ def _compression_env() -> dict[str, str]:
     env["PYTHONPATH"] = os.path.pathsep.join(new_pythonpath)
 
     env_path = CURSOR_HOME / "compression.env"
+    if not env_path.is_file():
+        env_path = CURSOR_HOME / "compression.env.example"
     if env_path.is_file():
         for raw_line in env_path.read_text(encoding="utf-8").splitlines():
             line = raw_line.strip()
@@ -128,6 +130,7 @@ def _compression_env() -> dict[str, str]:
         env[var] = ""
 
     env["CURSOR_HOME"] = str(CURSOR_HOME)
+    env["PYTHONIOENCODING"] = "utf-8"
     return env
 
 
@@ -156,7 +159,10 @@ def _run_hook(
 
 class CompressionEnvConfigTests(unittest.TestCase):
     def test_compression_env_has_p0_settings(self) -> None:
-        text = (CURSOR_HOME / "compression.env").read_text(encoding="utf-8")
+        env_file = CURSOR_HOME / "compression.env"
+        if not env_file.exists():
+            env_file = CURSOR_HOME / "compression.env.example"
+        text = env_file.read_text(encoding="utf-8")
         self.assertTrue(
             "COMPRESSION_BACKEND=claw" in text or "COMPRESSION_BACKEND=headroom" in text,
             "COMPRESSION_BACKEND must be claw or headroom",
@@ -545,8 +551,19 @@ class DashboardCacheTests(unittest.TestCase):
     def test_rtk_gain_cache(self) -> None:
         import serve_dashboard
 
+        cmd_success = [
+            sys.executable,
+            "-c",
+            'import sys; sys.stdout.write(\'{"summary": {"total_saved": 42}}\')',
+        ]
+        cmd_update = [
+            sys.executable,
+            "-c",
+            'import sys; sys.stdout.write(\'{"summary": {"total_saved": 100}}\')',
+        ]
+
         orig_candidates = serve_dashboard._rtk_cmd_candidates
-        serve_dashboard._rtk_cmd_candidates = lambda: [["echo", '{"summary": {"total_saved": 42}}']]
+        serve_dashboard._rtk_cmd_candidates = lambda: [cmd_success]
         serve_dashboard._RTK_GAIN_CACHE.clear()
 
         try:
@@ -554,9 +571,7 @@ class DashboardCacheTests(unittest.TestCase):
             self.assertTrue(res1.get("ok"))
             self.assertEqual(res1.get("summary", {}).get("total_saved"), 42)
 
-            serve_dashboard._rtk_cmd_candidates = lambda: [
-                ["echo", '{"summary": {"total_saved": 100}}']
-            ]
+            serve_dashboard._rtk_cmd_candidates = lambda: [cmd_update]
 
             res2 = serve_dashboard.load_rtk_gain(project=False, source="cursor")
             self.assertEqual(res2.get("summary", {}).get("total_saved"), 42)

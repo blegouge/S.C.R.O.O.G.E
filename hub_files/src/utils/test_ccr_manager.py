@@ -23,6 +23,12 @@ import ccr_manager as ccr
 
 
 class CacheDirTests(unittest.TestCase):
+    def test_uses_claude_home(self) -> None:
+        with patch.dict("os.environ", {"CLAUDE_HOME": "/tmp/hub"}, clear=True):
+            self.assertEqual(
+                ccr.get_ccr_cache_dir(), Path("/tmp/hub").resolve() / "projects" / "ccr_cache"
+            )
+
     def test_uses_cursor_home(self) -> None:
         with patch.dict("os.environ", {"CURSOR_HOME": "/tmp/hub"}, clear=True):
             self.assertEqual(
@@ -30,9 +36,22 @@ class CacheDirTests(unittest.TestCase):
             )
 
     def test_default_home(self) -> None:
-        with patch.dict("os.environ", {}, clear=True):
-            self.assertEqual(
-                ccr.get_ccr_cache_dir(), Path.home() / ".cursor" / "projects" / "ccr_cache"
+        with patch.dict(
+            "os.environ",
+            {
+                "CLAUDE_HOME": "",
+                "GEMINI_HOME": "",
+                "ANTIGRAVITY_HOME": "",
+                "HERMES_HOME": "",
+                "CODEX_HOME": "",
+                "CURSOR_HOME": "",
+            },
+            clear=False,
+        ):
+            self.assertTrue(
+                str(ccr.get_ccr_cache_dir()).endswith(
+                    str(Path(".claude") / "projects" / "ccr_cache")
+                )
             )
 
 

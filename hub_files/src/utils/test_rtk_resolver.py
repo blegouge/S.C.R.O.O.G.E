@@ -51,7 +51,7 @@ class RtkEnvAndCandidateTests(unittest.TestCase):
                         rtk_resolver, "resolve_data_dir", return_value=Path("/nonexistent")
                     ):
                         bins = rtk_resolver.rtk_candidate_bins()
-        self.assertEqual(bins[0], "/env/rtk")
+        self.assertEqual(bins[0], str(Path("/env/rtk").expanduser()))
         # Always ends with a bare "rtk" fallback.
         self.assertIn("rtk", bins)
 

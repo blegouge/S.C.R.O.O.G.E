@@ -33,10 +33,12 @@ def _debug_log(msg: str, **kwargs) -> None:
 
 
 _HOME_DIR = (
-    os.getenv("CODEX_HOME")
+    os.getenv("CLAUDE_HOME")
+    or os.getenv("GEMINI_HOME")
     or os.getenv("ANTIGRAVITY_HOME")
+    or os.getenv("HERMES_HOME")
+    or os.getenv("CODEX_HOME")
     or os.getenv("CURSOR_HOME")
-    or os.getenv("CLAUDE_HOME")
 )
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
@@ -117,6 +119,11 @@ def _respond(payload: dict[str, Any]) -> None:
         updated_input=payload.get("updated_input"),
         user_message=payload.get("user_message", ""),
     )
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
     sys.stdout.write(response)
     sys.stdout.flush()
 

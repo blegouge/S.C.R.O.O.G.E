@@ -22,7 +22,14 @@ class ConfigManager:
         if cursor_home:
             self._home_path = cursor_home.resolve()
         else:
-            home_dir = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+            home_dir = (
+                os.getenv("CLAUDE_HOME")
+                or os.getenv("GEMINI_HOME")
+                or os.getenv("ANTIGRAVITY_HOME")
+                or os.getenv("HERMES_HOME")
+                or os.getenv("CODEX_HOME")
+                or os.getenv("CURSOR_HOME")
+            )
             if home_dir:
                 self._home_path = pathlib.Path(home_dir).resolve()
             else:

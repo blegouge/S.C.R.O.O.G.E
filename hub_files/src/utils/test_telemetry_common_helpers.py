@@ -31,10 +31,10 @@ class DetectSourceTests(unittest.TestCase):
                 with patch("telemetry_paths._path_is_relative_to", return_value=True):
                     self.assertEqual(tc._detect_source(), "claude")
 
-    def test_legacy_fallback_default_cursor(self) -> None:
+    def test_legacy_fallback_default_claude(self) -> None:
         with patch.dict(sys.modules, {"providers": None}):
             with patch.dict("os.environ", {}, clear=True):
-                self.assertEqual(tc._detect_source(), "cursor")
+                self.assertEqual(tc._detect_source(), "claude")
 
 
 class ResolveDirTests(unittest.TestCase):
@@ -49,8 +49,21 @@ class ResolveDirTests(unittest.TestCase):
             self.assertEqual(tc.resolve_skills_dir(), Path("/tmp/hub/skills"))
 
     def test_resolve_skills_dir_default(self) -> None:
-        with patch.dict("os.environ", {}, clear=True):
-            self.assertEqual(tc.resolve_skills_dir(), Path.home() / ".cursor" / "skills")
+        with patch.dict(
+            "os.environ",
+            {
+                "SKILLS_DIR": "",
+                "HUB": "",
+                "CLAUDE_HOME": "",
+                "GEMINI_HOME": "",
+                "ANTIGRAVITY_HOME": "",
+                "HERMES_HOME": "",
+                "CODEX_HOME": "",
+                "CURSOR_HOME": "",
+            },
+            clear=False,
+        ):
+            self.assertTrue(str(tc.resolve_skills_dir()).endswith(str(Path(".claude") / "skills")))
 
     def test_resolve_skills_dir_skills_override(self) -> None:
         with patch.dict("os.environ", {"SKILLS_DIR": "/tmp/s"}, clear=True):

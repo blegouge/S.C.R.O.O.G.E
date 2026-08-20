@@ -490,7 +490,7 @@ function updateHeaderTitle() {
   if (titleEl) {
     const base = t('brandTitle');
     const provider = availableProviders.find((p) => p.id === source);
-    const suffix = provider ? `(${provider.label})` : '(Cursor)';
+    const suffix = provider ? `(${provider.label})` : '(Claude Code)';
     titleEl.textContent = `${base} ${suffix}`;
   }
 }
@@ -519,9 +519,9 @@ document.getElementById('sourceSelect').addEventListener('change', () => {
 
   availableProviders = providers;
 
-  let activeSource = 'cursor';
+  let activeSource = 'claude';
   try {
-    activeSource = localStorage.getItem('cursor_telemetry_source') || 'cursor';
+    activeSource = localStorage.getItem('cursor_telemetry_source') || 'claude';
   } catch (_) {}
 
   populateProviderSelect(providers, activeSource);

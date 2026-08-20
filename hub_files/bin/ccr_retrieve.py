@@ -20,7 +20,14 @@ def main():
         print("Error: Invalid SHA256 format", file=sys.stderr)
         sys.exit(1)
 
-    home_dir = os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+    home_dir = (
+        os.getenv("CLAUDE_HOME")
+        or os.getenv("GEMINI_HOME")
+        or os.getenv("ANTIGRAVITY_HOME")
+        or os.getenv("HERMES_HOME")
+        or os.getenv("CODEX_HOME")
+        or os.getenv("CURSOR_HOME")
+    )
     if home_dir:
         home_path = Path(home_dir).resolve()
     else:

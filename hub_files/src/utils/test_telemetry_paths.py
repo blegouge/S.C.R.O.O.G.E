@@ -49,10 +49,10 @@ class InferSourceTests(unittest.TestCase):
             with patch.object(tp, "_path_is_relative_to", return_value=True):
                 self.assertEqual(tp.infer_source(), "cursor")
 
-    def test_default_cursor(self) -> None:
+    def test_default_claude(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             with patch.object(tp, "_path_is_relative_to", return_value=False):
-                self.assertEqual(tp.infer_source(), "cursor")
+                self.assertEqual(tp.infer_source(), "claude")
 
 
 class ResolveDataDirTests(unittest.TestCase):
@@ -65,22 +65,24 @@ class ResolveDataDirTests(unittest.TestCase):
     def test_uses_provider_data_dir(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             with patch.object(tp, "get_data_dir", return_value=Path("/tmp/prov")):
-                self.assertEqual(tp.resolve_data_dir("cursor"), Path("/tmp/prov"))
+                self.assertEqual(tp.resolve_data_dir("claude"), Path("/tmp/prov"))
 
-    def test_fallback_cursor_when_none(self) -> None:
+    def test_fallback_claude_when_none(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             with patch.object(tp, "get_data_dir", return_value=None):
                 with patch.object(tp, "infer_source", return_value="unknown"):
-                    self.assertEqual(
-                        tp.resolve_data_dir(), Path.home() / ".cursor" / "token-telemetry"
+                    self.assertTrue(
+                        str(tp.resolve_data_dir()).endswith(
+                            str(Path(".claude") / "token-telemetry")
+                        )
                     )
 
     def test_fallback_codex_when_none(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             with patch.object(tp, "get_data_dir", return_value=None):
                 with patch.object(tp, "infer_source", return_value="codex"):
-                    self.assertEqual(
-                        tp.resolve_data_dir(), Path.home() / ".codex" / "token-telemetry"
+                    self.assertTrue(
+                        str(tp.resolve_data_dir()).endswith(str(Path(".codex") / "token-telemetry"))
                     )
 
     def test_resolve_log_file(self) -> None:

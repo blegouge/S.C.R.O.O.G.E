@@ -358,19 +358,19 @@ def prune_token_telemetry_runtime(dst: Path) -> None:
 def detect_target_name(hub: Path) -> str:
     """Return the target provider id from a hub path."""
     hub_str = str(hub).lower()
-    if "cursor" in hub_str:
-        return "cursor"
-    if "antigravity" in hub_str:
-        return "antigravity"
     if "claude" in hub_str:
         return "claude"
+    if "antigravity" in hub_str:
+        return "antigravity"
+    if "gemini" in hub_str:
+        return "gemini"
     if "hermes" in hub_str:
         return "hermes"
     if "codex" in hub_str:
         return "codex"
-    if "gemini" in hub_str:
-        return "gemini"
-    return "antigravity"
+    if "cursor" in hub_str:
+        return "cursor"
+    return "claude"
 
 
 def json_to_toml_value(value: object) -> str:

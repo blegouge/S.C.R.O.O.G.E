@@ -2,14 +2,6 @@
 # Chaque provider est activé via sa variable d'environnement (disabled par défaut)
 
 sources:
-  cursor:
-    env_enabled: TELEMETRY_CURSOR_ENABLED
-    data_dir: ~/.cursor/token-telemetry
-    rtk_cwd: null
-    env_home: CURSOR_HOME
-    env_stats: CURSOR_STATS_DIR
-    label: Cursor
-
   claude:
     env_enabled: TELEMETRY_CLAUDE_ENABLED
     data_dir: ~/.claude/token-telemetry
@@ -49,3 +41,11 @@ sources:
     env_home: CODEX_HOME
     env_stats: CODEX_STATS_DIR
     label: Codex
+
+  cursor:
+    env_enabled: TELEMETRY_CURSOR_ENABLED
+    data_dir: ~/.cursor/token-telemetry
+    rtk_cwd: null
+    env_home: CURSOR_HOME
+    env_stats: CURSOR_STATS_DIR
+    label: Cursor

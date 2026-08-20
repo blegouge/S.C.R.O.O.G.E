@@ -36,11 +36,11 @@ sys.path.insert(0, str(REPO_ROOT / "hub_files"))
 
 # Deployment roots, longest first: ~/.gemini/antigravity is nested in ~/.gemini.
 AGENT_HOMES: tuple[tuple[str, str], ...] = (
-    ("antigravity", ".gemini/antigravity"),
-    ("codex", ".codex"),
     ("claude", ".claude"),
-    ("hermes", ".hermes"),
+    ("antigravity", ".gemini/antigravity"),
     ("gemini", ".gemini"),
+    ("hermes", ".hermes"),
+    ("codex", ".codex"),
     ("cursor", ".cursor"),
 )
 

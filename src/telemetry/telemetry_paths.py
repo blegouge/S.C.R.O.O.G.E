@@ -11,9 +11,13 @@ def ensure_extended_path() -> None:
     """Ensure PATH contains common CLI binary directories (Homebrew, local bin, cargo) even in frozen app bundle."""
     path_env = os.environ.get("PATH", "")
     existing = path_env.split(os.pathsep) if path_env else []
+    try:
+        home_path = Path.home()
+    except (RuntimeError, OSError):
+        home_path = None
     extra_dirs = [
-        str(Path.home() / ".local" / "bin"),
-        str(Path.home() / ".cargo" / "bin"),
+        str(home_path / ".local" / "bin") if home_path else "",
+        str(home_path / ".cargo" / "bin") if home_path else "",
         "/opt/homebrew/bin",
         "/usr/local/bin",
         "/usr/bin",
@@ -32,6 +36,7 @@ def load_telemetry_env() -> None:
     # 1. Check override
     app_override = (
         os.environ.get("SCROOGE_TOKEN_TELEMETRY_APP", "").strip()
+        or os.environ.get("CLAUDE_TOKEN_TELEMETRY_APP", "").strip()
         or os.environ.get("CURSOR_TOKEN_TELEMETRY_APP", "").strip()
     )
     search_paths = []
@@ -54,14 +59,20 @@ def load_telemetry_env() -> None:
         search_paths.extend(exec_dir.parents)
 
     # 4. Add default app directory and default home paths
-    search_paths.append(Path.home() / ".cursor")
-    search_paths.append(Path.home() / ".gemini" / "antigravity")
-    search_paths.append(Path.home() / ".gemini")
-    search_paths.append(Path.home() / ".claude")
-    search_paths.append(Path.home() / ".hermes")
-    search_paths.append(Path.home() / ".codex")
-    search_paths.append(Path.home() / ".config" / "scrooge")
-    search_paths.append(Path.home() / ".scrooge")
+    try:
+        home = Path.home()
+    except (RuntimeError, OSError):
+        home = None
+
+    if home:
+        search_paths.append(home / ".claude")
+        search_paths.append(home / ".gemini")
+        search_paths.append(home / ".gemini" / "antigravity")
+        search_paths.append(home / ".hermes")
+        search_paths.append(home / ".codex")
+        search_paths.append(home / ".cursor")
+        search_paths.append(home / ".config" / "scrooge")
+        search_paths.append(home / ".scrooge")
 
     for path in search_paths:
         env_file = path / ".env"
@@ -106,20 +117,20 @@ def _path_is_relative_to(path: Path, parent: Path) -> bool:
 
 # Deployment roots, longest first: ~/.gemini/antigravity is nested in ~/.gemini.
 _HOME_HINTS: tuple[tuple[str, str, str], ...] = (
-    ("ANTIGRAVITY_HOME", ".gemini/antigravity", "antigravity"),
-    ("CODEX_HOME", ".codex", "codex"),
     ("CLAUDE_HOME", ".claude", "claude"),
-    ("HERMES_HOME", ".hermes", "hermes"),
+    ("ANTIGRAVITY_HOME", ".gemini/antigravity", "antigravity"),
     ("GEMINI_HOME", ".gemini", "gemini"),
+    ("HERMES_HOME", ".hermes", "hermes"),
+    ("CODEX_HOME", ".codex", "codex"),
     ("CURSOR_HOME", ".cursor", "cursor"),
 )
 
 _EVENT_HINTS: tuple[tuple[str, str], ...] = (
-    ("ANTIGRAVITY_TT_EVENT", "antigravity"),
-    ("CODEX_TT_EVENT", "codex"),
     ("CLAUDE_TT_EVENT", "claude"),
     ("GEMINI_TT_EVENT", "gemini"),
+    ("ANTIGRAVITY_TT_EVENT", "antigravity"),
     ("HERMES_TT_EVENT", "hermes"),
+    ("CODEX_TT_EVENT", "codex"),
     ("CURSOR_TT_EVENT", "cursor"),
 )
 
@@ -137,9 +148,18 @@ def infer_source() -> str:
         configured = os.environ.get(env_name, "").strip()
         if configured and _path_is_relative_to(this_dir, Path(configured)):
             return source
-    for _env_name, rel_home, source in _HOME_HINTS:
-        if _path_is_relative_to(this_dir, Path.home() / rel_home):
-            return source
+    try:
+        home = Path.home()
+    except (RuntimeError, OSError):
+        home = None
+
+    if home:
+        for _env_name, rel_home, source in _HOME_HINTS:
+            try:
+                if _path_is_relative_to(this_dir, home / rel_home):
+                    return source
+            except (RuntimeError, OSError):
+                pass
 
     # Event markers are trustworthy only when a single agent claims the event.
     claimed = {source for env_name, source in _EVENT_HINTS if os.environ.get(env_name, "").strip()}
@@ -154,7 +174,7 @@ def infer_source() -> str:
         if os.environ.get(env_name, "").strip():
             return source
 
-    return "cursor"
+    return "claude"
 
 
 def resolve_data_dir(source: str | None = None) -> Path:
@@ -162,6 +182,7 @@ def resolve_data_dir(source: str | None = None) -> Path:
     # 1. Direct environment variable override
     override = (
         os.environ.get("SCROOGE_TOKEN_TELEMETRY_DATA_DIR", "").strip()
+        or os.environ.get("CLAUDE_TOKEN_TELEMETRY_DATA_DIR", "").strip()
         or os.environ.get("CODEX_TOKEN_TELEMETRY_DATA_DIR", "").strip()
         or os.environ.get("CURSOR_TOKEN_TELEMETRY_DATA_DIR", "").strip()
     )
@@ -169,10 +190,22 @@ def resolve_data_dir(source: str | None = None) -> Path:
         return Path(override).expanduser()
     data_dir = get_data_dir(source or infer_source())
     if data_dir is None:
-        # Fallback to Codex when the provider is unknown but Codex runtime hints exist.
-        if infer_source() == "codex":
-            return Path.home() / ".codex" / "token-telemetry"
-        return Path.home() / ".cursor" / "token-telemetry"
+        try:
+            home = Path.home()
+        except (RuntimeError, OSError):
+            home = Path.cwd()
+        src = infer_source()
+        if src == "codex":
+            return home / ".codex" / "token-telemetry"
+        if src == "cursor":
+            return home / ".cursor" / "token-telemetry"
+        if src == "gemini":
+            return home / ".gemini" / "token-telemetry"
+        if src == "antigravity":
+            return home / ".gemini" / "antigravity" / "token-telemetry"
+        if src == "hermes":
+            return home / ".hermes" / "token-telemetry"
+        return home / ".claude" / "token-telemetry"
     return data_dir
 
 
