@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First public release of the S.C.R.O.O.G.E. agent telemetry stack.
 
+## v1.4.0 (2026-08-20)
+
+### Feat
+
+- **providers**: reorder AI agent priorities to make Claude Code default and Cursor last
+
 ## v1.3.0 (2026-08-17)
 
 ### Feat
