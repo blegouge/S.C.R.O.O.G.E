@@ -20,27 +20,77 @@ from utils.hook_utils import (
 
 class HookUtilsTests(unittest.TestCase):
     @patch.dict(
-        "os.environ", {"CODEX_HOME": "", "ANTIGRAVITY_HOME": "", "CURSOR_HOME": "/dummy/cursor"}
+        "os.environ",
+        {
+            "CLAUDE_HOME": "/dummy/claude",
+            "GEMINI_HOME": "",
+            "ANTIGRAVITY_HOME": "",
+            "HERMES_HOME": "",
+            "CODEX_HOME": "",
+            "CURSOR_HOME": "",
+        },
     )
-    def test_resolve_home_path_cursor(self):
-        self.assertEqual(resolve_home_path(), Path("/dummy/cursor"))
+    def test_resolve_home_path_claude(self):
+        self.assertEqual(resolve_home_path(), Path("/dummy/claude").resolve())
 
     @patch.dict(
         "os.environ",
-        {"CODEX_HOME": "", "ANTIGRAVITY_HOME": "/dummy/antigravity", "CURSOR_HOME": ""},
+        {
+            "CLAUDE_HOME": "",
+            "GEMINI_HOME": "/dummy/gemini",
+            "ANTIGRAVITY_HOME": "",
+            "HERMES_HOME": "",
+            "CODEX_HOME": "",
+            "CURSOR_HOME": "",
+        },
     )
-    def test_resolve_home_path_antigravity(self):
-        self.assertEqual(resolve_home_path(), Path("/dummy/antigravity"))
+    def test_resolve_home_path_gemini(self):
+        self.assertEqual(resolve_home_path(), Path("/dummy/gemini").resolve())
 
     @patch.dict(
-        "os.environ", {"CODEX_HOME": "/dummy/codex", "ANTIGRAVITY_HOME": "", "CURSOR_HOME": ""}
+        "os.environ",
+        {
+            "CLAUDE_HOME": "",
+            "GEMINI_HOME": "",
+            "ANTIGRAVITY_HOME": "/dummy/antigravity",
+            "HERMES_HOME": "",
+            "CODEX_HOME": "",
+            "CURSOR_HOME": "",
+        },
+    )
+    def test_resolve_home_path_antigravity(self):
+        self.assertEqual(resolve_home_path(), Path("/dummy/antigravity").resolve())
+
+    @patch.dict(
+        "os.environ",
+        {
+            "CLAUDE_HOME": "",
+            "GEMINI_HOME": "",
+            "ANTIGRAVITY_HOME": "",
+            "HERMES_HOME": "",
+            "CODEX_HOME": "/dummy/codex",
+            "CURSOR_HOME": "",
+        },
     )
     def test_resolve_home_path_codex(self):
-        self.assertEqual(resolve_home_path(), Path("/dummy/codex"))
+        self.assertEqual(resolve_home_path(), Path("/dummy/codex").resolve())
+
+    @patch.dict(
+        "os.environ",
+        {
+            "CLAUDE_HOME": "",
+            "GEMINI_HOME": "",
+            "ANTIGRAVITY_HOME": "",
+            "HERMES_HOME": "",
+            "CODEX_HOME": "",
+            "CURSOR_HOME": "/dummy/cursor",
+        },
+    )
+    def test_resolve_home_path_cursor(self):
+        self.assertEqual(resolve_home_path(), Path("/dummy/cursor").resolve())
 
     @patch.dict("os.environ", {}, clear=True)
     def test_resolve_home_path_fallback(self):
-        # Should resolve to the grandparent of the module (which is the hub_files directory in this test environment)
         resolved = resolve_home_path()
         self.assertTrue(isinstance(resolved, Path))
 

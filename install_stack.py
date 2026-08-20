@@ -268,12 +268,12 @@ def main() -> int:
     # 1. Target Hub Directory Selection
     home = Path.home()
     possible_targets = [
-        home / ".cursor",
-        home / ".gemini" / "antigravity",
         home / ".claude",
+        home / ".gemini",
+        home / ".gemini" / "antigravity",
         home / ".hermes",
         home / ".codex",
-        home / ".gemini",
+        home / ".cursor",
     ]
 
     detected_targets = [t for t in possible_targets if t.exists()]
@@ -332,24 +332,24 @@ def main() -> int:
     # Save target homes & stats directories in repo's .env
     for HUB in hubs_to_install:
         target_name = detect_target_name(HUB)
-        if target_name == "cursor":
-            repo_env["CURSOR_HOME"] = str(HUB)
-            repo_env["CURSOR_STATS_DIR"] = str(HUB / "token-telemetry")
+        if target_name == "claude":
+            repo_env["CLAUDE_HOME"] = str(HUB)
+            repo_env["CLAUDE_STATS_DIR"] = str(HUB / "token-telemetry")
+        elif target_name == "gemini":
+            repo_env["GEMINI_HOME"] = str(HUB)
+            repo_env["GEMINI_STATS_DIR"] = str(HUB / "token-telemetry")
         elif target_name == "antigravity":
             repo_env["ANTIGRAVITY_HOME"] = str(HUB)
             repo_env["ANTIGRAVITY_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif target_name == "claude":
-            repo_env["CLAUDE_HOME"] = str(HUB)
-            repo_env["CLAUDE_STATS_DIR"] = str(HUB / "token-telemetry")
         elif target_name == "hermes":
             repo_env["HERMES_HOME"] = str(HUB)
             repo_env["HERMES_STATS_DIR"] = str(HUB / "token-telemetry")
         elif target_name == "codex":
             repo_env["CODEX_HOME"] = str(HUB)
             repo_env["CODEX_STATS_DIR"] = str(HUB / "token-telemetry")
-        elif target_name == "gemini":
-            repo_env["GEMINI_HOME"] = str(HUB)
-            repo_env["GEMINI_STATS_DIR"] = str(HUB / "token-telemetry")
+        elif target_name == "cursor":
+            repo_env["CURSOR_HOME"] = str(HUB)
+            repo_env["CURSOR_STATS_DIR"] = str(HUB / "token-telemetry")
 
     save_env_file(
         repo_env_file,
@@ -505,19 +505,21 @@ def main() -> int:
             content = content.replace("~/.codex", str(HUB))
 
             # Context-sensitive replacements for IDE/Agent name
-            if target_name == "cursor":
-                content = content.replace("Antigravity", "Cursor")
-                content = content.replace("antigravity-ide", "cursor")
-                content = content.replace("antigravity", "cursor")
-            elif target_name == "antigravity":
-                content = content.replace("Cursor", "Antigravity")
-                content = content.replace("cursor", "antigravity")
-            elif target_name == "claude":
+            if target_name == "claude":
                 content = content.replace("Antigravity", "Claude Code")
                 content = content.replace("antigravity-ide", "claude")
                 content = content.replace("antigravity", "claude")
                 content = content.replace("Cursor", "Claude Code")
                 content = content.replace("cursor", "claude")
+            elif target_name == "gemini":
+                content = content.replace("Antigravity", "Gemini CLI")
+                content = content.replace("antigravity-ide", "gemini")
+                content = content.replace("antigravity", "gemini")
+                content = content.replace("Cursor", "Gemini CLI")
+                content = content.replace("cursor", "gemini")
+            elif target_name == "antigravity":
+                content = content.replace("Cursor", "Antigravity")
+                content = content.replace("cursor", "antigravity")
             elif target_name == "hermes":
                 content = content.replace("Antigravity", "Hermes")
                 content = content.replace("antigravity-ide", "hermes")
@@ -530,12 +532,10 @@ def main() -> int:
                 content = content.replace("antigravity", "codex")
                 content = content.replace("Cursor", "Codex")
                 content = content.replace("cursor", "codex")
-            elif target_name == "gemini":
-                content = content.replace("Antigravity", "Gemini CLI")
-                content = content.replace("antigravity-ide", "gemini")
-                content = content.replace("antigravity", "gemini")
-                content = content.replace("Cursor", "Gemini CLI")
-                content = content.replace("cursor", "gemini")
+            elif target_name == "cursor":
+                content = content.replace("Antigravity", "Cursor")
+                content = content.replace("antigravity-ide", "cursor")
+                content = content.replace("antigravity", "cursor")
             return content
 
         # Process mcp.json & hooks.json with merge support to avoid overwriting existing configs
@@ -747,8 +747,8 @@ def main() -> int:
 
         print(f"Setting up Python venv at {venv_dir}...")
         try:
-            python_bin = "python3"
-            if shutil.which("python3.12"):
+            python_bin = sys.executable
+            if sys.platform != "win32" and shutil.which("python3.12"):
                 python_bin = "python3.12"
 
             subprocess.run(

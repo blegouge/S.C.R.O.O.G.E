@@ -17,10 +17,13 @@ class PromptRegistryPaths:
     """Filesystem locations used to build the static cache block."""
 
     cursor_home: Path = Path(
-        os.getenv("CODEX_HOME")
+        os.getenv("CLAUDE_HOME")
+        or os.getenv("GEMINI_HOME")
         or os.getenv("ANTIGRAVITY_HOME")
+        or os.getenv("HERMES_HOME")
+        or os.getenv("CODEX_HOME")
         or os.getenv("CURSOR_HOME")
-        or Path.home() / ".cursor"
+        or (Path.home() / ".claude" if hasattr(Path, "home") else Path(".claude"))
     )
 
     @property

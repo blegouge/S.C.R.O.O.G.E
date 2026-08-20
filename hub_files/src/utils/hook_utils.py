@@ -15,14 +15,21 @@ from typing import Any
 def resolve_home_path() -> Path:
     """Resolve the global IDE hub directory.
 
-    Resolves based on active environment variables (CODEX_HOME, ANTIGRAVITY_HOME, CURSOR_HOME)
+    Resolves based on active environment variables (CLAUDE_HOME, GEMINI_HOME, ANTIGRAVITY_HOME, HERMES_HOME, CODEX_HOME, CURSOR_HOME)
     or falls back to the directory containing the running hook script.
     """
-    home_dir = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+    home_dir = (
+        os.getenv("CLAUDE_HOME")
+        or os.getenv("GEMINI_HOME")
+        or os.getenv("ANTIGRAVITY_HOME")
+        or os.getenv("HERMES_HOME")
+        or os.getenv("CODEX_HOME")
+        or os.getenv("CURSOR_HOME")
+    )
     if home_dir:
         return Path(home_dir).resolve()
 
-    # Fallback to grandparent of the hook script (hooks live under hub_files/hooks/ or ~/.cursor/hooks/)
+    # Fallback to grandparent of the hook script (hooks live under hub_files/hooks/ or ~/.claude/hooks/)
     return Path(__file__).resolve().parent.parent.parent
 
 

@@ -17,11 +17,17 @@ _PROBE_ARGS = ["gain", "-d", "--format", "json"]
 
 
 def _compression_env_paths() -> list[pathlib.Path]:
-    home = pathlib.Path.home()
+    try:
+        home = pathlib.Path.home()
+    except (RuntimeError, OSError):
+        return []
     return [
-        home / ".cursor" / "compression.env",
+        home / ".claude" / "compression.env",
+        home / ".gemini" / "compression.env",
         home / ".gemini" / "antigravity" / "compression.env",
+        home / ".hermes" / "compression.env",
         home / ".codex" / "compression.env",
+        home / ".cursor" / "compression.env",
     ]
 
 

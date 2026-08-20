@@ -11,8 +11,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Resolve home directory dynamically based on environment or script path
-_HOME_DIR = os.getenv("CODEX_HOME") or os.getenv("ANTIGRAVITY_HOME") or os.getenv("CURSOR_HOME")
+_HOME_DIR = (
+    os.getenv("CLAUDE_HOME")
+    or os.getenv("GEMINI_HOME")
+    or os.getenv("ANTIGRAVITY_HOME")
+    or os.getenv("HERMES_HOME")
+    or os.getenv("CODEX_HOME")
+    or os.getenv("CURSOR_HOME")
+)
 if _HOME_DIR:
     _HOME_PATH = Path(_HOME_DIR).resolve()
 else:

@@ -9,6 +9,7 @@ import os
 import re
 import secrets
 import sys
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -54,16 +55,16 @@ def _source_from_row(row: dict[str, Any]) -> str | None:
         value = row.get(key)
         if not isinstance(value, str) or not value:
             continue
-        if "/.gemini/antigravity/" in value:
-            return "antigravity"
         if "/.claude/" in value:
             return "claude"
-        if "/.codex/" in value:
-            return "codex"
-        if "/.hermes/" in value:
-            return "hermes"
+        if "/.gemini/antigravity/" in value:
+            return "antigravity"
         if "/.gemini/" in value:
             return "gemini"
+        if "/.hermes/" in value:
+            return "hermes"
+        if "/.codex/" in value:
+            return "codex"
         if "/.cursor/" in value:
             return "cursor"
     return None
@@ -73,6 +74,7 @@ def resolve_log_file(row: dict[str, Any] | None = None) -> Path:
     """Telemetry log path (override with *_TOKEN_TELEMETRY_LOG for tests)."""
     override = (
         os.environ.get("SCROOGE_TOKEN_TELEMETRY_LOG", "").strip()
+        or os.environ.get("CLAUDE_TOKEN_TELEMETRY_LOG", "").strip()
         or os.environ.get("CODEX_TOKEN_TELEMETRY_LOG", "").strip()
         or os.environ.get("CURSOR_TOKEN_TELEMETRY_LOG", "").strip()
     )
@@ -90,16 +92,28 @@ def resolve_skills_dir() -> Path:
     hub = os.environ.get("HUB", "").strip()
     if hub:
         return Path(hub).expanduser() / "skills"
-    codex_home = os.environ.get("CODEX_HOME", "").strip()
-    if codex_home:
-        return Path(codex_home).expanduser() / "skills"
+    claude_home = os.environ.get("CLAUDE_HOME", "").strip()
+    if claude_home:
+        return Path(claude_home).expanduser() / "skills"
+    gemini_home = os.environ.get("GEMINI_HOME", "").strip()
+    if gemini_home:
+        return Path(gemini_home).expanduser() / "skills"
     ag_home = os.environ.get("ANTIGRAVITY_HOME", "").strip()
     if ag_home:
         return Path(ag_home).expanduser() / "skills"
+    hermes_home = os.environ.get("HERMES_HOME", "").strip()
+    if hermes_home:
+        return Path(hermes_home).expanduser() / "skills"
+    codex_home = os.environ.get("CODEX_HOME", "").strip()
+    if codex_home:
+        return Path(codex_home).expanduser() / "skills"
     c_home = os.environ.get("CURSOR_HOME", "").strip()
     if c_home:
         return Path(c_home).expanduser() / "skills"
-    return Path.home() / ".cursor" / "skills"
+    try:
+        return Path.home() / ".claude" / "skills"
+    except (RuntimeError, OSError):
+        return Path.cwd() / "skills"
 
 
 LOG_FILE = resolve_log_file()  # default at import; append_event resolves live
@@ -137,6 +151,9 @@ def utc_ts() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+_APPEND_LOCK = threading.Lock()
+
+
 def append_event(row: dict[str, Any]) -> None:
     row.setdefault("ts", utc_ts())
     log_file = resolve_log_file(row)
@@ -145,42 +162,43 @@ def append_event(row: dict[str, Any]) -> None:
     except Exception:
         # Span context is best-effort; a failure must never block telemetry writes.
         pass
-    log_file.parent.mkdir(parents=True, exist_ok=True)
-    with log_file.open("a", encoding="utf-8") as fh:
-        locked = False
-        pos = 0
-        try:
-            import fcntl
-
-            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-            locked = True
-        except (ImportError, OSError):
+    with _APPEND_LOCK:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        with log_file.open("a", encoding="utf-8") as fh:
+            locked = False
+            pos = 0
             try:
-                import msvcrt
+                import fcntl
 
-                pos = fh.tell()
-                msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore[attr-defined]
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX)  # type: ignore[attr-defined]
                 locked = True
             except (ImportError, OSError):
-                pass
-
-        try:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-            fh.flush()
-        finally:
-            if locked:
                 try:
-                    import fcntl
+                    import msvcrt
 
-                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                    pos = fh.tell()
+                    msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore[attr-defined]
+                    locked = True
                 except (ImportError, OSError):
-                    try:
-                        import msvcrt
+                    pass
 
-                        fh.seek(pos)
-                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
+            try:
+                fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+                fh.flush()
+            finally:
+                if locked:
+                    try:
+                        import fcntl
+
+                        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)  # type: ignore[attr-defined]
                     except (ImportError, OSError):
-                        pass
+                        try:
+                            import msvcrt
+
+                            fh.seek(pos)
+                            msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
+                        except (ImportError, OSError):
+                            pass
 
 
 def _load_known_skills() -> set[str]:

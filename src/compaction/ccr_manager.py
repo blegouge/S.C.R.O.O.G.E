@@ -14,11 +14,21 @@ from pathlib import Path
 
 
 def get_ccr_cache_dir() -> Path:
-    home_dir = os.getenv("CURSOR_HOME") or os.getenv("ANTIGRAVITY_HOME")
+    home_dir = (
+        os.getenv("CLAUDE_HOME")
+        or os.getenv("GEMINI_HOME")
+        or os.getenv("ANTIGRAVITY_HOME")
+        or os.getenv("HERMES_HOME")
+        or os.getenv("CODEX_HOME")
+        or os.getenv("CURSOR_HOME")
+    )
     if home_dir:
         home_path = Path(home_dir).resolve()
     else:
-        home_path = Path.home() / ".cursor"
+        try:
+            home_path = Path.home() / ".claude"
+        except (RuntimeError, OSError):
+            home_path = Path.cwd()
 
     cache_dir = home_path / "projects" / "ccr_cache"
     return cache_dir

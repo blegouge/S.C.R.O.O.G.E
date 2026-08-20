@@ -46,11 +46,14 @@ def package_root() -> pathlib.Path:
 
 
 def get_paths(source: str) -> tuple[pathlib.Path, pathlib.Path]:
-    """Return (log_path, layout_path) for source ('cursor', 'antigravity', 'claude', 'gemini', 'hermes')."""
+    """Return (log_path, layout_path) for source ('claude', 'gemini', 'antigravity', 'hermes', 'codex', 'cursor')."""
     d = get_data_dir(source)
     if d is None:
-        # Fallback to cursor default if provider not found
-        d = pathlib.Path.home() / ".cursor" / "token-telemetry"
+        # Fallback to claude default if provider not found
+        try:
+            d = pathlib.Path.home() / ".claude" / "token-telemetry"
+        except (RuntimeError, OSError):
+            d = pathlib.Path.cwd() / "token-telemetry"
     d.mkdir(parents=True, exist_ok=True)
     return d / "events.jsonl", d / "dashboard-layout.json"
 
@@ -142,7 +145,7 @@ _RTK_GAIN_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _RTK_CACHE_TTL = 30.0
 
 
-def load_rtk_gain(project: bool = False, source: str = "cursor") -> dict[str, Any]:
+def load_rtk_gain(project: bool = False, source: str = "claude") -> dict[str, Any]:
     cache_key = f"{project}:{source}"
     now = time.time()
     with _RTK_GAIN_LOCK:
@@ -270,7 +273,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
-        source = query.get("source", ["cursor"])[0]
+        source = query.get("source", ["claude"])[0]
 
         log_path, layout_path = get_paths(source)
 
@@ -481,7 +484,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
-        source = query.get("source", ["cursor"])[0]
+        source = query.get("source", ["claude"])[0]
 
         log_path, layout_path = get_paths(source)
 

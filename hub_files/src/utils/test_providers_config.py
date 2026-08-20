@@ -102,7 +102,7 @@ class DataDirTests(unittest.TestCase):
 
     def test_default_data_dir(self) -> None:
         with patch.object(pc, "get_provider", return_value=_fake(data_dir="~/plain")):
-            with patch.dict("os.environ", {}, clear=True):
+            with patch.dict("os.environ", {"X_STATS": "", "X_HOME": ""}, clear=False):
                 self.assertEqual(pc.get_data_dir("x"), Path("~/plain").expanduser())
 
 
@@ -119,7 +119,7 @@ class RtkCwdTests(unittest.TestCase):
 
     def test_default_rtk_cwd(self) -> None:
         with patch.object(pc, "get_provider", return_value=_fake(rtk_cwd="~/rtk")):
-            with patch.dict("os.environ", {}, clear=True):
+            with patch.dict("os.environ", {"X_HOME": ""}, clear=False):
                 self.assertEqual(pc.get_rtk_cwd("x"), Path("~/rtk").expanduser())
 
 
@@ -142,19 +142,21 @@ class ExtraProvidersConfigCoverageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
             with (
-                patch.dict("os.environ", {}, clear=True),
+                patch.dict("os.environ", {}, clear=False),
+                patch("providers_config.is_enabled", return_value=False),
                 patch("providers_config.get_data_dir", return_value=tmppath),
             ):
                 enabled = pc.get_enabled_providers()
                 self.assertGreater(len(enabled), 0)
 
-    def test_get_enabled_providers_cursor_fallback(self) -> None:
+    def test_get_enabled_providers_claude_fallback(self) -> None:
         with (
-            patch.dict("os.environ", {}, clear=True),
+            patch.dict("os.environ", {}, clear=False),
+            patch("providers_config.is_enabled", return_value=False),
             patch("providers_config.get_data_dir", return_value=None),
         ):
             enabled = pc.get_enabled_providers()
-            self.assertTrue(any(p["id"] == "cursor" for p in enabled))
+            self.assertTrue(any(p["id"] == "claude" for p in enabled))
 
     def test_find_rtk_binary_candidates(self) -> None:
         import tempfile

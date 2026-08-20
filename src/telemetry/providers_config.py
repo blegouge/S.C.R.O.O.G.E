@@ -148,7 +148,7 @@ def get_enabled_providers() -> list[dict[str, Any]]:
     """Get list of all enabled providers as JSON-serializable dicts.
 
     If no provider is explicitly enabled via environment variable, automatically enable
-    providers whose data directory exists on disk, or fall back to 'cursor'.
+    providers whose data directory exists on disk, or fall back to 'claude'.
     """
     from telemetry_db import fetch_events_from_db
 
@@ -162,9 +162,9 @@ def get_enabled_providers() -> list[dict[str, Any]]:
                 providers.append(p)
 
     if not providers:
-        cursor = get_provider("cursor")
-        if cursor:
-            providers = [cursor]
+        claude = get_provider("claude")
+        if claude:
+            providers = [claude]
 
     result = []
     for p in providers:
@@ -247,12 +247,12 @@ def get_home_dir(name: str) -> Path:
                 return Path(val).expanduser()
 
     defaults: dict[str, Path] = {
-        "cursor": Path.home() / ".cursor",
         "claude": Path.home() / ".claude",
         "gemini": Path.home() / ".gemini",
         "antigravity": Path.home() / ".gemini" / "antigravity",
         "hermes": Path.home() / ".hermes",
         "codex": Path.home() / ".codex",
+        "cursor": Path.home() / ".cursor",
     }
     return defaults.get(name, Path.home() / f".{name}")
 

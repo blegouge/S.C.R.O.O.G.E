@@ -7,9 +7,9 @@ export function getSource() {
     return select.value;
   }
   try {
-    return localStorage.getItem('cursor_telemetry_source') || 'cursor';
+    return localStorage.getItem('cursor_telemetry_source') || 'claude';
   } catch (_) {
-    return 'cursor';
+    return 'claude';
   }
 }
 

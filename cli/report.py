@@ -44,8 +44,8 @@ def main() -> None:
     p.add_argument(
         "--source",
         type=str,
-        choices=["cursor", "antigravity", "claude", "gemini", "hermes", "codex"],
-        default="cursor",
+        choices=["claude", "gemini", "antigravity", "hermes", "codex", "cursor"],
+        default="claude",
         help="Telemetry data source",
     )
     p.add_argument(

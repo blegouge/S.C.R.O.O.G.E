@@ -36,33 +36,50 @@ from .gemini import GeminiProvider
 from .hermes import HermesProvider
 
 _PROVIDERS: dict[str, type[BaseProvider]] = {
-    "cursor": CursorProvider,
     "claude": ClaudeProvider,
-    "codex": CodexProvider,
-    "antigravity": AntigravityProvider,
     "gemini": GeminiProvider,
+    "antigravity": AntigravityProvider,
     "hermes": HermesProvider,
+    "codex": CodexProvider,
+    "cursor": CursorProvider,
 }
 
 
 # Deployment roots, longest first: ~/.gemini/antigravity is nested in ~/.gemini.
 _HOME_HINTS: tuple[tuple[str, str, str], ...] = (
-    ("ANTIGRAVITY_HOME", ".gemini/antigravity", "antigravity"),
-    ("CODEX_HOME", ".codex", "codex"),
     ("CLAUDE_HOME", ".claude", "claude"),
-    ("HERMES_HOME", ".hermes", "hermes"),
+    ("ANTIGRAVITY_HOME", ".gemini/antigravity", "antigravity"),
     ("GEMINI_HOME", ".gemini", "gemini"),
+    ("HERMES_HOME", ".hermes", "hermes"),
+    ("CODEX_HOME", ".codex", "codex"),
     ("CURSOR_HOME", ".cursor", "cursor"),
 )
 
 _EVENT_HINTS: tuple[tuple[str, str], ...] = (
-    ("ANTIGRAVITY_TT_EVENT", "antigravity"),
-    ("CODEX_TT_EVENT", "codex"),
     ("CLAUDE_TT_EVENT", "claude"),
     ("GEMINI_TT_EVENT", "gemini"),
+    ("ANTIGRAVITY_TT_EVENT", "antigravity"),
     ("HERMES_TT_EVENT", "hermes"),
+    ("CODEX_TT_EVENT", "codex"),
     ("CURSOR_TT_EVENT", "cursor"),
 )
+
+
+def _path_is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        if hasattr(path, "is_relative_to"):
+            if path.resolve().is_relative_to(root.resolve()):
+                return True
+    except (ValueError, OSError):
+        pass
+    try:
+        p_str = os.path.normcase(os.path.abspath(str(path)))
+        r_str = os.path.normcase(os.path.abspath(str(root)))
+        if p_str == r_str:
+            return True
+        return p_str.startswith(r_str.rstrip("\\/") + os.sep)
+    except Exception:
+        return False
 
 
 def source_from_install_path(path: Path) -> str | None:
@@ -72,13 +89,13 @@ def source_from_install_path(path: Path) -> str | None:
         configured = os.environ.get(env_name, "").strip()
         if configured:
             roots.append(Path(configured).expanduser())
-        roots.append(Path.home() / rel_home)
+        try:
+            roots.append(Path.home() / rel_home)
+        except (RuntimeError, OSError):
+            pass
         for root in roots:
-            try:
-                if path.is_relative_to(root.resolve()):
-                    return source
-            except (ValueError, OSError):
-                continue
+            if _path_is_relative_to(path, root):
+                return source
     return None
 
 
@@ -102,7 +119,7 @@ def detect_provider() -> BaseProvider:
     1. SCROOGE_TELEMETRY_SOURCE override
     2. Install path of this module — every agent has its own deployment root
     3. *_TT_EVENT, only when a single agent claims the event
-    4. Default fallback → Cursor
+    4. Default fallback → Claude Code
     """
     explicit = os.environ.get("SCROOGE_TELEMETRY_SOURCE", "").strip().lower()
     if explicit in _PROVIDERS:
@@ -116,14 +133,14 @@ def detect_provider() -> BaseProvider:
     if source is None:
         source = source_from_event_vars()
 
-    return _PROVIDERS.get(source or "cursor", CursorProvider)()
+    return _PROVIDERS.get(source or "claude", ClaudeProvider)()
 
 
 def get_provider(name: str) -> BaseProvider:
     """Get a provider instance by name.
 
     Args:
-        name: Provider identifier (cursor, claude, codex, antigravity, gemini, hermes)
+        name: Provider identifier (claude, gemini, antigravity, hermes, codex, cursor)
 
     Returns:
         Provider instance
