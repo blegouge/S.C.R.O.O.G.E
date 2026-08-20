@@ -8,7 +8,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue.svg?logo=python&logoColor=white)](https://python.org)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)](#)
-[![Supported IDEs: Cursor | Antigravity | Claude Code | Gemini | Codex](https://img.shields.io/badge/IDEs-Cursor%20%7C%20Antigravity%20%7C%20ClaudeCode%20%7C%20Gemini%20%7C%20Codex-purple.svg)](#)
+[![Supported Agents: Claude Code | Gemini | Antigravity | Hermes | Codex | Cursor](https://img.shields.io/badge/Agents-ClaudeCode%20%7C%20Gemini%20%7C%20Antigravity%20%7C%20Hermes%20%7C%20Codex%20%7C%20Cursor-purple.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 S.C.R.O.O.G.E. (Smart Context Reducer & Optimized Observability Governance Engine) is a local developer proxy metrics and optimization suite built to measure, visualize, and drastically reduce the cost of running LLM-assisted programming workflows. It automatically intercepts agent requests, applies aggressive compression strategies, and monitors workspace compliance in real-time.
@@ -85,13 +85,13 @@ python3 install_stack.py
 ```
 
 ### What the installer does:
-1. **Target Hub Selection**: Auto-detects and installs configuration templates to `~/.cursor`, `~/.gemini/antigravity`, `~/.codex`, or custom locations.
+1. **Target Hub Selection**: Auto-detects and installs configuration templates to `~/.claude`, `~/.gemini`, `~/.gemini/antigravity`, `~/.hermes`, `~/.codex`, `~/.cursor`, or custom locations.
 2. **Codebase Directory**: Asks for your active workspace path to configure code-explorer.
 3. **Compression Backend**: Configures whether to use `claw`, `headroom`, `both`, or disable compaction.
 4. **uv / uvx**: Offers to install Astral uv (provides uvx) if missing, OS-aware, with confirmation.
 5. **Interactive Secret Setup**: Collects your API tokens once (Grafana, GitHub, MySQL, etc.) and writes them to a secure `.env` file (`chmod 600`).
 6. **Python Virtual Environment**: Creates a dedicated `.venv-desktop` environment and installs dependencies.
-7. **Rule/Skill Normalization**: Rewrites references to fit the target IDE/agent, including Codex-specific hooks and MCP config (Cursor, Antigravity, Claude Code, or Codex).
+7. **Rule/Skill Normalization**: Rewrites references to fit the target IDE/agent (Claude Code, Gemini CLI, Antigravity, Hermes, Codex, or Cursor).
 8. **Verification**: Executes [docs/verify_stack.py](docs/verify_stack.py) to validate all components.
 9. **Daemon Launch**: Offers to automatically start the dashboard daemon in the background on port `8765`.
 
