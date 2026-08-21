@@ -1,6 +1,6 @@
 {
   "name": "scrooge-dashboard",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "SCROOGE Dashboard Frontend Tools",
   "private": true,
   "scripts": {
