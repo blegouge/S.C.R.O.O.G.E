@@ -31,7 +31,6 @@ DASHBOARD_RUNTIME_FILES = {
     "report.py": "cli",
     "requirements-desktop.txt": ".",
     "requirements-desktop-linux.lock": ".",
-    "requirements-desktop-macos.lock": ".",
     "requirements-desktop-windows.lock": ".",
     "rtk_resolver.py": "src/telemetry",
     "serve_dashboard.py": "dashboard",

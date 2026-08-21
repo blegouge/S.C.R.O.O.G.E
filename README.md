@@ -28,7 +28,6 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 1. **📊 Local S.C.R.O.O.G.E Telemetry**
    - Logs metrics asynchronously to a local, append-only `events.jsonl` file, and syncs them incrementally into a central SQLite database (`telemetry.db`).
    - Query endpoints utilize the indexed SQLite database for fast O(log N) searches.
-   - Compiles into a native **macOS Desktop App** (`.app` bundle via PyInstaller) for a standalone window dashboard.
 
 2. **🗜️ Context Compression & Optimizations**
    - **RTK Gain**: Integrates with shell command savings (saves up to 98% on command runs, estimated).
@@ -71,8 +70,6 @@ The Python core lives under `src/` (packaged, unit-tested), the UI under `dashbo
 | 📁 [hub_files/](hub_files/) | Agent/IDE integration layer deployed to the hub: `hooks/` (telemetry, Diff-Only, RTK, semantic compression, compliance), `providers/` (per-IDE detection), `rules/` (`*.mdc`), `skills/`, `src/utils/` (adaptive context manager, diff applier, guardrails, summarizers + their unit tests), and `bin/` (helper scripts). |
 | 📁 [docs/](docs/) | Documentation and post-install verifier ([verify_stack.py](docs/verify_stack.py)). |
 | 📁 [examples/](examples/) | Integration samples: compression middleware and flash summarizer smoke test. |
-| 📁 [native_app/](native_app/) | PyInstaller spec ([SCROOGE.spec](native_app/SCROOGE.spec)) for the macOS `.app` bundle. |
-| 📦 [build_macos_app.sh](build_macos_app.sh) | Builds `dist/SCROOGE.app` (PyInstaller + ad-hoc signature). |
 
 ---
 
@@ -91,18 +88,18 @@ Run the automated installer from the repository root:
 python3 install_stack.py
 ```
 
-### What the installer does:
-1. **Target Hub Selection**: Auto-detects and installs configuration templates to `~/.cursor`, `~/.gemini/antigravity`, `~/.codex`, or custom locations.
-2. **Codebase Directory**: Asks for your active workspace path to configure code-explorer.
-3. **Compression Backend**: Configures whether to use `claw`, `headroom`, `both`, or disable compaction.
-4. **uv / uvx**: Offers to install Astral uv (provides uvx) if missing, OS-aware, with confirmation.
-5. **Interactive Secret Setup**: Collects your API tokens once (Grafana, GitHub, MySQL, etc.) and writes them to a secure `.env` file (`chmod 600`).
+This interactive script performs:
+1. **Prerequisite Checks**: Verifies Python 3.12+ and Git.
+2. **Environment File Generation**: Creates `.env` and `compression.env` if missing.
+3. **Core Telemetry Setup**: Prepares database structure and directory layout.
+4. **Hub File Synchronization**: Copies agent hooks, rules, and skills to your active agent environment (Cursor, Antigravity, Claude Code, or Codex).
+5. **RTK Resolver Setup**: Resolves or installs local RTK binary wrappers.
 6. **Python Virtual Environment**: Creates a dedicated `.venv-desktop` environment and installs dependencies.
 7. **Rule/Skill Normalization**: Rewrites references to fit the target IDE/agent, including Codex-specific hooks and MCP config (Cursor, Antigravity, Claude Code, or Codex).
 8. **Verification**: Executes [docs/verify_stack.py](docs/verify_stack.py) to validate all components.
 9. **Daemon Launch**: Offers to automatically start the dashboard daemon in the background on port `8765`.
 
-Dependency locks are platform-specific. The installer uses `requirements-desktop-macos.lock`, `requirements-desktop-linux.lock`, or `requirements-desktop-windows.lock` when available, and falls back to the portable `requirements-desktop.txt` otherwise. See [docs/DEPENDENCY_LOCKS.md](docs/DEPENDENCY_LOCKS.md).
+Dependency locks are platform-specific. The installer uses `requirements-desktop-linux.lock` or `requirements-desktop-windows.lock` when available, and falls back to the portable `requirements-desktop.txt` otherwise. See [docs/DEPENDENCY_LOCKS.md](docs/DEPENDENCY_LOCKS.md).
 
 ---
 
@@ -153,13 +150,6 @@ If you chose not to start it during installation, run:
 python3 dashboard/serve_dashboard.py
 # Open http://127.0.0.1:8765/
 ```
-
-### Build a Standalone macOS App (`.app`)
-To generate a double-clickable macOS bundle in your Dock:
-```bash
-./build_macos_app.sh
-```
-This builds `dist/SCROOGE.app` using PyInstaller, embeds the logo, and applies an ad-hoc signature.
 
 ---
 

@@ -684,7 +684,6 @@ Le dashboard recalcule aussi les anciennes lignes via `compression_input_tokens`
 |-----------|------------------|
 | CLI | `python3 ~/.gemini/antigravity/token-telemetry/report.py` — inclut `claw=` / `llmlingua=` |
 | Web | `serve_dashboard.py` → http://127.0.0.1:8765/ |
-| App macOS | `./build_macos_app.sh` → `dist/SCROOGE.app` (**rebuild** après changement `dashboard.html`) |
 | Fenêtre native | `dashboard_app.py` (pywebview) |
 | API RTK | `/api/rtk-gain` (global + projet) |
 
@@ -823,7 +822,6 @@ Dans `skills-antigravity/` (maintenance Antigravity / meta) :
 | `beforeSubmitPrompt` ne réécrit pas le prompt user | Compression user-side limitée | Reformuler prompt ; compacter pièces jointes |
 | Premier run LLMLingua | Téléchargement modèle HF | `COMPRESSION_BACKEND=claw` par défaut évite HF ; `llmlingua` si besoin |
 | Claw + structuration hub | Prompt final peut **grossir** (règles/skills injectées) | Économie mesurée **entrée brute → final** ; pas seulement delta blocs internes |
-| Dashboard `.app` figé | HTML embarqué ancien | `./build_macos_app.sh` après MAJ `dashboard.html` |
 | Graph stale | Routage incomplet | `code-review-graph update --repo "$PWD"` |
 | Secrets dans `mcp.json` / `events.jsonl` | Fuite si partage brut | `safe-output-hygiene` ; rotation logs |
 

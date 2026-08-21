@@ -239,13 +239,11 @@ def ensure_mcp_git_tokens(secrets_file: Path) -> None:
 def select_desktop_requirements(token_telemetry_dir: Path) -> Path:
     """Choose a requirements file compatible with the current platform.
 
-    Lock files are platform-specific because GUI dependencies such as PyObjC
-    are only valid on macOS. If a lock for the current platform is absent, fall
-    back to the portable input requirements and let pip resolve local wheels.
+    If a lock for the current platform is absent, fall back to the portable
+    input requirements and let pip resolve local wheels.
     """
     req_txt = token_telemetry_dir / "requirements-desktop.txt"
     platform_lock_names = {
-        "darwin": "requirements-desktop-macos.lock",
         "linux": "requirements-desktop-linux.lock",
         "win32": "requirements-desktop-windows.lock",
     }

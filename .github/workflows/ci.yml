@@ -86,7 +86,7 @@ jobs:
       # that is only used locally for desktop dev and does not affect the safety
       # of the local tool. The ignore will be removed when a patch is released.
       - name: Audit Dependencies with pip-audit
-        run: pip-audit -r requirements-desktop.txt -r requirements-native-build.txt -r requirements-dev.txt --ignore-vuln PYSEC-2026-597
+        run: pip-audit -r requirements-desktop.txt -r requirements-dev.txt --ignore-vuln PYSEC-2026-597
 
       # Bandit targets production code; test files are excluded so unit-test
       # fixtures (e.g. env var names containing "TOKEN") don't trip B105.
