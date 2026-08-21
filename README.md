@@ -2,7 +2,7 @@
   <img src="docs/fr/assets/icon.jpg" alt="S.C.R.O.O.G.E Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
 </p>
 
-# 🚀 S.C.R.O.O.G.E - Context Optimization & Telemetry Stack
+# S.C.R.O.O.G.E - Context Optimization & Telemetry Stack
 
 > **Local Proxy Metrics & Intelligent Prompt Compression for Next-Gen IDEs**
 
@@ -15,27 +15,27 @@ S.C.R.O.O.G.E (Smart Context Reducer & Optimized Observability Governance Engine
 
 ---
 
-## 📸 Dashboard Preview
+## Dashboard Preview
 
-### 📊 Main Metrics & Savings
+### Main Metrics & Savings
 The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-time token histograms, and a counterfactual chart displaying observed usage versus estimated consumption without optimizations.
 ![Main Dashboard View](docs/fr/assets/dashboard_main.png)
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-1. **📊 Local S.C.R.O.O.G.E Telemetry**
+1. **Local S.C.R.O.O.G.E Telemetry**
    - Logs metrics asynchronously to a local, append-only `events.jsonl` file, and syncs them incrementally into a central SQLite database (`telemetry.db`).
    - Query endpoints utilize the indexed SQLite database for fast O(log N) searches.
 
-2. **🗜️ Context Compression & Optimizations**
+2. **Context Compression & Optimizations**
    - **RTK Gain**: Integrates with shell command savings (saves up to 98% on command runs, estimated).
    - **Diff-Only Protocol**: Applies SEARCH/REPLACE delta patching to avoid rewriting large source files, saving up to 95% of output tokens (estimated).
    - **Claw Compactor & LLMLingua**: Reduces dynamic context size by pruning low-information tokens before sending payloads.
    - **Headroom local engines**: `SmartCrusher` (structural pruning) and `CCR` (Compress-Cache-Retrieve) for large logs/blocks.
 
-3. **🔄 Adaptive Context Routing**
+3. **Adaptive Context Routing**
    - Assembles requests deterministically:
      1. `BLOCK_1`: Static global rules, cursor rules, and active skills.
      2. `BLOCK_1B`: Token budget guardrails.
@@ -44,36 +44,36 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
      5. `BLOCK_4`: Latest query.
    - Compacts history above the configured thresholds (code defaults: 8 messages / 3000 tokens; the shipped `compression.env` raises them to 10 / 4000). See [ADAPTIVE_CONTEXT_ROUTING.md](ADAPTIVE_CONTEXT_ROUTING.md).
 
-4. **⚡ Git Pre-flight Cache**
+4. **Git Pre-flight Cache**
    - Computes a signature based on `git branch + HEAD SHA + modified files`.
    - Reuses compacted workspace states instantly, bypassing redundant LLM summarization.
 
-5. **🛡️ Compliance & Governance**
+5. **Compliance & Governance**
    - Blocks subagents if the task brief is invalid or lacks required parameters.
    - Validates that the agent outputs a structured consumption report at the end of each turn.
    - All hooks utilize a fail-safe execution wrapper to prevent any script crashes from blocking editor operations.
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 The Python core lives under `src/` (packaged, unit-tested), the UI under `dashboard/`, and everything deployed into an agent/IDE hub (`~/.cursor`, `~/.codex`, `~/.gemini/antigravity`, …) lives under `hub_files/`.
 
 | Path | Description |
 |---|---|
-| 🛠️ [install_stack.py](install_stack.py) | Interactive, idempotent, and automated setup script. |
-| 📁 [src/telemetry/](src/telemetry/) | Telemetry core: SQLite manager ([telemetry_db.py](src/telemetry/telemetry_db.py)), path/provider resolution ([telemetry_paths.py](src/telemetry/telemetry_paths.py), [providers_config.py](src/telemetry/providers_config.py)), config ([telemetry_config.py](src/telemetry/telemetry_config.py)), KPI aggregation ([telemetry_metrics.py](src/telemetry/telemetry_metrics.py)), measured-vs-modeled taxonomy ([measurement_source.py](src/telemetry/measurement_source.py)), RTK binary resolver ([rtk_resolver.py](src/telemetry/rtk_resolver.py)), shared helpers ([telemetry_common.py](src/telemetry/telemetry_common.py)). |
-| 📁 [src/compaction/](src/compaction/) | Compression engines: LLMLingua ([token_compactor.py](src/compaction/token_compactor.py)), Claw adapter ([claw_compactor_adapter.py](src/compaction/claw_compactor_adapter.py)), Headroom adapter ([headroom_adapter.py](src/compaction/headroom_adapter.py)), SmartCrusher ([smart_crusher.py](src/compaction/smart_crusher.py)), CCR cache ([ccr_manager.py](src/compaction/ccr_manager.py)). |
-| 📁 [src/bridge/](src/bridge/) | External log ingestion into telemetry ([hermes_telemetry_bridge.py](src/bridge/hermes_telemetry_bridge.py)). |
-| 📁 [dashboard/](dashboard/) | Web SPA ([dashboard.html](dashboard/dashboard.html), JS/CSS), HTTP backend ([serve_dashboard.py](dashboard/serve_dashboard.py)), and native window loader ([dashboard_app.py](dashboard/dashboard_app.py)). |
-| 📁 [cli/](cli/) | CLI reporting utilities ([report.py](cli/report.py)). |
-| 📁 [hub_files/](hub_files/) | Agent/IDE integration layer deployed to the hub: `hooks/` (telemetry, Diff-Only, RTK, semantic compression, compliance), `providers/` (per-IDE detection), `rules/` (`*.mdc`), `skills/`, `src/utils/` (adaptive context manager, diff applier, guardrails, summarizers + their unit tests), and `bin/` (helper scripts). |
-| 📁 [docs/](docs/) | Documentation and post-install verifier ([verify_stack.py](docs/verify_stack.py)). |
-| 📁 [examples/](examples/) | Integration samples: compression middleware and flash summarizer smoke test. |
+| [install_stack.py](install_stack.py) | Interactive, idempotent, and automated setup script. |
+| [src/telemetry/](src/telemetry/) | Telemetry core: SQLite manager ([telemetry_db.py](src/telemetry/telemetry_db.py)), path/provider resolution ([telemetry_paths.py](src/telemetry/telemetry_paths.py), [providers_config.py](src/telemetry/providers_config.py)), config ([telemetry_config.py](src/telemetry/telemetry_config.py)), KPI aggregation ([telemetry_metrics.py](src/telemetry/telemetry_metrics.py)), measured-vs-modeled taxonomy ([measurement_source.py](src/telemetry/measurement_source.py)), RTK binary resolver ([rtk_resolver.py](src/telemetry/rtk_resolver.py)), shared helpers ([telemetry_common.py](src/telemetry/telemetry_common.py)). |
+| [src/compaction/](src/compaction/) | Compression engines: LLMLingua ([token_compactor.py](src/compaction/token_compactor.py)), Claw adapter ([claw_compactor_adapter.py](src/compaction/claw_compactor_adapter.py)), Headroom adapter ([headroom_adapter.py](src/compaction/headroom_adapter.py)), SmartCrusher ([smart_crusher.py](src/compaction/smart_crusher.py)), CCR cache ([ccr_manager.py](src/compaction/ccr_manager.py)). |
+| [src/bridge/](src/bridge/) | External log ingestion into telemetry ([hermes_telemetry_bridge.py](src/bridge/hermes_telemetry_bridge.py)). |
+| [dashboard/](dashboard/) | Web SPA ([dashboard.html](dashboard/dashboard.html), JS/CSS), HTTP backend ([serve_dashboard.py](dashboard/serve_dashboard.py)), and native window loader ([dashboard_app.py](dashboard/dashboard_app.py)). |
+| [cli/](cli/) | CLI reporting utilities ([report.py](cli/report.py)). |
+| [hub_files/](hub_files/) | Agent/IDE integration layer deployed to the hub: `hooks/` (telemetry, Diff-Only, RTK, semantic compression, compliance), `providers/` (per-IDE detection), `rules/` (`*.mdc`), `skills/`, `src/utils/` (adaptive context manager, diff applier, guardrails, summarizers + their unit tests), and `bin/` (helper scripts). |
+| [docs/](docs/) | Documentation and post-install verifier ([verify_stack.py](docs/verify_stack.py)). |
+| [examples/](examples/) | Integration samples: compression middleware and flash summarizer smoke test. |
 
 ---
 
-## 🚀 Installation Guide
+## Installation Guide
 
 Clone the repository (folder name has no trailing period — required for Windows):
 
@@ -103,7 +103,7 @@ Dependency locks are platform-specific. The installer uses `requirements-desktop
 
 ---
 
-## ⚙️ Configuration File Overview
+##  Configuration File Overview
 
 ### 1. `compression.env`
 Defines parameters and thresholds for context compression (see [hub_files/compression.env.example](hub_files/compression.env.example)):
@@ -136,7 +136,7 @@ Located in your IDE/agent hub folder (e.g. `~/.cursor/` or `~/.codex/`), they de
 
 ---
 
-## 🖥️ Usage
+##  Usage
 
 ### Terminal Report
 Run the report CLI (from the repository root) to see a summary of your session consumption:
@@ -153,6 +153,6 @@ python3 dashboard/serve_dashboard.py
 
 ---
 
-## 🔒 Privacy & Rotation
+## Privacy & Rotation
 All agent payloads, which may contain file paths, queries, and code outputs, are logged strictly on your local machine in `events.jsonl`.
 Keep this file private, and rotate/delete it whenever necessary.
