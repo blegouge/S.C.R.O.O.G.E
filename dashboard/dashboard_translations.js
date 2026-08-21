@@ -1,6 +1,6 @@
 export const TRANSLATIONS = {
   en: {
-    brandTitle: 'S.C.R.O.O.G.E.',
+    brandTitle: 'S.C.R.O.O.G.E',
     brandSub: 'Smart Context Reducer & Optimized Observability Governance Engine',
     navInfoTip:
       'Local telemetry — the chart compares observed consumption (billed by Cursor when available) to an estimate without optimizations (real + RTK savings, Task compression, Diff-Only).',
@@ -245,7 +245,7 @@ export const TRANSLATIONS = {
   },
 
   fr: {
-    brandTitle: 'S.C.R.O.O.G.E.',
+    brandTitle: 'S.C.R.O.O.G.E',
     brandSub: 'Smart Context Reducer & Optimized Observability Governance Engine',
     navInfoTip:
       'Télémesure locale — le graphique compare la consommation observée (facturée par Cursor si disponible) à une estimation sans optimisations (gains réels + RTK, compression Task, Diff-Only).',

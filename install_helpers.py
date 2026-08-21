@@ -414,7 +414,7 @@ def append_codex_mcp_config(config_path: Path, mcp_data: dict[str, object]) -> N
         return
 
     config_path.parent.mkdir(parents=True, exist_ok=True)
-    header = "\n# S.C.R.O.O.G.E. MCP servers (managed by install_stack.py)\n"
+    header = "\n# S.C.R.O.O.G.E MCP servers (managed by install_stack.py)\n"
     with config_path.open("a", encoding="utf-8") as f:
         if existing and not existing.endswith("\n"):
             f.write("\n")

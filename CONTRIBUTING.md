@@ -1,13 +1,13 @@
-# Contributing to S.C.R.O.O.G.E.
+# Contributing to S.C.R.O.O.G.E
 
-Thank you for your interest in contributing to S.C.R.O.O.G.E.!
+Thank you for your interest in contributing to S.C.R.O.O.G.E!
 
 ## Local Development Setup
 
 1. **Clone the repository**:
    ```bash
-   git clone git@github.com:blegouge/S.C.R.O.O.G.E..git
-   cd TelemetryToken
+   git clone git@github.com:blegouge/S.C.R.O.O.G.E.git
+   cd S.C.R.O.O.G.E
    ```
 
 2. **Initialize python environment**:

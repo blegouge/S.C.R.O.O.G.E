@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/icon.jpg" alt="S.C.R.O.O.G.E. Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
+  <img src="assets/icon.jpg" alt="S.C.R.O.O.G.E Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
 </p>
 
-# 🚀 S.C.R.O.O.G.E. - Context Optimization & Telemetry Stack
+# 🚀 S.C.R.O.O.G.E - Context Optimization & Telemetry Stack
 
 > **Métriques locales par proxy et compression intelligente des invites (prompts) pour les IDE de nouvelle génération**
 
@@ -11,7 +11,7 @@
 [![Supported IDEs: Cursor | Antigravity | Claude Code | Gemini | Codex](https://img.shields.io/badge/IDEs-Cursor%20%7C%20Antigravity%20%7C%20ClaudeCode%20%7C%20Gemini%20%7C%20Codex-purple.svg)](#)
 [![Licence: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 
-S.C.R.O.O.G.E. (Smart Context Reducer & Optimized Observability Governance Engine) est une suite locale de métriques de proxy de développement et d'optimisation conçue pour mesurer, visualiser et réduire considérablement le coût d'exécution des workflows de programmation assistés par IA. Elle intercepte automatiquement les requêtes d'agent, applique des stratégies de compression agressives et surveille la conformité de l'espace de travail en temps réel.
+S.C.R.O.O.G.E (Smart Context Reducer & Optimized Observability Governance Engine) est une suite locale de métriques de proxy de développement et d'optimisation conçue pour mesurer, visualiser et réduire considérablement le coût d'exécution des workflows de programmation assistés par IA. Elle intercepte automatiquement les requêtes d'agent, applique des stratégies de compression agressives et surveille la conformité de l'espace de travail en temps réel.
 
 ---
 
@@ -29,7 +29,7 @@ Faites défiler vers le bas pour suivre chaque session de sous-agent, analyser l
 
 ## ✨ Fonctionnalités Clés
 
-1. **📊 Télémétrie locale S.C.R.O.O.G.E.**
+1. **📊 Télémétrie locale S.C.R.O.O.G.E**
    - Enregistre les métriques de manière asynchrone dans un fichier local `events.jsonl`, puis les synchronise de façon incrémentale dans une base SQLite centrale (`telemetry.db`).
    - Les endpoints de requêtes interrogent directement la base SQLite indexée pour des recherches rapides en O(log N).
    - S'exécute aussi comme une **App macOS Desktop native** (via PyInstaller) pour une expérience autonome sans navigateur.
@@ -80,6 +80,13 @@ Le cœur Python est packagé sous `src/`, l'interface sous `dashboard/`, et tout
 ---
 
 ## 🚀 Guide d'Installation
+
+Clonez le dépôt (le nom du dossier ne doit pas se terminer par un point — requis sous Windows) :
+
+```bash
+git clone git@github.com:blegouge/S.C.R.O.O.G.E.git
+cd S.C.R.O.O.G.E
+```
 
 Exécutez l'installateur automatisé depuis la racine du dépôt :
 

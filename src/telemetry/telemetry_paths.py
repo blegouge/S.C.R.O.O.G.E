@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve S.C.R.O.O.G.E. application vs persistent data directories."""
+"""Resolve S.C.R.O.O.G.E application vs persistent data directories."""
 
 from __future__ import annotations
 

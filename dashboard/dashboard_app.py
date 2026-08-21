@@ -38,7 +38,7 @@ def main() -> None:
 
     try:
         webview.create_window(
-            "S.C.R.O.O.G.E.",
+            "S.C.R.O.O.G.E",
             url,
             width=1280,
             height=840,

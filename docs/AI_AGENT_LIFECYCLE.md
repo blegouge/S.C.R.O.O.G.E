@@ -1,6 +1,6 @@
-# AI Agent Lifecycle in S.C.R.O.O.G.E.
+# AI Agent Lifecycle in S.C.R.O.O.G.E
 
-This document explains what happens during an AI-agent turn when S.C.R.O.O.G.E. is installed around an agent hub such as Codex, Cursor, Claude Code, Gemini, or Antigravity.
+This document explains what happens during an AI-agent turn when S.C.R.O.O.G.E is installed around an agent hub such as Codex, Cursor, Claude Code, Gemini, or Antigravity.
 
 The short version: an agent is not only "a model answering a prompt". In this project, an agent turn is a pipeline made of instructions, skills, tool calls, hooks, compression, telemetry, and a dashboard that helps you understand cost and quality.
 
@@ -12,7 +12,7 @@ An AI coding agent has three layers:
 2. **Execution layer**: tools run commands, edit files, call MCP servers, or delegate to subagents.
 3. **Governance layer**: hooks, rules, skills, compression, and telemetry shape the work and measure its cost.
 
-S.C.R.O.O.G.E. mainly lives in the governance layer. It does not replace the agent. It surrounds the agent with guardrails, token-saving behaviors, and observability.
+S.C.R.O.O.G.E mainly lives in the governance layer. It does not replace the agent. It surrounds the agent with guardrails, token-saving behaviors, and observability.
 
 ## High-Level Lifecycle
 
@@ -56,7 +56,7 @@ The installed guidance tells Codex to be token-aware and to use RTK-shaped shell
 
 Rules are lightweight policy. Skills are reusable workflows.
 
-S.C.R.O.O.G.E. installs rules under:
+S.C.R.O.O.G.E installs rules under:
 
 ```text
 <hub>/rules/
@@ -119,7 +119,7 @@ In Codex, RTK is currently initialized through:
 ~/.codex/RTK.md
 ```
 
-and S.C.R.O.O.G.E. finds the binary via:
+and S.C.R.O.O.G.E finds the binary via:
 
 ```text
 RTK_BIN=/home/matthieu/.local/bin/rtk
@@ -157,7 +157,7 @@ hub_files/codex/hooks.json
 
 The main Codex hook events used here are:
 
-| Event | S.C.R.O.O.G.E. hook | Purpose |
+| Event | S.C.R.O.O.G.E hook | Purpose |
 |---|---|---|
 | `PreToolUse` | `codex-rtk-pretool-bash.sh`, `semantic-compress-pretool.sh`, `diff-only-pretool-write.sh` | Rewrites noisy Bash commands through RTK, compresses Task/subagent prompts when exposed as `Task`, and blocks risky full-file writes when Diff-Only policy applies. |
 | `UserPromptSubmit` | `tt-user-prompt-submit.sh` | Records prompt-size telemetry before the turn begins. |
@@ -176,7 +176,7 @@ hub_files/hooks.json
 
 ## Stage 5: Compression and Context Routing
 
-S.C.R.O.O.G.E. tries to avoid sending unnecessary text to the model.
+S.C.R.O.O.G.E tries to avoid sending unnecessary text to the model.
 
 The compression flow includes:
 
@@ -220,7 +220,7 @@ During a turn, the agent may use tools:
 - subagents
 - browser or UI tools, when available
 
-S.C.R.O.O.G.E. watches those actions through hooks.
+S.C.R.O.O.G.E watches those actions through hooks.
 
 For example:
 
@@ -228,7 +228,7 @@ For example:
 sequenceDiagram
     participant User
     participant Agent
-    participant Hook as S.C.R.O.O.G.E. Hook
+    participant Hook as S.C.R.O.O.G.E Hook
     participant Tool
     participant Log as events.jsonl
 
@@ -266,7 +266,7 @@ This saves output tokens and makes edits easier to audit.
 
 Subagents are useful when work can be split into independent tracks, but they can be expensive if they re-read the same files.
 
-S.C.R.O.O.G.E. tries to make subagents cheaper by requiring structured briefs:
+S.C.R.O.O.G.E tries to make subagents cheaper by requiring structured briefs:
 
 - `Skill: ...`
 - `[CONTEXT]` excerpts
@@ -365,7 +365,7 @@ You can control the dashboard with:
 ~/.codex/bin/dashboard-control.sh restart
 ```
 
-## Full S.C.R.O.O.G.E. Flow
+## Full S.C.R.O.O.G.E Flow
 
 ```mermaid
 flowchart LR
@@ -427,7 +427,7 @@ Not every agent surface exposes the same lifecycle hooks.
 
 Cursor and Antigravity support some hook names that Codex does not use directly. Codex uses PascalCase hook events such as `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `PreCompact`, `PostCompact`, and `Stop`.
 
-For Codex, S.C.R.O.O.G.E. uses two reduction paths:
+For Codex, S.C.R.O.O.G.E uses two reduction paths:
 
 - **Bash path**: `PreToolUse` with matcher `^Bash$` runs `codex-rtk-pretool-bash.sh`. The hook asks `rtk rewrite` for a compact equivalent, returns `updated_input` when RTK has a rewrite, and records `rtkShellRewrite`.
 - **Subagent path**: `PreToolUse` with matcher `^Task$` runs `semantic-compress-pretool.sh`. This activates only when Codex exposes the spawn as a `Task` tool. Codex subagents are explicit, so no `Task` launch means no Task compression event.
