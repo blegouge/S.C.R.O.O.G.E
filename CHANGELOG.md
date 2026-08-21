@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First public release of the S.C.R.O.O.G.E agent telemetry stack.
 
+## v1.4.2 (2026-08-21)
+
+### Refactor
+
+- **native**: remove macOS app build pipeline and related references
+
 ## v1.4.1 (2026-08-21)
 
 ### Fix
