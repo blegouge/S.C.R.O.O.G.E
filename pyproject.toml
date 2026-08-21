@@ -28,11 +28,6 @@ desktop = [
     "numpy<2",
     "claw-compactor[accurate]>=7.1.0",
 ]
-build = [
-    "pywebview>=5.0,<6",
-    "pyinstaller>=6.0,<8",
-    "pyyaml>=6.0",
-]
 
 [tool.ruff]
 target-version = "py312"

@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Local S.C.R.O.O.G.E application for AI agent hubs: dashboard, CLI reports, Claw Compactor venv, and macOS `.app` build. **Persistent data** stays in the selected hub, such as `~/.cursor/token-telemetry/` or `~/.codex/token-telemetry/`.
+Local S.C.R.O.O.G.E application for AI agent hubs: dashboard, CLI reports, and Claw Compactor venv. **Persistent data** stays in the selected hub, such as `~/.cursor/token-telemetry/` or `~/.codex/token-telemetry/`.
 
 ## Stack
 
-- Python 3.12+ (`.venv-desktop` for Claw / desktop deps, `.venv-build` for PyInstaller)
+- Python 3.12+ (`.venv-desktop` for Claw / desktop deps)
 - Static dashboard: `dashboard.html` + `serve_dashboard.py` (HTTP on `127.0.0.1:8765`)
-- Optional native shell: `dashboard_app.py` (pywebview), `build_macos_app.sh`
+- Optional native shell: `dashboard_app.py` (pywebview)
 
 ## Paths (SSOT: `telemetry_paths.py`)
 
@@ -25,5 +25,4 @@ Hub hooks import this package via `SCROOGE_TOKEN_TELEMETRY_APP` or the legacy `C
 ```bash
 python3 ~/www/private/SCROOGE/report.py
 python3 ~/www/private/SCROOGE/serve_dashboard.py
-cd ~/www/private/SCROOGE && ./build_macos_app.sh
 ```

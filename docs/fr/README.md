@@ -32,7 +32,6 @@ Faites défiler vers le bas pour suivre chaque session de sous-agent, analyser l
 1. **📊 Télémétrie locale S.C.R.O.O.G.E**
    - Enregistre les métriques de manière asynchrone dans un fichier local `events.jsonl`, puis les synchronise de façon incrémentale dans une base SQLite centrale (`telemetry.db`).
    - Les endpoints de requêtes interrogent directement la base SQLite indexée pour des recherches rapides en O(log N).
-   - S'exécute aussi comme une **App macOS Desktop native** (via PyInstaller) pour une expérience autonome sans navigateur.
 
 2. **🗜️ Compression de contexte & Optimisations**
    - **RTK Gain** : S'intègre avec les économies de commandes shell (jusqu'à 98% d'économie sur les exécutions de commandes).
@@ -75,7 +74,6 @@ Le cœur Python est packagé sous `src/`, l'interface sous `dashboard/`, et tout
 | 📁 [hub_files/](../../hub_files/) | Couche d'intégration agent/IDE déployée dans le hub : `hooks/` (télémétrie, Diff-Only, RTK, compression, conformité), `providers/` (détection par IDE), `rules/` (`*.mdc`), `skills/`, `src/utils/` (adaptive context manager, diff applier, garde-fous, résumeurs + tests unitaires) et `bin/` (scripts utilitaires). |
 | 📁 [docs/](../../docs/) | Documentation et vérificateur post-installation ([verify_stack.py](../verify_stack.py)). |
 | 📁 [examples/](../../examples/) | Exemples d'intégration : middleware de compression et smoke test du flash summarizer. |
-| 📁 [native_app/](../../native_app/) | Spec PyInstaller ([SCROOGE.spec](../../native_app/SCROOGE.spec)) pour le bundle `.app` macOS. |
 
 ---
 
@@ -121,27 +119,16 @@ LLMLINGUA_HOOK_MIN_CHARS=2500
 ADAPTIVE_CTX_TOKEN_THRESHOLD=4000
 ADAPTIVE_CTX_MESSAGE_THRESHOLD=10
 CCR_ENABLED=1
-CCR_THRESHOLD_CHARS=4000
-SMART_CRUSHER_N=10
-SMART_CRUSHER_M=10
-```
+Définit les seuils de compression de contexte.
 
 ### 2. `mcp.secrets.env`
-Stocke les clés d'API et identifiants privés chargés par les scripts wrappers MCP :
-```ini
-GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...
-GRAFANA_API_TOKEN=glsa_...
-MYSQL_PASSWORD=...
-```
-
-### 3. `hooks.json` & `mcp.json`
-Situés dans le dossier Hub (ex: `~/.cursor/` ou `~/.codex/`), ils définissent les hooks actifs (ex: `postToolUse`, `afterAgentResponse`) et enregistrent les serveurs MCP locaux.
+Stocke les identifiants privés chargés par les scripts wrapper MCP.
 
 ---
 
 ## 🖥️ Utilisation
 
-### Rapport en Terminal
+### Rapport Terminal
 Affichez le résumé de consommation de votre session active (depuis la racine du dépôt) :
 ```bash
 python3 cli/report.py
@@ -153,13 +140,6 @@ Si vous ne l'avez pas lancé lors de l'installation, exécutez :
 python3 dashboard/serve_dashboard.py
 # Ouvrir http://127.0.0.1:8765/
 ```
-
-### Compilation en Application macOS autonome (`.app`)
-Pour générer un exécutable double-cliquable dans votre Dock macOS :
-```bash
-./build_macos_app.sh
-```
-Cela générera `dist/SCROOGE.app` via PyInstaller, inclura l'icône de l'application et effectuera une signature locale.
 
 ---
 

@@ -22,7 +22,6 @@ class DesktopRequirementsSelectionTests(unittest.TestCase):
             root = Path(tmp)
             (root / "requirements-desktop.txt").write_text("portable\n", encoding="utf-8")
             (root / "requirements-desktop-linux.lock").write_text("linux\n", encoding="utf-8")
-            (root / "requirements-desktop-macos.lock").write_text("macos\n", encoding="utf-8")
 
             with patch("install_stack.sys.platform", "linux"):
                 self.assertEqual(
@@ -34,7 +33,6 @@ class DesktopRequirementsSelectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "requirements-desktop.txt").write_text("portable\n", encoding="utf-8")
-            (root / "requirements-desktop-macos.lock").write_text("macos\n", encoding="utf-8")
 
             with patch("install_stack.sys.platform", "linux"):
                 self.assertEqual(
@@ -42,16 +40,15 @@ class DesktopRequirementsSelectionTests(unittest.TestCase):
                     "requirements-desktop.txt",
                 )
 
-    def test_macos_uses_macos_lock(self) -> None:
+    def test_darwin_uses_portable_requirements(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "requirements-desktop.txt").write_text("portable\n", encoding="utf-8")
-            (root / "requirements-desktop-macos.lock").write_text("macos\n", encoding="utf-8")
 
             with patch("install_stack.sys.platform", "darwin"):
                 self.assertEqual(
                     select_desktop_requirements(root).name,
-                    "requirements-desktop-macos.lock",
+                    "requirements-desktop.txt",
                 )
 
     def test_windows_uses_windows_lock_when_present(self) -> None:

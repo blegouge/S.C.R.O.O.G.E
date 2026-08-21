@@ -1,9 +1,7 @@
 /.venv/
-/.venv-build/
 /.venv-desktop/
 /build/
 /dist/
-/native_app/*.icns
 __pycache__/
 *.py[cod]
 *$py.class

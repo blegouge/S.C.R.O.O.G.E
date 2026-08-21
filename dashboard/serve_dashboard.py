@@ -38,7 +38,7 @@ from providers_config import (
 
 
 def package_root() -> pathlib.Path:
-    """Bundle HTML/icon: PyInstaller extract dir when frozen; else script directory."""
+    """Directory containing static HTML/assets (script directory)."""
     if getattr(sys, "frozen", False):
         return pathlib.Path(sys._MEIPASS)  # type: ignore[attr-defined]
 
@@ -435,8 +435,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # Serve static files dynamically and securely
         target_file = (package_root() / path.lstrip("/")).resolve()
         pkg_root = package_root().resolve()
-        if getattr(sys, "frozen", False) and pkg_root.name in ("Frameworks", "Resources", "MacOS"):
-            pkg_root = pkg_root.parent
         try:
             if target_file.is_file() and target_file.is_relative_to(pkg_root):
                 suffix = target_file.suffix.lower()
