@@ -1,8 +1,8 @@
-# S.C.R.O.O.G.E.
+# S.C.R.O.O.G.E
 
 ## Purpose
 
-Local S.C.R.O.O.G.E. application for AI agent hubs: dashboard, CLI reports, Claw Compactor venv, and macOS `.app` build. **Persistent data** stays in the selected hub, such as `~/.cursor/token-telemetry/` or `~/.codex/token-telemetry/`.
+Local S.C.R.O.O.G.E application for AI agent hubs: dashboard, CLI reports, Claw Compactor venv, and macOS `.app` build. **Persistent data** stays in the selected hub, such as `~/.cursor/token-telemetry/` or `~/.codex/token-telemetry/`.
 
 ## Stack
 

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/fr/assets/icon.jpg" alt="S.C.R.O.O.G.E. Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
+  <img src="docs/fr/assets/icon.jpg" alt="S.C.R.O.O.G.E Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
 </p>
 
-# 🚀 S.C.R.O.O.G.E. - Context Optimization & Telemetry Stack
+# 🚀 S.C.R.O.O.G.E - Context Optimization & Telemetry Stack
 
 > **Local Proxy Metrics & Intelligent Prompt Compression for Next-Gen IDEs**
 
@@ -11,7 +11,7 @@
 [![Supported IDEs: Cursor | Antigravity | Claude Code | Gemini | Codex](https://img.shields.io/badge/IDEs-Cursor%20%7C%20Antigravity%20%7C%20ClaudeCode%20%7C%20Gemini%20%7C%20Codex-purple.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-S.C.R.O.O.G.E. (Smart Context Reducer & Optimized Observability Governance Engine) is a local developer proxy metrics and optimization suite built to measure, visualize, and drastically reduce the cost of running LLM-assisted programming workflows. It automatically intercepts agent requests, applies aggressive compression strategies, and monitors workspace compliance in real-time.
+S.C.R.O.O.G.E (Smart Context Reducer & Optimized Observability Governance Engine) is a local developer proxy metrics and optimization suite built to measure, visualize, and drastically reduce the cost of running LLM-assisted programming workflows. It automatically intercepts agent requests, applies aggressive compression strategies, and monitors workspace compliance in real-time.
 
 ---
 
@@ -25,7 +25,7 @@ The dashboard offers a dark neon "terminal-style" theme with KPI cards, real-tim
 
 ## ✨ Key Features
 
-1. **📊 Local S.C.R.O.O.G.E. Telemetry**
+1. **📊 Local S.C.R.O.O.G.E Telemetry**
    - Logs metrics asynchronously to a local, append-only `events.jsonl` file, and syncs them incrementally into a central SQLite database (`telemetry.db`).
    - Query endpoints utilize the indexed SQLite database for fast O(log N) searches.
    - Compiles into a native **macOS Desktop App** (`.app` bundle via PyInstaller) for a standalone window dashboard.
@@ -77,6 +77,13 @@ The Python core lives under `src/` (packaged, unit-tested), the UI under `dashbo
 ---
 
 ## 🚀 Installation Guide
+
+Clone the repository (folder name has no trailing period — required for Windows):
+
+```bash
+git clone git@github.com:blegouge/S.C.R.O.O.G.E.git
+cd S.C.R.O.O.G.E
+```
 
 Run the automated installer from the repository root:
 

@@ -1,5 +1,5 @@
 [project]
-name = "telemetry-token"
+name = "scrooge"
 version = "1.4.0"
 description = "Token Optimization Stack"
 readme = "README.md"

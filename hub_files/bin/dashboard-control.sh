@@ -46,12 +46,12 @@ find_app_pid() {
 
 status_dashboard() {
   if is_running; then
-    echo "S.C.R.O.O.G.E. dashboard running: PID $(cat "${PID_FILE}")"
+    echo "S.C.R.O.O.G.E dashboard running: PID $(cat "${PID_FILE}")"
   elif pid="$(find_app_pid)" && [[ -n "${pid}" ]]; then
     echo "${pid}" > "${PID_FILE}"
-    echo "S.C.R.O.O.G.E. dashboard running: PID ${pid} (PID file restored)"
+    echo "S.C.R.O.O.G.E dashboard running: PID ${pid} (PID file restored)"
   else
-    echo "S.C.R.O.O.G.E. dashboard not running for HUB=${HUB_DIR}"
+    echo "S.C.R.O.O.G.E dashboard not running for HUB=${HUB_DIR}"
     return 1
   fi
 }
@@ -71,9 +71,9 @@ start_dashboard() {
   sleep 0.5
   url="$(grep -Eo 'http://[^ ]+' "${LOG_FILE}" 2>/dev/null | tail -n 1 || true)"
   if [[ -n "${url}" ]]; then
-    echo "S.C.R.O.O.G.E. dashboard started: PID $(cat "${PID_FILE}") -> ${url}"
+    echo "S.C.R.O.O.G.E dashboard started: PID $(cat "${PID_FILE}") -> ${url}"
   else
-    echo "S.C.R.O.O.G.E. dashboard started: PID $(cat "${PID_FILE}") (see ${LOG_FILE} for URL)"
+    echo "S.C.R.O.O.G.E dashboard started: PID $(cat "${PID_FILE}") (see ${LOG_FILE} for URL)"
   fi
 }
 
@@ -98,7 +98,7 @@ stop_dashboard() {
       return 1
     fi
     rm -f "${PID_FILE}"
-    echo "S.C.R.O.O.G.E. dashboard stopped: PID ${pid}"
+    echo "S.C.R.O.O.G.E dashboard stopped: PID ${pid}"
     return 0
   fi
 

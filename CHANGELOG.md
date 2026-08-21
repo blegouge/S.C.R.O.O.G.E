@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-07-07
 
 ### Added
-- First public release of the S.C.R.O.O.G.E. agent telemetry stack.
+- First public release of the S.C.R.O.O.G.E agent telemetry stack.
 
 ## v1.4.0 (2026-08-20)
 
@@ -61,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **telemetry**: implement accurate token measurement and align quality tools (P0)
 - setup comprehensive CI pipeline with linting, security, and tests
 - **claude-code**: add support for Claude Code hooks and telemetry
-- rename telemetry proxy application to S.C.R.O.O.G.E.
+- rename telemetry proxy application to S.C.R.O.O.G.E
 - implement architectural evolutions 1 to 5
 - add full-page error when no providers configured
 - externalize AI provider config to YAML

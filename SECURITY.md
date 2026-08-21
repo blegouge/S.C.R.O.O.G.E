@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Only the latest release of S.C.R.O.O.G.E. is supported with security updates.
+Only the latest release of S.C.R.O.O.G.E is supported with security updates.
 
 ## Reporting a Vulnerability
 

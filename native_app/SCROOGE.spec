@@ -89,8 +89,8 @@ app = BUNDLE(
     bundle_identifier="com.local.cursor.SCROOGE",
     icon=icon_arg,
     info_plist={
-        "CFBundleDisplayName": "S.C.R.O.O.G.E.",
-        "CFBundleName": "S.C.R.O.O.G.E.",
+        "CFBundleDisplayName": "S.C.R.O.O.G.E",
+        "CFBundleName": "S.C.R.O.O.G.E",
         "NSHumanReadableCopyright": "Local tooling; not affiliated with Cursor.",
         "NSHighResolutionCapable": True,
         "LSMinimumSystemVersion": "11.0",

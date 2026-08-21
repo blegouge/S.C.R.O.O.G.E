@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unified Configuration Manager for S.C.R.O.O.G.E. and Optimization Stack."""
+"""Unified Configuration Manager for S.C.R.O.O.G.E and Optimization Stack."""
 
 from __future__ import annotations
 
