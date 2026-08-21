@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First public release of the S.C.R.O.O.G.E agent telemetry stack.
 
+## v1.4.1 (2026-08-21)
+
+### Fix
+
+- **docs**: drop trailing period from S.C.R.O.O.G.E clone path
+
 ## v1.4.0 (2026-08-20)
 
 ### Feat
