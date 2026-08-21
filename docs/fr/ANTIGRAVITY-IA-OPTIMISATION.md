@@ -714,7 +714,7 @@ Registre : `~/.gemini/antigravity/mcp.json` (**ne jamais committer** — tokens 
 | `code-explorer` | Ripgrep sur arborescence configurée |
 | `grafana` | Dashboards / métriques internes |
 | `els-product` / `els-catalog` | Recherche logs Elasticsearch |
-| `bong` / `oxy` | Requêtes MySQL métier |
+| `mysql` | Requêtes base de données MySQL |
 | `datadog` | Logs, métriques, incidents DD |
 | `github` / `gitlab` | Issues, MR, CI, fichiers distants |
 | `atlassian` | Jira + Confluence (SSE officiel) |

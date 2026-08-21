@@ -75,7 +75,7 @@ Emit a one-line internal decision (not required in user reply unless debugging M
 
 **Jira → local handoff:** If the parent already fetched the ticket and embedded excerpts in `[CONTEXT]` (`spec-driven-idempotency`), treat the **subagent** scope as **`LOCAL_CODE`** even when the conversation started from Jira. Atlassian MCP stays on the **parent** only unless the subagent brief explicitly requires live Jira/Confluence reads (`RESCAN: allowed` + reason).
 
-**Upgrade triggers:** User or ticket text explicitly names Datadog, Grafana, Elasticsearch, MySQL (`bong`/`oxy`), GitHub/GitLab API, Atlassian, production logs/metrics/traces, or “check prod” → at least **`HYBRID`** for that subagent.
+**Upgrade triggers:** User or ticket text explicitly names Datadog, Grafana, Elasticsearch, MySQL, GitHub/GitLab API, Atlassian, production logs/metrics/traces, or “check prod” → at least **`HYBRID`** for that subagent.
 
 ### Exclusive routing (parent, before `Task`)
 
